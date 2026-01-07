@@ -1,0 +1,54 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=7 format=3 uid="uid://sj02shnq1juh"]
+
+[ext_resource type="Script" path="res://Scripts/Equipment/Weapon.cs" id="1_8r1dg"]
+[ext_resource type="Resource" uid="uid://dwwspf5u6xxwa" path="res://Resources/Prefabs/Dice/Black Dice.tres" id="1_xvsu2"]
+[ext_resource type="Script" path="res://Scripts/Encounter/Player/PlayerMove.cs" id="2_wy2rm"]
+[ext_resource type="Texture2D" uid="uid://cx3brhryrw36t" path="res://Resources/Prefabs/Player/Herald/Equipment/Spear.png" id="3_ekoa7"]
+
+[sub_resource type="Resource" id="Resource_ecivw"]
+script = ExtResource("2_wy2rm")
+staminaCost = 0
+damage = Array[Object]([ExtResource("1_xvsu2")])
+modifier = 0
+attackRange = 0
+isNotZeroRange = true
+isAOE = false
+isMagic = false
+isLeap = false
+isPush = false
+statusEffect = 4
+bonusMovement = 0
+repeat = 0
+
+[sub_resource type="Resource" id="Resource_i5hun"]
+script = ExtResource("2_wy2rm")
+staminaCost = 3
+damage = Array[Object]([ExtResource("1_xvsu2")])
+modifier = 1
+attackRange = 0
+isNotZeroRange = true
+isAOE = false
+isMagic = false
+isLeap = false
+isPush = false
+statusEffect = 4
+bonusMovement = 0
+repeat = 0
+
+[resource]
+script = ExtResource("1_8r1dg")
+name = "Spear"
+image = ExtResource("3_ekoa7")
+type = 1
+rarity = 0
+isUpgrade = false
+attackRange = 1
+attacks = Array[Object]([SubResource("Resource_ecivw"), SubResource("Resource_i5hun")])
+physicalDefense = null
+magicDefense = null
+dodgeAbility = 0
+upgradeSlots = 0
+strengthReq = 0
+dexterityReq = 0
+intelligenceReq = 0
+faithReq = 0

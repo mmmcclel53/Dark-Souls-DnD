@@ -1,0 +1,55 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=8 format=3 uid="uid://d1lcimbi5nshm"]
+
+[ext_resource type="Resource" uid="uid://beglixal73dym" path="res://Resources/Prefabs/Dice/Blue Dice.tres" id="1_bj1d4"]
+[ext_resource type="Script" path="res://Scripts/Encounter/Player/PlayerMove.cs" id="1_mc85p"]
+[ext_resource type="Script" path="res://Scripts/Equipment/Weapon.cs" id="1_ssbvp"]
+[ext_resource type="Resource" uid="uid://dwwspf5u6xxwa" path="res://Resources/Prefabs/Dice/Black Dice.tres" id="3_dx6f8"]
+[ext_resource type="Texture2D" uid="uid://c8idy1frrmm5n" path="res://Resources/Prefabs/Player/Knight/Equipment/Long Sword.png" id="4_483yo"]
+
+[sub_resource type="Resource" id="Resource_r6nav"]
+script = ExtResource("1_mc85p")
+staminaCost = 0
+damage = Array[Object]([ExtResource("1_bj1d4")])
+modifier = 0
+attackRange = 0
+isNotZeroRange = false
+isAOE = false
+isMagic = false
+isLeap = false
+isPush = false
+statusEffect = 4
+bonusMovement = 0
+repeat = 0
+
+[sub_resource type="Resource" id="Resource_tor6s"]
+script = ExtResource("1_mc85p")
+staminaCost = 4
+damage = Array[Object]([ExtResource("3_dx6f8"), ExtResource("1_bj1d4")])
+modifier = 0
+attackRange = 0
+isNotZeroRange = false
+isAOE = false
+isMagic = false
+isLeap = false
+isPush = false
+statusEffect = 4
+bonusMovement = 0
+repeat = 0
+
+[resource]
+script = ExtResource("1_ssbvp")
+name = "Long Sword"
+image = ExtResource("4_483yo")
+type = 1
+rarity = 0
+isUpgrade = false
+attackRange = 0
+attacks = Array[Object]([SubResource("Resource_r6nav"), SubResource("Resource_tor6s")])
+physicalDefense = null
+magicDefense = null
+dodgeAbility = 0
+upgradeSlots = 0
+strengthReq = 13
+dexterityReq = 12
+intelligenceReq = 0
+faithReq = 0

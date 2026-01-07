@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="Armour" load_steps=5 format=3 uid="uid://dd03b702nj0gc"]
+
+[ext_resource type="Resource" uid="uid://dwwspf5u6xxwa" path="res://Resources/Prefabs/Dice/Black Dice.tres" id="1_g6tpw"]
+[ext_resource type="Script" path="res://Scripts/Equipment/Armour.cs" id="1_r5dr7"]
+[ext_resource type="Texture2D" uid="uid://bi45t16qpeyuh" path="res://Resources/Prefabs/Player/Knight/Equipment/Knight Armour.png" id="1_t13f0"]
+[ext_resource type="Resource" uid="uid://beglixal73dym" path="res://Resources/Prefabs/Dice/Blue Dice.tres" id="2_5fri1"]
+
+[resource]
+script = ExtResource("1_r5dr7")
+name = "Knight Armour"
+image = ExtResource("1_t13f0")
+type = 0
+rarity = 0
+isUpgrade = false
+physicalDefense = Array[Object]([ExtResource("2_5fri1")])
+magicDefense = Array[Object]([ExtResource("1_g6tpw")])
+dodgeAbility = 0
+upgradeSlots = 0
+strengthReq = 12
+dexterityReq = 0
+intelligenceReq = 0
+faithReq = 0

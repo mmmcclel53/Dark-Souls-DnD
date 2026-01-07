@@ -1,0 +1,110 @@
+[gd_scene load_steps=15 format=3 uid="uid://d4klkh4uctk1c"]
+
+[ext_resource type="Theme" uid="uid://b4u8wpfygl601" path="res://Theme.tres" id="1_2gf44"]
+[ext_resource type="Texture2D" uid="uid://c1qqm6jq11jti" path="res://Resources/Images/Sprites/Soul.png" id="2_yhsmk"]
+[ext_resource type="PackedScene" uid="uid://vyauk3qln5xa" path="res://Resources/Prefabs/Player/Player.tscn" id="3_gg1so"]
+[ext_resource type="Script" path="res://Scripts/MainMenu/Bonfire/BonfireListener.cs" id="3_jum7p"]
+[ext_resource type="Texture2D" uid="uid://clgbl7l3wjhxb" path="res://Resources/Images/Backgrounds/Bonfire.png" id="5_7chxv"]
+[ext_resource type="Script" path="res://Scripts/MainMenu/Bonfire/BonfireOptions.cs" id="6_eampm"]
+[ext_resource type="Script" path="res://Scripts/MainMenu/Equipment/EquipmentSelect.cs" id="7_hmn7e"]
+[ext_resource type="Texture2D" uid="uid://be6t42lo0ceq" path="res://Resources/Prefabs/Player/Knight/Equipment/Kite Shield.png" id="7_o7bno"]
+[ext_resource type="FontVariation" uid="uid://sv82bym31oaq" path="res://DS_Font.tres" id="7_w4dae"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_yagvi"]
+texture_margin_left = 8.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_qugqk"]
+texture_margin_right = 8.0
+
+[sub_resource type="LabelSettings" id="LabelSettings_g01v7"]
+line_spacing = 4.0
+font_size = 20
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_s01pd"]
+bg_color = Color(0.12549, 0.12549, 0.12549, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4ote5"]
+bg_color = Color(0.215686, 0.215686, 0.215686, 1)
+
+[node name="Game" type="Node"]
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+unique_name_in_owner = true
+
+[node name="AspectRatioContainer" type="AspectRatioContainer" parent="CanvasLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+ratio = 1.78
+stretch_mode = 0
+
+[node name="UI" type="VBoxContainer" parent="CanvasLayer/AspectRatioContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme = ExtResource("1_2gf44")
+alignment = 1
+
+[node name="Title Panel" type="ColorRect" parent="CanvasLayer/AspectRatioContainer/UI"]
+layout_mode = 2
+size_flags_vertical = 3
+color = Color(0.12549, 0.12549, 0.12549, 1)
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI/Title Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Bonfire" type="Label" parent="CanvasLayer/AspectRatioContainer/UI/Title Panel/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 24
+theme_override_styles/normal = SubResource("StyleBoxTexture_yagvi")
+text = "Bonfire"
+
+[node name="Souls Icon" type="TextureRect" parent="CanvasLayer/AspectRatioContainer/UI/Title Panel/HBoxContainer"]
+layout_mode = 2
+texture = ExtResource("2_yhsmk")
+expand_mode = 2
+
+[node name="Souls Amount" type="Label" parent="CanvasLayer/AspectRatioContainer/UI/Title Panel/HBoxContainer"]
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxTexture_qugqk")
+text = "53"
+label_settings = SubResource("LabelSettings_g01v7")
+
+[node name="Board" type="HBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI"]
+layout_mode = 2
+size_flags_vertical = 3
+size_flags_stretch_ratio = 15.0
+alignment = 1
+script = ExtResource("3_jum7p")
+players = Array[PackedScene]([ExtResource("3_gg1so"), ExtResource("3_gg1so")])
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Bonfire" type="TextureRect" parent="CanvasLayer/AspectRatioContainer/UI/Board"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+texture = ExtResource("5_7chxv")
+expand_mode = 5
+stretch_mode = 4
+flip_h = true
+
+[node name="Options" type="VBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.35
+anchor_top = 0.25
+anchor_right = 0.65
+anchor_bottom = 0.6
+grow_horizontal = 2
+grow_verti

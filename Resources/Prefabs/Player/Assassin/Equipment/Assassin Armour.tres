@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="Armour" load_steps=4 format=3 uid="uid://b3rb3npeqm00g"]
+
+[ext_resource type="Texture2D" uid="uid://cdi2r2brt0qev" path="res://Resources/Prefabs/Player/Assassin/Equipment/Assassin Armour.png" id="1_3txxa"]
+[ext_resource type="Script" path="res://Scripts/Equipment/Armour.cs" id="1_4j8de"]
+[ext_resource type="Resource" uid="uid://dwwspf5u6xxwa" path="res://Resources/Prefabs/Dice/Black Dice.tres" id="2_4qjdx"]
+
+[resource]
+script = ExtResource("1_4j8de")
+name = "Assassin Armour"
+image = ExtResource("1_3txxa")
+type = 0
+rarity = 0
+isUpgrade = false
+physicalDefense = Array[Object]([ExtResource("2_4qjdx")])
+magicDefense = Array[Object]([ExtResource("2_4qjdx")])
+dodgeAbility = 1
+upgradeSlots = 0
+strengthReq = 10
+dexterityReq = 14
+intelligenceReq = 0
+faithReq = 0

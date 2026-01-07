@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="Armour" load_steps=4 format=3 uid="uid://bg4skpw0l8ici"]
+
+[ext_resource type="Texture2D" uid="uid://dmoj581pemodw" path="res://Resources/Prefabs/Player/Deprived/Equipment/Loincloth.png" id="1_kly82"]
+[ext_resource type="Script" path="res://Scripts/Equipment/Armour.cs" id="1_ns4xq"]
+[ext_resource type="Resource" uid="uid://dwwspf5u6xxwa" path="res://Resources/Prefabs/Dice/Black Dice.tres" id="2_op7ax"]
+
+[resource]
+script = ExtResource("1_ns4xq")
+name = "Loincloth"
+image = ExtResource("1_kly82")
+type = 0
+rarity = 0
+isUpgrade = false
+physicalDefense = null
+magicDefense = Array[Object]([ExtResource("2_op7ax")])
+dodgeAbility = 0
+upgradeSlots = 0
+strengthReq = 0
+dexterityReq = 0
+intelligenceReq = 0
+faithReq = 0

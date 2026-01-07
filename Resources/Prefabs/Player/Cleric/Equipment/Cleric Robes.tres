@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="Armour" load_steps=5 format=3 uid="uid://bx5lfxfl2ktxq"]
+
+[ext_resource type="Script" path="res://Scripts/Equipment/Armour.cs" id="1_8o31e"]
+[ext_resource type="Texture2D" uid="uid://b0xjd7ksimxkt" path="res://Resources/Prefabs/Player/Cleric/Equipment/Cleric Robes.png" id="1_bo8dk"]
+[ext_resource type="Resource" uid="uid://beglixal73dym" path="res://Resources/Prefabs/Dice/Blue Dice.tres" id="2_7isko"]
+[ext_resource type="Resource" uid="uid://dwwspf5u6xxwa" path="res://Resources/Prefabs/Dice/Black Dice.tres" id="3_05y8u"]
+
+[resource]
+script = ExtResource("1_8o31e")
+name = "Cleric Robes"
+image = ExtResource("1_bo8dk")
+type = 0
+rarity = 0
+isUpgrade = false
+physicalDefense = Array[Object]([ExtResource("3_05y8u")])
+magicDefense = Array[Object]([ExtResource("2_7isko")])
+dodgeAbility = 0
+upgradeSlots = 0
+strengthReq = 0
+dexterityReq = 0
+intelligenceReq = 0
+faithReq = 12

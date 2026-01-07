@@ -1,0 +1,10 @@
+[gd_resource type="Theme" load_steps=2 format=3 uid="uid://cr6kxyvtaymc7"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_j016p"]
+expand_margin_left = 90.0
+expand_margin_top = 90.0
+expand_margin_right = 90.0
+expand_margin_bottom = 90.0
+
+[resource]
+Button/styles/normal = SubResource("StyleBoxFlat_j016p")

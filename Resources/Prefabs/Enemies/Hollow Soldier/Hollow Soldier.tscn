@@ -1,0 +1,123 @@
+[gd_scene load_steps=13 format=3 uid="uid://dsuwggsiw1hyr"]
+
+[ext_resource type="Texture2D" uid="uid://dblwnlaja1yb7" path="res://Resources/Prefabs/Enemies/Hollow Soldier/Avatar.png" id="1_s806u"]
+[ext_resource type="Script" path="res://Scripts/Encounter/Enemy/Enemy.cs" id="2_35nh4"]
+[ext_resource type="Texture2D" uid="uid://ddrgd5vpom7no" path="res://Resources/Images/Sprites/Statuses/Bleed.png" id="3_g2w7h"]
+[ext_resource type="Texture2D" uid="uid://b22j6y4lrhfdt" path="res://Resources/Prefabs/Enemies/Hollow Soldier/Hollow Soldier.png" id="3_wkykj"]
+[ext_resource type="Script" path="res://Scripts/Encounter/Enemy/EnemyMove.cs" id="4_2yx6n"]
+[ext_resource type="Texture2D" uid="uid://dob0jpsmgjaqv" path="res://Resources/Images/Sprites/Statuses/Freeze.png" id="4_o6271"]
+[ext_resource type="Texture2D" uid="uid://cwr2iif1g484y" path="res://Resources/Images/Sprites/Statuses/Poison.png" id="5_nlaqn"]
+[ext_resource type="Texture2D" uid="uid://o7qoexglwauq" path="res://Resources/Images/Sprites/Statuses/Stagger.png" id="6_g51x6"]
+[ext_resource type="Texture2D" uid="uid://dcraalwhgqqvv" path="res://Resources/Images/Sprites/UI_Frame_Dark_Transparent.png" id="7_gq1cg"]
+[ext_resource type="Texture2D" uid="uid://x5dnyivgfvhv" path="res://Resources/Images/Sprites/ProgressBarFill.png" id="8_hrujs"]
+
+[sub_resource type="Resource" id="Resource_8rfnp"]
+script = ExtResource("4_2yx6n")
+isLeap = false
+isPush = false
+towardsAggro = false
+damage = 0
+direction = 1
+attackRange = 0
+dodgeDifficulty = 1
+isAOE = false
+isMagic = false
+statusEffect = 4
+
+[sub_resource type="Resource" id="Resource_72wuo"]
+script = ExtResource("4_2yx6n")
+isLeap = false
+isPush = false
+towardsAggro = false
+damage = 4
+direction = 0
+attackRange = 0
+dodgeDifficulty = 1
+isAOE = false
+isMagic = false
+statusEffect = 4
+
+[node name="Node2D" type="Node2D" groups=["Enemy"]]
+
+[node name="Enemy Button" type="TextureButton" parent="." node_paths=PackedStringArray("healthNode", "healthLabel", "statusesNode")]
+unique_name_in_owner = true
+offset_right = 360.0
+offset_bottom = 360.0
+texture_normal = ExtResource("1_s806u")
+ignore_texture_size = true
+stretch_mode = 5
+script = ExtResource("2_35nh4")
+enemyInfoTexture = ExtResource("3_wkykj")
+tier = null
+threatLevel = 5
+health = null
+physicalDefense = 1
+magicalDefense = 1
+moves = Array[Object]([SubResource("Resource_8rfnp"), SubResource("Resource_72wuo")])
+healthNode = NodePath("Health")
+healthLabel = NodePath("Health/Label")
+statusesNode = NodePath("Status Effects")
+
+[node name="Health" type="TextureProgressBar" parent="Enemy Button"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -30.0
+offset_bottom = 70.0
+grow_horizontal = 2
+grow_vertical = 0
+value = 100.0
+rounded = true
+nine_patch_stretch = true
+texture_under = ExtResource("7_gq1cg")
+texture_progress = ExtResource("8_hrujs")
+
+[node name="Label" type="Label" parent="Enemy Button/Health"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 64
+text = "10"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Status Effects" type="VBoxContainer" parent="Enemy Button"]
+layout_mode = 1
+anchors_preset = 9
+anchor_bottom = 1.0
+offset_top = -10.0
+offset_right = 90.0
+offset_bottom = 10.0
+grow_vertical = 2
+size_flags_horizontal = 3
+alignment = 2
+
+[node name="Bleed" type="TextureRect" parent="Enemy Button/Status Effects"]
+layout_mode = 2
+texture = ExtResource("3_g2w7h")
+expand_mode = 4
+stretch_mode = 4
+
+[node name="Frost" type="TextureRect" parent="Enemy Button/Status Effects"]
+layout_mode = 2
+texture = ExtResource("4_o6271")
+expand_mode = 4
+stretch_mode = 4
+
+[node name="Poison" type="TextureRect" parent="Enemy Button/Status Effects"]
+layout_mode = 2
+texture = ExtResource("5_nlaqn")
+expand_mode = 4
+stretch_mode = 4
+
+[node name="Stagger" type="TextureRect" parent="Enemy Button/Status Effects"]
+layout_mode = 2
+texture = ExtResource("6_g51x6")
+expand_mode = 4
+stretch_mode = 4

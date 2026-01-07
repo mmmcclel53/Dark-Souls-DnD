@@ -1,0 +1,53 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=8 format=3 uid="uid://dtnlldxxbws78"]
+
+[ext_resource type="Resource" uid="uid://beglixal73dym" path="res://Resources/Prefabs/Dice/Blue Dice.tres" id="1_fgpjm"]
+[ext_resource type="Script" path="res://Scripts/Equipment/Weapon.cs" id="1_l3bfc"]
+[ext_resource type="Script" path="res://Scripts/Encounter/Player/PlayerMove.cs" id="2_0uhuh"]
+[ext_resource type="Resource" uid="uid://dwwspf5u6xxwa" path="res://Resources/Prefabs/Dice/Black Dice.tres" id="3_03ayp"]
+[ext_resource type="Texture2D" uid="uid://daan8u0nu14v2" path="res://Resources/Prefabs/Player/Cleric/Equipment/Mace.png" id="4_bapyj"]
+
+[sub_resource type="Resource" id="Resource_e3hy5"]
+script = ExtResource("2_0uhuh")
+staminaCost = 0
+damage = Array[Object]([ExtResource("1_fgpjm")])
+modifier = 0
+attackRange = 0
+isAOE = false
+isMagic = false
+isLeap = false
+isPush = false
+statusEffect = 4
+bonusMovement = 0
+repeat = 0
+
+[sub_resource type="Resource" id="Resource_htg6c"]
+script = ExtResource("2_0uhuh")
+staminaCost = 3
+damage = Array[Object]([ExtResource("3_03ayp"), ExtResource("3_03ayp")])
+modifier = 0
+attackRange = 0
+isAOE = false
+isMagic = false
+isLeap = false
+isPush = false
+statusEffect = 4
+bonusMovement = 0
+repeat = 0
+
+[resource]
+script = ExtResource("1_l3bfc")
+name = "Mace"
+image = ExtResource("4_bapyj")
+type = 1
+rarity = 0
+isUpgrade = false
+attackRange = 0
+attacks = Array[Object]([SubResource("Resource_e3hy5"), SubResource("Resource_htg6c")])
+physicalDefense = null
+magicDefense = Array[Object]([ExtResource("3_03ayp")])
+dodgeAbility = 0
+upgradeSlots = 0
+strengthReq = 12
+dexterityReq = 0
+intelligenceReq = 0
+faithReq = 16

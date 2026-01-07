@@ -1,0 +1,54 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=7 format=3 uid="uid://8el588ed87c6"]
+
+[ext_resource type="Resource" uid="uid://dwwspf5u6xxwa" path="res://Resources/Prefabs/Dice/Black Dice.tres" id="1_1ng57"]
+[ext_resource type="Script" path="res://Scripts/Equipment/Weapon.cs" id="1_mp022"]
+[ext_resource type="Script" path="res://Scripts/Encounter/Player/PlayerMove.cs" id="2_08crg"]
+[ext_resource type="Texture2D" uid="uid://bh5ab6ypagn5c" path="res://Resources/Prefabs/Player/Deprived/Equipment/Club.png" id="3_qn7lr"]
+
+[sub_resource type="Resource" id="Resource_cejts"]
+script = ExtResource("2_08crg")
+staminaCost = 0
+damage = Array[Object]([ExtResource("1_1ng57")])
+modifier = 0
+attackRange = 0
+isNotZeroRange = false
+isAOE = false
+isMagic = false
+isLeap = false
+isPush = false
+statusEffect = 4
+bonusMovement = 0
+repeat = 0
+
+[sub_resource type="Resource" id="Resource_dbo5v"]
+script = ExtResource("2_08crg")
+staminaCost = 3
+damage = Array[Object]([ExtResource("1_1ng57"), ExtResource("1_1ng57")])
+modifier = 0
+attackRange = 0
+isNotZeroRange = false
+isAOE = false
+isMagic = false
+isLeap = false
+isPush = false
+statusEffect = 4
+bonusMovement = 0
+repeat = 0
+
+[resource]
+script = ExtResource("1_mp022")
+name = "Club"
+image = ExtResource("3_qn7lr")
+type = 1
+rarity = 0
+isUpgrade = false
+attackRange = 0
+attacks = Array[Object]([SubResource("Resource_cejts"), SubResource("Resource_dbo5v")])
+physicalDefense = null
+magicDefense = null
+dodgeAbility = 0
+upgradeSlots = 0
+strengthReq = 0
+dexterityReq = 0
+intelligenceReq = 0
+faithReq = 0

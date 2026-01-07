@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=3 format=3 uid="uid://bldqkwu224s15"]
+
+[ext_resource type="Texture2D" uid="uid://carckvi76op04" path="res://Resources/Prefabs/Player/Assassin/Equipment/Target Shield.png" id="1_5qf2t"]
+[ext_resource type="Script" path="res://Scripts/Equipment/Weapon.cs" id="4_qxjdu"]
+
+[resource]
+script = ExtResource("4_qxjdu")
+name = "Target Shield"
+image = ExtResource("1_5qf2t")
+type = 2
+rarity = 0
+isUpgrade = false
+attackRange = 0
+attacks = null
+physicalDefense = null
+magicDefense = null
+dodgeAbility = 1
+upgradeSlots = 0
+strengthReq = 0
+dexterityReq = 0
+intelligenceReq = 0
+faithReq = 0

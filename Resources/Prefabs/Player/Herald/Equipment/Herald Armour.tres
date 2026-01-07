@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="Armour" load_steps=4 format=3 uid="uid://csufgad53noxc"]
+
+[ext_resource type="Texture2D" uid="uid://8n53gq2b0q6y" path="res://Resources/Prefabs/Player/Herald/Equipment/Herald Armour.png" id="1_3sflp"]
+[ext_resource type="Script" path="res://Scripts/Equipment/Armour.cs" id="1_pc51t"]
+[ext_resource type="Resource" uid="uid://dwwspf5u6xxwa" path="res://Resources/Prefabs/Dice/Black Dice.tres" id="2_o4y1y"]
+
+[resource]
+script = ExtResource("1_pc51t")
+name = "Herald Armour"
+image = ExtResource("1_3sflp")
+type = 0
+rarity = 0
+isUpgrade = false
+physicalDefense = Array[Object]([ExtResource("2_o4y1y")])
+magicDefense = Array[Object]([ExtResource("2_o4y1y")])
+dodgeAbility = 1
+upgradeSlots = 0
+strengthReq = 10
+dexterityReq = 0
+intelligenceReq = 0
+faithReq = 10

@@ -1,0 +1,272 @@
+[gd_scene load_steps=15 format=3 uid="uid://d4klkh4uctk1c"]
+
+[ext_resource type="Theme" uid="uid://b4u8wpfygl601" path="res://Theme.tres" id="1_2gf44"]
+[ext_resource type="Texture2D" uid="uid://c1qqm6jq11jti" path="res://Resources/Images/Sprites/Soul.png" id="2_yhsmk"]
+[ext_resource type="PackedScene" uid="uid://vyauk3qln5xa" path="res://Resources/Prefabs/Player/Player.tscn" id="3_gg1so"]
+[ext_resource type="Script" path="res://Scripts/MainMenu/Bonfire/BonfireListener.cs" id="3_jum7p"]
+[ext_resource type="Texture2D" uid="uid://clgbl7l3wjhxb" path="res://Resources/Images/Backgrounds/Bonfire.png" id="5_7chxv"]
+[ext_resource type="Script" path="res://Scripts/MainMenu/Bonfire/BonfireOptions.cs" id="6_eampm"]
+[ext_resource type="Script" path="res://Scripts/MainMenu/Bonfire/Equipment/EquipmentSelect.cs" id="7_hmn7e"]
+[ext_resource type="Texture2D" uid="uid://be6t42lo0ceq" path="res://Resources/Prefabs/Player/Knight/Equipment/Kite Shield.png" id="7_o7bno"]
+[ext_resource type="FontVariation" uid="uid://sv82bym31oaq" path="res://DS_Font.tres" id="7_w4dae"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_yagvi"]
+texture_margin_left = 8.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_qugqk"]
+texture_margin_right = 8.0
+
+[sub_resource type="LabelSettings" id="LabelSettings_g01v7"]
+line_spacing = 4.0
+font_size = 20
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_s01pd"]
+bg_color = Color(0.12549, 0.12549, 0.12549, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4ote5"]
+bg_color = Color(0.215686, 0.215686, 0.215686, 1)
+
+[node name="Game" type="Node"]
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+unique_name_in_owner = true
+
+[node name="AspectRatioContainer" type="AspectRatioContainer" parent="CanvasLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+ratio = 1.78
+stretch_mode = 0
+
+[node name="UI" type="VBoxContainer" parent="CanvasLayer/AspectRatioContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme = ExtResource("1_2gf44")
+alignment = 1
+
+[node name="Title Panel" type="ColorRect" parent="CanvasLayer/AspectRatioContainer/UI"]
+layout_mode = 2
+size_flags_vertical = 3
+color = Color(0.12549, 0.12549, 0.12549, 1)
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI/Title Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Bonfire" type="Label" parent="CanvasLayer/AspectRatioContainer/UI/Title Panel/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 24
+theme_override_styles/normal = SubResource("StyleBoxTexture_yagvi")
+text = "Bonfire"
+
+[node name="Souls Icon" type="TextureRect" parent="CanvasLayer/AspectRatioContainer/UI/Title Panel/HBoxContainer"]
+layout_mode = 2
+texture = ExtResource("2_yhsmk")
+expand_mode = 2
+
+[node name="Souls Amount" type="Label" parent="CanvasLayer/AspectRatioContainer/UI/Title Panel/HBoxContainer"]
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxTexture_qugqk")
+text = "53"
+label_settings = SubResource("LabelSettings_g01v7")
+
+[node name="Board" type="HBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI"]
+layout_mode = 2
+size_flags_vertical = 3
+size_flags_stretch_ratio = 15.0
+alignment = 1
+script = ExtResource("3_jum7p")
+players = Array[PackedScene]([ExtResource("3_gg1so"), ExtResource("3_gg1so")])
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Character" parent="CanvasLayer/AspectRatioContainer/UI/Board/VBoxContainer" instance=ExtResource("3_gg1so")]
+layout_mode = 2
+
+[node name="Bonfire" type="TextureRect" parent="CanvasLayer/AspectRatioContainer/UI/Board"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+texture = ExtResource("5_7chxv")
+expand_mode = 5
+stretch_mode = 4
+flip_h = true
+
+[node name="Options" type="VBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire" node_paths=PackedStringArray("restButton", "equipmentButton", "equipmentModal", "readyButton")]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.35
+anchor_top = 0.25
+anchor_right = 0.65
+anchor_bottom = 0.6
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(1.00918, 1.3179)
+alignment = 1
+script = ExtResource("6_eampm")
+restButton = NodePath("Rest")
+equipmentButton = NodePath("Equipment")
+equipmentModal = NodePath("../EquipmentModal/EquipmentContainer")
+readyButton = NodePath("Ready!")
+
+[node name="Rest" type="Button" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/Options"]
+custom_minimum_size = Vector2(120, 32)
+layout_mode = 2
+size_flags_vertical = 2
+theme_override_fonts/font = ExtResource("7_w4dae")
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_s01pd")
+theme_override_styles/hover = SubResource("StyleBoxFlat_s01pd")
+text = "Rest"
+
+[node name="Equipment" type="Button" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/Options"]
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+size_flags_vertical = 2
+theme_override_fonts/font = ExtResource("7_w4dae")
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_s01pd")
+theme_override_styles/hover = SubResource("StyleBoxFlat_s01pd")
+text = "Equipment"
+
+[node name="Ready!" type="Button" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/Options"]
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+size_flags_vertical = 2
+theme_override_fonts/font = ExtResource("7_w4dae")
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_s01pd")
+theme_override_styles/hover = SubResource("StyleBoxFlat_s01pd")
+text = "Ready"
+
+[node name="EquipmentModal" type="Panel" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="EquipmentContainer" type="PanelContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/EquipmentModal" node_paths=PackedStringArray("equipmentModal", "closeButton", "searchField", "equipmentContainer")]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.2
+anchor_top = 0.1
+anchor_right = 0.8
+anchor_bottom = 0.9
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+theme_override_styles/panel = SubResource("StyleBoxFlat_4ote5")
+script = ExtResource("7_hmn7e")
+equipmentModal = NodePath(".")
+closeButton = NodePath("VBoxContainer/VBoxContainer/TitleContainer/Button")
+searchField = NodePath("VBoxContainer/VBoxContainer/SearchContainer/Search/TextEdit")
+equipmentContainer = NodePath("VBoxContainer/ScrollContainer/GridContainer")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/EquipmentModal/EquipmentContainer"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/EquipmentModal/EquipmentContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+alignment = 1
+
+[node name="TitleContainer" type="HBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/EquipmentModal/EquipmentContainer/VBoxContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Equipment" type="Label" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/EquipmentModal/EquipmentContainer/VBoxContainer/VBoxContainer/TitleContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+text = "Equipment"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Button" type="Button" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/EquipmentModal/EquipmentContainer/VBoxContainer/VBoxContainer/TitleContainer"]
+custom_minimum_size = Vector2(24, 0)
+layout_mode = 2
+text = "X"
+flat = true
+
+[node name="SearchContainer" type="HBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/EquipmentModal/EquipmentContainer/VBoxContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="Search" type="VBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/EquipmentModal/EquipmentContainer/VBoxContainer/VBoxContainer/SearchContainer"]
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Search" type="Label" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/EquipmentModal/EquipmentContainer/VBoxContainer/VBoxContainer/SearchContainer/Search"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Search"
+vertical_alignment = 2
+
+[node name="TextEdit" type="TextEdit" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/EquipmentModal/EquipmentContainer/VBoxContainer/VBoxContainer/SearchContainer/Search"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/EquipmentModal/EquipmentContainer/VBoxContainer/VBoxContainer/SearchContainer"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="SortBy" type="Label" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/EquipmentModal/EquipmentContainer/VBoxContainer/VBoxContainer/SearchContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Sort By"
+vertical_alignment = 2
+
+[node name="OptionButton" type="OptionButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/EquipmentModal/EquipmentContainer/VBoxContainer/VBoxContainer/SearchContainer/VBoxContainer"]
+layout_mode = 2
+item_count = 5
+popup/item_0/text = "Rarity"
+popup/item_0/id = 0
+popup/item_1/text = "Phys. Damage"
+popup/item_1/id = 1
+popup/item_2/text = "Phys. Defense"
+popup/item_2/id = 2
+popup/item_3/text = "Mag. Damage"
+popup/item_3/id = 3
+popup/item_4/text = "Mag. Defense"
+popup/item_4/id = 4
+
+[node name="ScrollContainer" type="ScrollContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/EquipmentModal/EquipmentContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+size_flags_stretch_ratio = 3.0
+
+[node name="GridContainer" type="GridContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/EquipmentModal/EquipmentContainer/VBoxContainer/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 3
+theme_override_constants/h_separation = 4
+theme_override_constants/v_separation = 4
+columns = 4
+
+[node name="TextureRect" type="TextureRect" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/EquipmentModal/EquipmentContainer/VBoxContainer/ScrollContainer/GridContainer"]
+custom_minimum_size = Vector2(66, 100)
+layout_mode = 2
+texture = ExtResource("7_o7bno")
+expand_mode = 3
+stretch_mode = 4
+
+[node name="VBoxContainer2" type="VBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board"]
+layout_mode = 2
+size_flags_horizontal = 3

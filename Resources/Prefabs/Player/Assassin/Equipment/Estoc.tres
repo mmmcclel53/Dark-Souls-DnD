@@ -1,0 +1,54 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=7 format=3 uid="uid://bcjurnjboece4"]
+
+[ext_resource type="Texture2D" uid="uid://jtyo5t1ufg5b" path="res://Resources/Prefabs/Player/Assassin/Equipment/Estoc.png" id="1_37cjj"]
+[ext_resource type="Script" path="res://Scripts/Equipment/Weapon.cs" id="1_pnraa"]
+[ext_resource type="Resource" uid="uid://dwwspf5u6xxwa" path="res://Resources/Prefabs/Dice/Black Dice.tres" id="1_sdmkh"]
+[ext_resource type="Script" path="res://Scripts/Encounter/Player/PlayerMove.cs" id="2_4jodh"]
+
+[sub_resource type="Resource" id="Resource_o1ix4"]
+script = ExtResource("2_4jodh")
+staminaCost = 0
+damage = Array[Object]([ExtResource("1_sdmkh"), ExtResource("1_sdmkh")])
+modifier = -1
+attackRange = 0
+isNotZeroRange = false
+isAOE = false
+isMagic = false
+isLeap = false
+isPush = false
+statusEffect = 4
+bonusMovement = 0
+repeat = 0
+
+[sub_resource type="Resource" id="Resource_sxr26"]
+script = ExtResource("2_4jodh")
+staminaCost = 3
+damage = Array[Object]([ExtResource("1_sdmkh"), ExtResource("1_sdmkh"), ExtResource("1_sdmkh")])
+modifier = -1
+attackRange = 0
+isNotZeroRange = false
+isAOE = false
+isMagic = false
+isLeap = false
+isPush = false
+statusEffect = 4
+bonusMovement = 0
+repeat = 0
+
+[resource]
+script = ExtResource("1_pnraa")
+name = "Estoc"
+image = ExtResource("1_37cjj")
+type = 1
+rarity = 0
+isUpgrade = false
+attackRange = 0
+attacks = Array[Object]([SubResource("Resource_o1ix4"), SubResource("Resource_sxr26")])
+physicalDefense = null
+magicDefense = null
+dodgeAbility = 0
+upgradeSlots = 0
+strengthReq = 0
+dexterityReq = 14
+intelligenceReq = 0
+faithReq = 0

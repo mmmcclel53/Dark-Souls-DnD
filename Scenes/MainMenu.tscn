@@ -1,0 +1,373 @@
+[gd_scene load_steps=11 format=3 uid="uid://dbh2tlkttdlj0"]
+
+[ext_resource type="Texture2D" uid="uid://b04eax8rs3fvm" path="res://Resources/Images/Backgrounds/MainScreen.jpg" id="1_qvkdd"]
+[ext_resource type="Script" path="res://Scripts/MainMenu/MainMenu.cs" id="2_0hyib"]
+[ext_resource type="PackedScene" uid="uid://vyauk3qln5xa" path="res://Resources/Prefabs/Player/Player.tscn" id="3_bjv7l"]
+[ext_resource type="Script" path="res://Scripts/MainMenu/CharacterSelect.cs" id="3_nxog1"]
+[ext_resource type="Resource" uid="uid://b8ak3h3u7t0t7" path="res://Resources/Prefabs/Player/Assassin/Assassin.tres" id="4_6lrlu"]
+[ext_resource type="Resource" uid="uid://bj2mw383f6eix" path="res://Resources/Prefabs/Player/Herald/Herald.tres" id="5_axr55"]
+[ext_resource type="Resource" uid="uid://haycolrnqmrx" path="res://Resources/Prefabs/Player/Deprived/Deprived.tres" id="5_yemnl"]
+[ext_resource type="Texture2D" uid="uid://cd1iahqc8nfqo" path="res://Resources/Prefabs/Player/Deprived/Deprived.png" id="7_ybjok"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xkgdk"]
+bg_color = Color(0.12549, 0.12549, 0.12549, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_jd48h"]
+bg_color = Color(0, 0.247059, 0.0705882, 1)
+
+[node name="MainMenu" type="Node"]
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="Background" type="TextureRect" parent="CanvasLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("1_qvkdd")
+expand_mode = 5
+stretch_mode = 5
+
+[node name="Title" type="Label" parent="CanvasLayer/Background"]
+layout_mode = 0
+offset_left = 292.0
+offset_top = 26.0
+offset_right = 1127.0
+offset_bottom = 98.0
+theme_override_font_sizes/font_size = 56
+text = "Dark Souls: The Board Game"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="Main Menu" type="VBoxContainer" parent="CanvasLayer/Background" node_paths=PackedStringArray("newCampaignButton", "characterSelectPanel", "continueButton", "quitButton")]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -8.0
+offset_top = -143.0
+offset_right = 292.0
+offset_bottom = 107.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("2_0hyib")
+newCampaignButton = NodePath("New Game")
+characterSelectPanel = NodePath("../Character Select")
+continueButton = NodePath("Continue")
+quitButton = NodePath("Quit")
+
+[node name="New Game" type="Button" parent="CanvasLayer/Background/Main Menu"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_vertical = 2
+theme_override_font_sizes/font_size = 32
+text = "New Game"
+
+[node name="Continue" type="Button" parent="CanvasLayer/Background/Main Menu"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_vertical = 2
+theme_override_font_sizes/font_size = 32
+text = "Continue"
+
+[node name="Quit" type="Button" parent="CanvasLayer/Background/Main Menu"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_vertical = 2
+theme_override_font_sizes/font_size = 32
+text = "Quit"
+
+[node name="Character Select" type="Panel" parent="CanvasLayer/Background" node_paths=PackedStringArray("rootPanel", "backButton", "numPlayersSelect", "playersContainer", "charactersContainer", "startButton")]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_xkgdk")
+script = ExtResource("3_nxog1")
+rootPanel = NodePath(".")
+backButton = NodePath("Back to Main")
+numPlayersSelect = NodePath("HBoxContainer/VBoxContainer/NumPlayers/NumPlayersSelect")
+playersContainer = NodePath("HBoxContainer/VBoxContainer/Players Scroll/Players Container")
+charactersContainer = NodePath("HBoxContainer/ScrollContainer/MarginContainer/Choose a Player")
+startButton = NodePath("HBoxContainer/VBoxContainer/Start")
+
+[node name="Back to Main" type="Button" parent="CanvasLayer/Background/Character Select"]
+layout_mode = 0
+offset_right = 114.0
+offset_bottom = 51.0
+theme_override_font_sizes/font_size = 40
+text = "< Back"
+
+[node name="Label" type="Label" parent="CanvasLayer/Background/Character Select"]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+anchor_bottom = 0.1
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 48
+text = "Character Select"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/Background/Character Select"]
+layout_mode = 1
+anchors_preset = -1
+anchor_top = 0.1
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="CanvasLayer/Background/Character Select/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 4.0
+
+[node name="MarginContainer" type="MarginContainer" parent="CanvasLayer/Background/Character Select/HBoxContainer/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/margin_left = 64
+theme_override_constants/margin_top = 64
+theme_override_constants/margin_right = 64
+theme_override_constants/margin_bottom = 64
+
+[node name="Choose a Player" type="HBoxContainer" parent="CanvasLayer/Background/Character Select/HBoxContainer/ScrollContainer/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 64
+alignment = 1
+
+[node name="Assassin" parent="CanvasLayer/Background/Character Select/HBoxContainer/ScrollContainer/MarginContainer/Choose a Player" instance=ExtResource("3_bjv7l")]
+layout_mode = 2
+expand_mode = 3
+name = "Assassin"
+character = ExtResource("4_6lrlu")
+
+[node name="Button" type="Button" parent="CanvasLayer/Background/Character Select/HBoxContainer/ScrollContainer/MarginContainer/Choose a Player/Assassin"]
+modulate = Color(1, 1, 1, 0)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Deprived" parent="CanvasLayer/Background/Character Select/HBoxContainer/ScrollContainer/MarginContainer/Choose a Player" node_paths=PackedStringArray("backupSlotButton", "leftHandButton", "rightHandButton", "armourButton") instance=ExtResource("3_bjv7l")]
+layout_mode = 2
+expand_mode = 3
+name = "Deprived"
+character = ExtResource("5_yemnl")
+backupSlotButton = NodePath("../Assassin/Backup/Weapon")
+leftHandButton = NodePath("../Assassin/Left Hand/Weapon")
+rightHandButton = NodePath("../Assassin/Right Hand/Weapon")
+armourButton = NodePath("../Assassin/Armour/Armour")
+
+[node name="Button" type="Button" parent="CanvasLayer/Background/Character Select/HBoxContainer/ScrollContainer/MarginContainer/Choose a Player/Deprived"]
+modulate = Color(1, 1, 1, 0)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Herald" parent="CanvasLayer/Background/Character Select/HBoxContainer/ScrollContainer/MarginContainer/Choose a Player" node_paths=PackedStringArray("backupSlotButton", "leftHandButton", "rightHandButton", "armourButton") instance=ExtResource("3_bjv7l")]
+layout_mode = 2
+expand_mode = 3
+name = "Herald"
+character = ExtResource("5_axr55")
+backupSlotButton = NodePath("../Assassin/Backup/Weapon")
+leftHandButton = NodePath("../Assassin/Left Hand/Weapon")
+rightHandButton = NodePath("../Assassin/Right Hand/Weapon")
+armourButton = NodePath("../Assassin/Armour/Armour")
+
+[node name="Button" type="Button" parent="CanvasLayer/Background/Character Select/HBoxContainer/ScrollContainer/MarginContainer/Choose a Player/Herald"]
+modulate = Color(1, 1, 1, 0)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Knight" parent="CanvasLayer/Background/Character Select/HBoxContainer/ScrollContainer/MarginContainer/Choose a Player" node_paths=PackedStringArray("backupSlotButton", "leftHandButton", "rightHandButton", "armourButton") instance=ExtResource("3_bjv7l")]
+layout_mode = 2
+expand_mode = 3
+name = "Knight"
+backupSlotButton = NodePath("../Assassin/Backup/Weapon")
+leftHandButton = NodePath("../Assassin/Left Hand/Weapon")
+rightHandButton = NodePath("../Assassin/Right Hand/Weapon")
+armourButton = NodePath("../Assassin/Armour/Armour")
+
+[node name="Button" type="Button" parent="CanvasLayer/Background/Character Select/HBoxContainer/ScrollContainer/MarginContainer/Choose a Player/Knight"]
+modulate = Color(1, 1, 1, 0)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/Background/Character Select/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="NumPlayers" type="VBoxContainer" parent="CanvasLayer/Background/Character Select/HBoxContainer/VBoxContainer"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+theme_override_constants/separation = 0
+
+[node name="Players" type="Label" parent="CanvasLayer/Background/Character Select/HBoxContainer/VBoxContainer/NumPlayers"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Players"
+vertical_alignment = 2
+
+[node name="NumPlayersSelect" type="OptionButton" parent="CanvasLayer/Background/Character Select/HBoxContainer/VBoxContainer/NumPlayers"]
+layout_mode = 2
+item_count = 4
+selected = 0
+popup/item_0/text = "1"
+popup/item_0/id = 1
+popup/item_1/text = "2"
+popup/item_1/id = 2
+popup/item_2/text = "3"
+popup/item_2/id = 3
+popup/item_3/text = "4"
+popup/item_3/id = 4
+
+[node name="Players Scroll" type="ScrollContainer" parent="CanvasLayer/Background/Character Select/HBoxContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Players Container" type="VBoxContainer" parent="CanvasLayer/Background/Character Select/HBoxContainer/VBoxContainer/Players Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Player 1" type="VBoxContainer" parent="CanvasLayer/Background/Character Select/HBoxContainer/VBoxContainer/Players Scroll/Players Container"]
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 1
+
+[node name="Button" type="Button" parent="CanvasLayer/Background/Character Select/HBoxContainer/VBoxContainer/Players Scroll/Players Container/Player 1"]
+custom_minimum_size = Vector2(230, 172)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Player Image" type="TextureRect" parent="CanvasLayer/Background/Character Select/HBoxContainer/VBoxContainer/Players Scroll/Players Container/Player 1/Button"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+texture = ExtResource("7_ybjok")
+expand_mode = 5
+stretch_mode = 5
+
+[node name="TextEdit" type="TextEdit" parent="CanvasLayer/Background/Character Select/HBoxContainer/VBoxContainer/Players Scroll/Players Container/Player 1"]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+placeholder_text = "Enter Your Name..."
+
+[node name="Player 2" type="VBoxContainer" parent="CanvasLayer/Background/Character Select/HBoxContainer/VBoxContainer/Players Scroll/Players Container"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 1
+
+[node name="Button" type="Button" parent="CanvasLayer/Background/Character Select/HBoxContainer/VBoxContainer/Players Scroll/Players Container/Player 2"]
+custom_minimum_size = Vector2(230, 172)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Player Image" type="TextureRect" parent="CanvasLayer/Background/Character Select/HBoxContainer/VBoxContainer/Players Scroll/Players Container/Player 2/Button"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+texture = ExtResource("7_ybjok")
+expand_mode = 5
+stretch_mode = 5
+
+[node name="TextEdit" type="TextEdit" parent="CanvasLayer/Background/Character Select/HBoxContainer/VBoxContainer/Players Scroll/Players Container/Player 2"]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+placeholder_text = "Enter Your Name..."
+
+[node name="Player 3" type="VBoxContainer" parent="CanvasLayer/Background/Character Select/HBoxContainer/VBoxContainer/Players Scroll/Players Container"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 1
+
+[node name="Button" type="Button" parent="CanvasLayer/Background/Character Select/HBoxContainer/VBoxContainer/Players Scroll/Players Container/Player 3"]
+custom_minimum_size = Vector2(230, 172)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Player Image" type="TextureRect" parent="CanvasLayer/Background/Character Select/HBoxContainer/VBoxContainer/Players Scroll/Players Container/Player 3/Button"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+texture = ExtResource("7_ybjok")
+expand_mode = 5
+stretch_mode = 5
+
+[node name="TextEdit" type="TextEdit" parent="CanvasLayer/Background/Character Select/HBoxContainer/VBoxContainer/Players Scroll/Players Container/Player 3"]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+placeholder_text = "Enter Your Name..."
+
+[node name="Player 4" type="VBoxContainer" parent="CanvasLayer/Background/Character Select/HBoxContainer/VBoxContainer/Players Scroll/Players Container"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 1
+
+[node name="Button" type="Button" parent="CanvasLayer/Background/Character Select/HBoxContainer/VBoxContainer/Players Scroll/Players Container/Player 4"]
+custom_minimum_size = Vector2(230, 172)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Player Image" type="TextureRect" parent="CanvasLayer/Background/Character Select/HBoxContainer/VBoxContainer/Players Scroll/Players Container/Player 4/Button"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+texture = ExtResource("7_ybjok")
+expand_mode = 5
+stretch_mode = 5
+
+[node name="TextEdit" type="TextEdit" parent="CanvasLayer/Background/Character Select/HBoxContainer/VBoxContainer/Players Scroll/Players Container/Player 4"]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+placeholder_text = "Enter Your Name..."
+
+[node name="Start" type="Button" parent="CanvasLayer/Background/Character Select/HBoxContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_jd48h")
+text = "Start"

@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=4 format=3 uid="uid://c0a28dee024ro"]
+
+[ext_resource type="Texture2D" uid="uid://be6t42lo0ceq" path="res://Resources/Prefabs/Player/Knight/Equipment/Kite Shield.png" id="1_1l10t"]
+[ext_resource type="Script" path="res://Scripts/Equipment/Weapon.cs" id="1_2kjqo"]
+[ext_resource type="Resource" uid="uid://dwwspf5u6xxwa" path="res://Resources/Prefabs/Dice/Black Dice.tres" id="1_panui"]
+
+[resource]
+script = ExtResource("1_2kjqo")
+name = "Kite Shield"
+image = ExtResource("1_1l10t")
+type = 2
+rarity = 0
+isUpgrade = false
+attackRange = 0
+attacks = null
+physicalDefense = Array[Object]([ExtResource("1_panui")])
+magicDefense = null
+dodgeAbility = 0
+upgradeSlots = 0
+strengthReq = 0
+dexterityReq = 0
+intelligenceReq = 0
+faithReq = 0

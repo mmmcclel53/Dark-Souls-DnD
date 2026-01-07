@@ -1,0 +1,84 @@
+[gd_scene load_steps=9 format=3 uid="uid://d16sunl33tnc2"]
+
+[ext_resource type="Texture2D" uid="uid://dqnfokqvsp15g" path="res://Resources/Prefabs/Player/Knight/Avatar.png" id="1_vvgvd"]
+[ext_resource type="Script" path="res://Scripts/Encounter/Player/Player.cs" id="2_rbtya"]
+[ext_resource type="Texture2D" uid="uid://dcraalwhgqqvv" path="res://Resources/Images/Sprites/UI_Frame_Dark_Transparent.png" id="3_0pecg"]
+[ext_resource type="Texture2D" uid="uid://x5dnyivgfvhv" path="res://Resources/Images/Sprites/ProgressBarFill.png" id="4_4qv3p"]
+[ext_resource type="Texture2D" uid="uid://ddrgd5vpom7no" path="res://Resources/Images/Sprites/Statuses/Bleed.png" id="5_o5icu"]
+[ext_resource type="Texture2D" uid="uid://dob0jpsmgjaqv" path="res://Resources/Images/Sprites/Statuses/Freeze.png" id="6_gxx5h"]
+[ext_resource type="Texture2D" uid="uid://cwr2iif1g484y" path="res://Resources/Images/Sprites/Statuses/Poison.png" id="7_r51wd"]
+[ext_resource type="Texture2D" uid="uid://o7qoexglwauq" path="res://Resources/Images/Sprites/Statuses/Stagger.png" id="8_juvwb"]
+
+[node name="Node2D" type="Node2D" groups=["Player"]]
+
+[node name="Player Button" type="TextureButton" parent="."]
+offset_right = 360.0
+offset_bottom = 360.0
+texture_normal = ExtResource("1_vvgvd")
+ignore_texture_size = true
+stretch_mode = 5
+script = ExtResource("2_rbtya")
+
+[node name="Health" type="TextureProgressBar" parent="Player Button"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -30.0
+offset_bottom = 70.0
+grow_horizontal = 2
+grow_vertical = 0
+value = 100.0
+rounded = true
+nine_patch_stretch = true
+texture_under = ExtResource("3_0pecg")
+texture_progress = ExtResource("4_4qv3p")
+
+[node name="Label" type="Label" parent="Player Button/Health"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 64
+text = "10"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Status Effects" type="VBoxContainer" parent="Player Button"]
+layout_mode = 1
+anchors_preset = 9
+anchor_bottom = 1.0
+offset_top = -10.0
+offset_right = 90.0
+offset_bottom = 10.0
+grow_vertical = 2
+size_flags_horizontal = 3
+alignment = 2
+
+[node name="Bleed" type="TextureRect" parent="Player Button/Status Effects"]
+layout_mode = 2
+texture = ExtResource("5_o5icu")
+expand_mode = 4
+stretch_mode = 4
+
+[node name="Frost" type="TextureRect" parent="Player Button/Status Effects"]
+layout_mode = 2
+texture = ExtResource("6_gxx5h")
+expand_mode = 4
+stretch_mode = 4
+
+[node name="Poison" type="TextureRect" parent="Player Button/Status Effects"]
+layout_mode = 2
+texture = ExtResource("7_r51wd")
+expand_mode = 4
+stretch_mode = 4
+
+[node name="Stagger" type="TextureRect" parent="Player Button/Status Effects"]
+layout_mode = 2
+texture = ExtResource("8_juvwb")
+expand_mode = 4
+stretch_mode = 4

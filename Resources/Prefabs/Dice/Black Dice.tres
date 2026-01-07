@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="Dice" load_steps=2 format=3 uid="uid://dwwspf5u6xxwa"]
+
+[ext_resource type="Script" path="res://Scripts/Equipment/Dice/Dice.cs" id="1_to6wl"]
+
+[resource]
+script = ExtResource("1_to6wl")
+diceType = 0
+dice = PackedInt32Array(0, 1, 1, 1, 2, 2)
+min = 0
+max = 2
+avg = 1.167

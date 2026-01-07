@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="Character" load_steps=7 format=3 uid="uid://haycolrnqmrx"]
+
+[ext_resource type="Resource" uid="uid://bg4skpw0l8ici" path="res://Resources/Prefabs/Player/Deprived/Equipment/Loincloth.tres" id="1_6k31y"]
+[ext_resource type="Script" path="res://Scripts/Encounter/Player/Character.cs" id="1_jh1w8"]
+[ext_resource type="Texture2D" uid="uid://bmw4dgepmha1e" path="res://Resources/Prefabs/Player/Deprived/Avatar.png" id="2_0bomu"]
+[ext_resource type="Texture2D" uid="uid://cd1iahqc8nfqo" path="res://Resources/Prefabs/Player/Deprived/Deprived.png" id="3_3xijn"]
+[ext_resource type="Resource" uid="uid://8el588ed87c6" path="res://Resources/Prefabs/Player/Deprived/Equipment/Club.tres" id="4_5buha"]
+[ext_resource type="Resource" uid="uid://c1riq1p3rl7mr" path="res://Resources/Prefabs/Player/Deprived/Equipment/Plank Shield.tres" id="5_vqg7c"]
+
+[resource]
+script = ExtResource("1_jh1w8")
+name = "Deprived"
+image = ExtResource("3_3xijn")
+avatar = ExtResource("2_0bomu")
+leftHandDefault = ExtResource("4_5buha")
+rightHandDefault = ExtResource("5_vqg7c")
+armourDefault = ExtResource("1_6k31y")
+threatLevel = 1
+strengthTiers = PackedInt32Array(10, 20, 30, 40)
+dexterityTiers = PackedInt32Array(10, 20, 30, 40)
+intelligenceTiers = PackedInt32Array(10, 20, 30, 40)
+faithTiers = PackedInt32Array(10, 20, 30, 40)

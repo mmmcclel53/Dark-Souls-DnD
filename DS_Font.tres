@@ -1,0 +1,6 @@
+[gd_resource type="FontVariation" load_steps=2 format=3 uid="uid://sv82bym31oaq"]
+
+[ext_resource type="FontFile" uid="uid://litl23n3u3sl" path="res://OptimusPrinceps.ttf" id="1_e2gre"]
+
+[resource]
+base_font = ExtResource("1_e2gre")

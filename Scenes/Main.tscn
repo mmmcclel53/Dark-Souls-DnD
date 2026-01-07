@@ -1,0 +1,998 @@
+[gd_scene load_steps=14 format=3 uid="uid://diikrr5hu8aqw"]
+
+[ext_resource type="Theme" uid="uid://b4u8wpfygl601" path="res://Theme.tres" id="1_4j85y"]
+[ext_resource type="Script" path="res://Scripts/MainMenu/Settings.cs" id="2_hh4sp"]
+[ext_resource type="Texture2D" uid="uid://da6fbft6ietum" path="res://Resources/Prefabs/Player/Knight/Knight - Copy.png" id="3_y45v3"]
+[ext_resource type="PackedScene" uid="uid://dbxmhwiqv3ipn" path="res://Resources/Prefabs/Player/Knight/Knight_Avatar.tscn" id="4_hghql"]
+[ext_resource type="Script" path="res://Scripts/Encounter/ActionListener.cs" id="4_xwdwh"]
+[ext_resource type="PackedScene" uid="uid://c02oejv7f56cj" path="res://Resources/Prefabs/Player/Assassin/Assassin_Avatar.tscn" id="5_52b3m"]
+[ext_resource type="PackedScene" uid="uid://dsuwggsiw1hyr" path="res://Resources/Prefabs/Enemies/Hollow Soldier/Hollow Soldier.tscn" id="5_jyydt"]
+[ext_resource type="Script" path="res://Scripts/Encounter/Enemy/Pathfinding/PathGrid.cs" id="6_34e73"]
+[ext_resource type="Script" path="res://Scripts/Encounter/GameNode.cs" id="6_q5dya"]
+[ext_resource type="Texture2D" uid="uid://b22j6y4lrhfdt" path="res://Resources/Prefabs/Enemies/Hollow Soldier/Hollow Soldier.png" id="8_0hrhw"]
+[ext_resource type="Texture2D" uid="uid://df6n2favwrlhq" path="res://Resources/Images/Backgrounds/Tile 2.jpg" id="8_sxbt6"]
+[ext_resource type="Texture2D" uid="uid://b15uect354dvm" path="res://Resources/Images/Sprites/green_circle.png" id="10_iw56b"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_fakve"]
+texture_margin_left = 8.0
+
+[node name="Game" type="Node"]
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+unique_name_in_owner = true
+
+[node name="AspectRatioContainer" type="AspectRatioContainer" parent="CanvasLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+ratio = 1.78
+stretch_mode = 0
+
+[node name="UI" type="VBoxContainer" parent="CanvasLayer/AspectRatioContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme = ExtResource("1_4j85y")
+alignment = 1
+
+[node name="Title Panel" type="ColorRect" parent="CanvasLayer/AspectRatioContainer/UI"]
+layout_mode = 2
+size_flags_vertical = 3
+color = Color(0.12549, 0.12549, 0.12549, 1)
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI/Title Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Encounter Title" type="Label" parent="CanvasLayer/AspectRatioContainer/UI/Title Panel/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 24
+theme_override_styles/normal = SubResource("StyleBoxTexture_fakve")
+text = "Anor Londo  -  Courtyard"
+
+[node name="CheckButton" type="CheckButton" parent="CanvasLayer/AspectRatioContainer/UI/Title Panel/HBoxContainer"]
+layout_mode = 2
+button_pressed = true
+text = "Show Stats"
+script = ExtResource("2_hh4sp")
+
+[node name="Board" type="HBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI"]
+layout_mode = 2
+size_flags_vertical = 3
+size_flags_stretch_ratio = 15.0
+alignment = 1
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Player 1" type="TextureRect" parent="CanvasLayer/AspectRatioContainer/UI/Board/VBoxContainer"]
+layout_mode = 2
+texture = ExtResource("3_y45v3")
+expand_mode = 5
+
+[node name="HSeparator" type="HSeparator" parent="CanvasLayer/AspectRatioContainer/UI/Board/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Player 2" type="TextureRect" parent="CanvasLayer/AspectRatioContainer/UI/Board/VBoxContainer"]
+layout_mode = 2
+expand_mode = 5
+
+[node name="Encounter" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board" node_paths=PackedStringArray("nodesParent")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 2.0
+script = ExtResource("4_xwdwh")
+players = Array[PackedScene]([ExtResource("4_hghql"), ExtResource("5_52b3m")])
+enemies = Array[PackedScene]([ExtResource("5_jyydt"), ExtResource("5_jyydt")])
+nodesParent = NodePath("Grid")
+
+[node name="Map" type="TextureRect" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("8_sxbt6")
+expand_mode = 1
+stretch_mode = 4
+flip_h = true
+
+[node name="Grid" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter" node_paths=PackedStringArray("nodesParent")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("6_34e73")
+nodesParent = NodePath(".")
+
+[node name="Node1" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+visible = false
+layout_mode = 2
+offset_left = -182.0
+offset_top = 235.667
+offset_right = -88.0
+offset_bottom = 329.667
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isDisabled = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node1"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node2" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+visible = false
+layout_mode = 2
+offset_left = -112.704
+offset_top = 166.371
+offset_right = -18.7036
+offset_bottom = 260.371
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isDisabled = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node2"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node3" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+visible = false
+layout_mode = 2
+offset_left = -43.4071
+offset_top = 97.0743
+offset_right = 50.5929
+offset_bottom = 191.074
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isDisabled = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node3"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node4" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+layout_mode = 2
+offset_left = 25.8894
+offset_top = 27.7778
+offset_right = 119.889
+offset_bottom = 121.778
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isEntrance = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node4"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node5" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+visible = false
+layout_mode = 2
+offset_left = 95.1859
+offset_top = -41.5186
+offset_right = 189.186
+offset_bottom = 52.4814
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isDisabled = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node5"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node6" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+visible = false
+layout_mode = 2
+offset_left = 164.482
+offset_top = -110.815
+offset_right = 257.482
+offset_bottom = -16.8151
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isDisabled = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node6"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node7" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+visible = false
+layout_mode = 2
+offset_left = 233.072
+offset_top = -179.404
+offset_right = 326.072
+offset_bottom = -85.4045
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isDisabled = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node7"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node8" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+visible = false
+layout_mode = 2
+offset_left = -112.704
+offset_top = 304.964
+offset_right = -18.7036
+offset_bottom = 398.964
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isDisabled = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node8"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node9" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+visible = false
+layout_mode = 2
+offset_left = -43.4071
+offset_top = 235.667
+offset_right = 50.5929
+offset_bottom = 329.667
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isDisabled = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node9"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node10" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+layout_mode = 2
+offset_left = 25.8894
+offset_top = 166.371
+offset_right = 119.889
+offset_bottom = 260.371
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isEntrance = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node10"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node11" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+layout_mode = 2
+offset_left = 95.1859
+offset_top = 97.0743
+offset_right = 189.186
+offset_bottom = 191.074
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node11"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node12" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+layout_mode = 2
+offset_left = 164.482
+offset_top = 27.7778
+offset_right = 258.482
+offset_bottom = 121.778
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node12"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node13" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+visible = false
+layout_mode = 2
+offset_left = 233.779
+offset_top = -41.5186
+offset_right = 326.779
+offset_bottom = 52.4814
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isDisabled = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node13"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node14" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+visible = false
+layout_mode = 2
+offset_left = 302.368
+offset_top = -110.108
+offset_right = 395.368
+offset_bottom = -16.108
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isDisabled = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node14"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node15" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+visible = false
+layout_mode = 2
+offset_left = -43.4071
+offset_top = 374.26
+offset_right = 50.5929
+offset_bottom = 468.26
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isDisabled = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node15"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node16" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+layout_mode = 2
+offset_left = 25.8894
+offset_top = 304.964
+offset_right = 119.889
+offset_bottom = 398.964
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isEntrance = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node16"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node17" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+layout_mode = 2
+offset_left = 95.1859
+offset_top = 235.667
+offset_right = 189.186
+offset_bottom = 329.667
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isEnemySpawn = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node17"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node18" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+layout_mode = 2
+offset_left = 164.482
+offset_top = 166.371
+offset_right = 258.482
+offset_bottom = 260.371
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isDisabled = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node18"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node19" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+layout_mode = 2
+offset_left = 233.779
+offset_top = 97.0743
+offset_right = 327.779
+offset_bottom = 191.074
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isEnemySpawn = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node19"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node20" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+layout_mode = 2
+offset_left = 303.075
+offset_top = 27.7778
+offset_right = 396.075
+offset_bottom = 121.778
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node20"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node21" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+visible = false
+layout_mode = 2
+offset_left = 371.665
+offset_top = -40.8116
+offset_right = 464.665
+offset_bottom = 53.1884
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isDisabled = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node21"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node22" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+layout_mode = 2
+offset_left = 25.8894
+offset_top = 443.557
+offset_right = 119.889
+offset_bottom = 537.557
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isEnemySpawn = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node22"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node23" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+layout_mode = 2
+offset_left = 95.1859
+offset_top = 374.26
+offset_right = 189.186
+offset_bottom = 468.26
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node23"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node24" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+layout_mode = 2
+offset_left = 164.482
+offset_top = 304.964
+offset_right = 258.482
+offset_bottom = 398.964
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node24"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node25" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+layout_mode = 2
+offset_left = 233.779
+offset_top = 235.667
+offset_right = 327.779
+offset_bottom = 329.667
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isDisabled = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node25"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node26" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+layout_mode = 2
+offset_left = 303.075
+offset_top = 166.371
+offset_right = 397.075
+offset_bottom = 260.371
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isDisabled = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node26"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node27" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+layout_mode = 2
+offset_left = 372.372
+offset_top = 97.0743
+offset_right = 465.372
+offset_bottom = 191.074
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node27"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node28" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+layout_mode = 2
+offset_left = 440.961
+offset_top = 28.4849
+offset_right = 533.961
+offset_bottom = 122.485
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node28"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node29" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+visible = false
+layout_mode = 2
+offset_left = 95.1859
+offset_top = 512.853
+offset_right = 189.186
+offset_bottom = 606.853
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isDisabled = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node29"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node30" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+layout_mode = 2
+offset_left = 164.482
+offset_top = 443.557
+offset_right = 258.482
+offset_bottom = 537.557
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node30"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node31" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+layout_mode = 2
+offset_left = 233.779
+offset_top = 374.26
+offset_right = 327.779
+offset_bottom = 468.26
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node31"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node32" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+layout_mode = 2
+offset_left = 303.075
+offset_top = 304.964
+offset_right = 397.075
+offset_bottom = 398.964
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node32"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node33" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+layout_mode = 2
+offset_left = 372.372
+offset_top = 235.667
+offset_right = 466.372
+offset_bottom = 329.667
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isDisabled = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node33"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node34" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+layout_mode = 2
+offset_left = 441.668
+offset_top = 166.371
+offset_right = 534.668
+offset_bottom = 260.371
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node34"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node35" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+visible = false
+layout_mode = 2
+offset_left = 510.258
+offset_top = 97.7814
+offset_right = 603.258
+offset_bottom = 191.781
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isDisabled = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node35"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node36" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+visible = false
+layout_mode = 2
+offset_left = 164.482
+offset_top = 582.15
+offset_right = 258.482
+offset_bottom = 675.15
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isDisabled = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node36"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node37" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+visible = false
+layout_mode = 2
+offset_left = 233.779
+offset_top = 512.853
+offset_right = 327.779
+offset_bottom = 605.853
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isDisabled = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node37"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node38" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+layout_mode = 2
+offset_left = 303.075
+offset_top = 443.557
+offset_right = 397.075
+offset_bottom = 536.557
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node38"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node39" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+layout_mode = 2
+offset_left = 372.372
+offset_top = 374.26
+offset_right = 466.372
+offset_bottom = 467.26
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node39"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node40" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+layout_mode = 2
+offset_left = 441.668
+offset_top = 304.964
+offset_right = 535.668
+offset_bottom = 397.964
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isEnemySpawn = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node40"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node41" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+visible = false
+layout_mode = 2
+offset_left = 510.965
+offset_top = 235.667
+offset_right = 603.965
+offset_bottom = 328.667
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isDisabled = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node41"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node42" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+visible = false
+layout_mode = 2
+offset_left = 579.554
+offset_top = 167.078
+offset_right = 672.554
+offset_bottom = 260.078
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isDisabled = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node42"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node43" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+visible = false
+layout_mode = 2
+offset_left = 233.072
+offset_top = 650.739
+offset_right = 327.072
+offset_bottom = 743.739
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isDisabled = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node43"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node44" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+visible = false
+layout_mode = 2
+offset_left = 302.368
+offset_top = 581.442
+offset_right = 396.368
+offset_bottom = 674.442
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isDisabled = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node44"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node45" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+visible = false
+layout_mode = 2
+offset_left = 371.665
+offset_top = 512.146
+offset_right = 465.665
+offset_bottom = 605.146
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isDisabled = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node45"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node46" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+layout_mode = 2
+offset_left = 440.961
+offset_top = 442.85
+offset_right = 534.961
+offset_bottom = 535.849
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node46"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node47" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+visible = false
+layout_mode = 2
+offset_left = 510.258
+offset_top = 373.553
+offset_right = 604.258
+offset_bottom = 466.553
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isDisabled = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node47"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node48" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+visible = false
+layout_mode = 2
+offset_left = 579.554
+offset_top = 304.257
+offset_right = 672.554
+offset_bottom = 397.257
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isDisabled = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node48"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="Node49" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
+visible = false
+layout_mode = 2
+offset_left = 648.143
+offset_top = 235.667
+offset_right = 741.143
+offset_bottom = 328.667
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("6_q5dya")
+isDisabled = true
+
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid/Node49"]
+modulate = Color(1, 1, 1, 0.501961)
+layout_mode = 2
+texture_normal = ExtResource("10_iw56b")
+stretch_mode = 3
+
+[node name="VBoxContainer2" type="VBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Player 3" type="TextureRect" parent="CanvasLayer/AspectRatioContainer/UI/Board/VBoxContainer2"]
+layout_mode = 2
+expand_mode = 5
+
+[node name="HSeparator" type="HSeparator" parent="CanvasLayer/AspectRatioContainer/UI/Board/VBoxContainer2"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Player 4" type="TextureRect" parent="CanvasLayer/AspectRatioContainer/UI/Board/VBoxContainer2"]
+layout_mode = 2
+expand_mode = 5
+
+[node name="Enemy Info Dialog" type="AcceptDialog" parent="CanvasLayer"]
+unique_name_in_owner = true
+title = "Enemy Info"
+initial_position = 2
+size = Vector2i(250, 368)
+ok_button_text = "Close"
+
+[node name="TextureRect" type="TextureRect" parent="CanvasLayer/Enemy Info Dialog"]
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 242.0
+offset_bottom = 319.62
+texture = ExtResource("8_0hrhw")
+expand_mode = 5
+stretch_mode = 5
+
+[connection signal="pressed" from="CanvasLayer/AspectRatioContainer/UI/Title Panel/HBoxContainer/CheckButton" to="CanvasLayer/AspectRatioContainer/UI/Title Panel/HBoxContainer/CheckButton" method="OnPressed"]
