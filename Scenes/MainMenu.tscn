@@ -1,9 +1,9 @@
 [gd_scene load_steps=11 format=3 uid="uid://dbh2tlkttdlj0"]
 
 [ext_resource type="Texture2D" uid="uid://b04eax8rs3fvm" path="res://Resources/Images/Backgrounds/MainScreen.jpg" id="1_qvkdd"]
-[ext_resource type="Script" path="res://Scripts/MainMenu/MainMenu.cs" id="2_0hyib"]
+[ext_resource type="Script" uid="uid://fotasgf6k2ch" path="res://Scripts/MainMenu/MainMenu.cs" id="2_0hyib"]
 [ext_resource type="PackedScene" uid="uid://vyauk3qln5xa" path="res://Resources/Prefabs/Player/Player.tscn" id="3_bjv7l"]
-[ext_resource type="Script" path="res://Scripts/MainMenu/CharacterSelect.cs" id="3_nxog1"]
+[ext_resource type="Script" uid="uid://tljwlw6ebkuu" path="res://Scripts/MainMenu/CharacterSelect.cs" id="3_nxog1"]
 [ext_resource type="Resource" uid="uid://b8ak3h3u7t0t7" path="res://Resources/Prefabs/Player/Assassin/Assassin.tres" id="4_6lrlu"]
 [ext_resource type="Resource" uid="uid://bj2mw383f6eix" path="res://Resources/Prefabs/Player/Herald/Herald.tres" id="5_axr55"]
 [ext_resource type="Resource" uid="uid://haycolrnqmrx" path="res://Resources/Prefabs/Player/Deprived/Deprived.tres" id="5_yemnl"]
@@ -47,10 +47,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -8.0
-offset_top = -143.0
-offset_right = 292.0
-offset_bottom = 107.0
+offset_left = 94.0
+offset_top = -192.0
+offset_right = 394.0
+offset_bottom = 58.00003
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("2_0hyib")
@@ -235,8 +235,8 @@ vertical_alignment = 2
 
 [node name="NumPlayersSelect" type="OptionButton" parent="CanvasLayer/Background/Character Select/HBoxContainer/VBoxContainer/NumPlayers"]
 layout_mode = 2
-item_count = 4
 selected = 0
+item_count = 4
 popup/item_0/text = "1"
 popup/item_0/id = 1
 popup/item_1/text = "2"

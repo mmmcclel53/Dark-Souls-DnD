@@ -3,16 +3,12 @@ using Godot;
 public partial class MainMenu : VBoxContainer
 {
 	[Export] public Button newCampaignButton;
-	[Export] public Panel characterSelectPanel;
-
 	[Export] public Button continueButton;
-	// [Export] public Panel loadGamePanel;
-
 	[Export] public Button quitButton;
+	// [Export] public Panel loadGamePanel;
 
 	public override void _Ready() {
 		newCampaignButton.Pressed += () => { OnPressedNewCampaign(); };
-		quitButton.Pressed += () => { OnPressedQuit(); };
 
 		if (!FileAccess.FileExists("user://savegame.save")) {
 			continueButton.Disabled = true;
@@ -20,10 +16,14 @@ public partial class MainMenu : VBoxContainer
 			continueButton.Disabled = false;
 			continueButton.Pressed += () => { OnPressedContinue(); };
 		}
+		
+		quitButton.Pressed += () => { OnPressedQuit(); };
 	}
 
 	private void OnPressedNewCampaign() {
-		characterSelectPanel.Visible = true;
+		Node BonfireScene = ResourceLoader.Load<PackedScene>("res://Scenes/CharacterCreation.tscn").Instantiate();
+		GetTree().Root.AddChild(BonfireScene);
+		GetTree().Root.GetChild(0).QueueFree();
 	}
 
 	private void OnPressedContinue() {
