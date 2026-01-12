@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="Weapon" load_steps=7 format=3 uid="uid://sj02shnq1juh"]
+[gd_resource type="Resource" load_steps=7 format=3 uid="uid://sj02shnq1juh"]
 
 [ext_resource type="Script" uid="uid://c6wgrbh73rpq4" path="res://Scripts/Equipment/Weapon.cs" id="1_8r1dg"]
 [ext_resource type="Resource" uid="uid://dwwspf5u6xxwa" path="res://Resources/Prefabs/Dice/Black Dice.tres" id="1_xvsu2"]

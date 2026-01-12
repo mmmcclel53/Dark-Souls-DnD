@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="Weapon" load_steps=8 format=3 uid="uid://d1lcimbi5nshm"]
+[gd_resource type="Resource" load_steps=8 format=3 uid="uid://d1lcimbi5nshm"]
 
 [ext_resource type="Resource" uid="uid://beglixal73dym" path="res://Resources/Prefabs/Dice/Blue Dice.tres" id="1_bj1d4"]
 [ext_resource type="Script" uid="uid://ck1wiiu36h1nh" path="res://Scripts/Encounter/Player/PlayerMove.cs" id="1_mc85p"]

@@ -1,22 +1,31 @@
-[gd_scene load_steps=10 format=3 uid="uid://b4sf7lx74fbd"]
+[gd_scene load_steps=8 format=3 uid="uid://b4sf7lx74fbd"]
 
 [ext_resource type="Texture2D" uid="uid://b45w2ba7qg8j3" path="res://Resources/Images/Backgrounds/CharacterCreation.jpg" id="1_5wgyk"]
 [ext_resource type="Script" uid="uid://tljwlw6ebkuu" path="res://Scripts/MainMenu/CharacterSelect.cs" id="1_cjuwb"]
-[ext_resource type="Texture2D" uid="uid://cd1iahqc8nfqo" path="res://Resources/Prefabs/Player/Deprived/Deprived.png" id="2_5wgyk"]
 [ext_resource type="PackedScene" uid="uid://vyauk3qln5xa" path="res://Resources/Prefabs/Player/Player.tscn" id="3_w8rda"]
 [ext_resource type="Resource" uid="uid://b8ak3h3u7t0t7" path="res://Resources/Prefabs/Player/Assassin/Assassin.tres" id="4_xy7vg"]
-[ext_resource type="Resource" uid="uid://haycolrnqmrx" path="res://Resources/Prefabs/Player/Deprived/Deprived.tres" id="5_low6w"]
-[ext_resource type="Resource" uid="uid://bj2mw383f6eix" path="res://Resources/Prefabs/Player/Herald/Herald.tres" id="6_poi7a"]
 [ext_resource type="Texture2D" uid="uid://dlsl8p2kj33p7" path="res://Resources/Prefabs/Player/Assassin/Avatar.png" id="7_a8t5y"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7aw8v"]
 bg_color = Color(0, 0.247059, 0.0705882, 1)
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_lrqo7"]
+bg_color = Color(0.1254902, 0.1254902, 0.1254902, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.5019608, 0.5019608, 0.5019608, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
 [node name="CharacterCreation" type="Node2D"]
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
-[node name="Character Select" type="TextureRect" parent="CanvasLayer" node_paths=PackedStringArray("rootPanel", "backButton", "numPlayersSelect", "playersContainer", "charactersContainer", "startButton")]
+[node name="Character Select" type="TextureRect" parent="CanvasLayer" node_paths=PackedStringArray("backButton", "playersContainer", "charactersContainer", "startButton")]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -27,12 +36,12 @@ size_flags_vertical = 3
 texture = ExtResource("1_5wgyk")
 expand_mode = 3
 script = ExtResource("1_cjuwb")
-rootPanel = NodePath("")
+rootPanel = null
 backButton = NodePath("Back to Main")
-numPlayersSelect = NodePath("")
-playersContainer = NodePath("HBoxContainer/MarginContainer/PlayersOverview/Players Scroll/Players Container")
-charactersContainer = NodePath("HBoxContainer/Character Detail/MarginContainer/Choose a Player")
-startButton = NodePath("HBoxContainer/MarginContainer/PlayersOverview/Start")
+numPlayersSelect = null
+playersContainer = NodePath("")
+charactersContainer = NodePath("")
+startButton = NodePath("HBoxContainer/MarginContainer/Start")
 
 [node name="Back to Main" type="Button" parent="CanvasLayer/Character Select"]
 layout_mode = 0
@@ -63,139 +72,17 @@ theme_override_constants/margin_bottom = 8
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="Players Scroll" type="ScrollContainer" parent="CanvasLayer/Character Select/HBoxContainer/MarginContainer/PlayersOverview"]
+[node name="Panel" type="Panel" parent="CanvasLayer/Character Select/HBoxContainer/MarginContainer/PlayersOverview"]
 layout_mode = 2
-size_flags_vertical = 3
 
-[node name="Players Container" type="VBoxContainer" parent="CanvasLayer/Character Select/HBoxContainer/MarginContainer/PlayersOverview/Players Scroll"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-
-[node name="Player 1" type="VBoxContainer" parent="CanvasLayer/Character Select/HBoxContainer/MarginContainer/PlayersOverview/Players Scroll/Players Container"]
-layout_mode = 2
-size_flags_horizontal = 3
-alignment = 1
-
-[node name="Button" type="Button" parent="CanvasLayer/Character Select/HBoxContainer/MarginContainer/PlayersOverview/Players Scroll/Players Container/Player 1"]
-custom_minimum_size = Vector2(230, 172)
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="Player Image" type="TextureRect" parent="CanvasLayer/Character Select/HBoxContainer/MarginContainer/PlayersOverview/Players Scroll/Players Container/Player 1/Button"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-size_flags_horizontal = 3
-texture = ExtResource("2_5wgyk")
-expand_mode = 5
-stretch_mode = 5
-
-[node name="TextEdit" type="TextEdit" parent="CanvasLayer/Character Select/HBoxContainer/MarginContainer/PlayersOverview/Players Scroll/Players Container/Player 1"]
-custom_minimum_size = Vector2(0, 24)
-layout_mode = 2
-placeholder_text = "Enter Your Name..."
-
-[node name="Player 2" type="VBoxContainer" parent="CanvasLayer/Character Select/HBoxContainer/MarginContainer/PlayersOverview/Players Scroll/Players Container"]
-visible = false
-layout_mode = 2
-size_flags_horizontal = 3
-alignment = 1
-
-[node name="Button" type="Button" parent="CanvasLayer/Character Select/HBoxContainer/MarginContainer/PlayersOverview/Players Scroll/Players Container/Player 2"]
-custom_minimum_size = Vector2(230, 172)
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="Player Image" type="TextureRect" parent="CanvasLayer/Character Select/HBoxContainer/MarginContainer/PlayersOverview/Players Scroll/Players Container/Player 2/Button"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-size_flags_horizontal = 3
-texture = ExtResource("2_5wgyk")
-expand_mode = 5
-stretch_mode = 5
-
-[node name="TextEdit" type="TextEdit" parent="CanvasLayer/Character Select/HBoxContainer/MarginContainer/PlayersOverview/Players Scroll/Players Container/Player 2"]
-custom_minimum_size = Vector2(0, 24)
-layout_mode = 2
-placeholder_text = "Enter Your Name..."
-
-[node name="Player 3" type="VBoxContainer" parent="CanvasLayer/Character Select/HBoxContainer/MarginContainer/PlayersOverview/Players Scroll/Players Container"]
-visible = false
-layout_mode = 2
-size_flags_horizontal = 3
-alignment = 1
-
-[node name="Button" type="Button" parent="CanvasLayer/Character Select/HBoxContainer/MarginContainer/PlayersOverview/Players Scroll/Players Container/Player 3"]
-custom_minimum_size = Vector2(230, 172)
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="Player Image" type="TextureRect" parent="CanvasLayer/Character Select/HBoxContainer/MarginContainer/PlayersOverview/Players Scroll/Players Container/Player 3/Button"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-size_flags_horizontal = 3
-texture = ExtResource("2_5wgyk")
-expand_mode = 5
-stretch_mode = 5
-
-[node name="TextEdit" type="TextEdit" parent="CanvasLayer/Character Select/HBoxContainer/MarginContainer/PlayersOverview/Players Scroll/Players Container/Player 3"]
-custom_minimum_size = Vector2(0, 24)
-layout_mode = 2
-placeholder_text = "Enter Your Name..."
-
-[node name="Player 4" type="VBoxContainer" parent="CanvasLayer/Character Select/HBoxContainer/MarginContainer/PlayersOverview/Players Scroll/Players Container"]
-visible = false
-layout_mode = 2
-size_flags_horizontal = 3
-alignment = 1
-
-[node name="Button" type="Button" parent="CanvasLayer/Character Select/HBoxContainer/MarginContainer/PlayersOverview/Players Scroll/Players Container/Player 4"]
-custom_minimum_size = Vector2(230, 172)
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="Player Image" type="TextureRect" parent="CanvasLayer/Character Select/HBoxContainer/MarginContainer/PlayersOverview/Players Scroll/Players Container/Player 4/Button"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-size_flags_horizontal = 3
-texture = ExtResource("2_5wgyk")
-expand_mode = 5
-stretch_mode = 5
-
-[node name="TextEdit" type="TextEdit" parent="CanvasLayer/Character Select/HBoxContainer/MarginContainer/PlayersOverview/Players Scroll/Players Container/Player 4"]
-custom_minimum_size = Vector2(0, 24)
-layout_mode = 2
-placeholder_text = "Enter Your Name..."
-
-[node name="Start" type="Button" parent="CanvasLayer/Character Select/HBoxContainer/MarginContainer/PlayersOverview"]
+[node name="Start" type="Button" parent="CanvasLayer/Character Select/HBoxContainer/MarginContainer"]
 custom_minimum_size = Vector2(0, 32)
 layout_mode = 2
 size_flags_vertical = 8
 theme_override_styles/normal = SubResource("StyleBoxFlat_7aw8v")
 text = "Start"
 
-[node name="Character Detail" type="ScrollContainer" parent="CanvasLayer/Character Select/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_stretch_ratio = 4.0
-
-[node name="MarginContainer" type="MarginContainer" parent="CanvasLayer/Character Select/HBoxContainer/Character Detail"]
+[node name="MarginContainer2" type="MarginContainer" parent="CanvasLayer/Character Select/HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -204,76 +91,12 @@ theme_override_constants/margin_top = 64
 theme_override_constants/margin_right = 64
 theme_override_constants/margin_bottom = 64
 
-[node name="Choose a Player" type="HBoxContainer" parent="CanvasLayer/Character Select/HBoxContainer/Character Detail/MarginContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-theme_override_constants/separation = 64
-alignment = 1
-
-[node name="Assassin" parent="CanvasLayer/Character Select/HBoxContainer/Character Detail/MarginContainer/Choose a Player" instance=ExtResource("3_w8rda")]
+[node name="Assassin" parent="CanvasLayer/Character Select/HBoxContainer/MarginContainer2" instance=ExtResource("3_w8rda")]
 layout_mode = 2
 expand_mode = 3
-name = "Assassin"
 character = ExtResource("4_xy7vg")
 
-[node name="Button" type="Button" parent="CanvasLayer/Character Select/HBoxContainer/Character Detail/MarginContainer/Choose a Player/Assassin"]
-modulate = Color(1, 1, 1, 0)
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="Deprived" parent="CanvasLayer/Character Select/HBoxContainer/Character Detail/MarginContainer/Choose a Player" node_paths=PackedStringArray("backupSlotButton", "leftHandButton", "rightHandButton", "armourButton") instance=ExtResource("3_w8rda")]
-layout_mode = 2
-expand_mode = 3
-name = "Deprived"
-character = ExtResource("5_low6w")
-backupSlotButton = NodePath("../Assassin/Backup/Weapon")
-leftHandButton = NodePath("../Assassin/Left Hand/Weapon")
-rightHandButton = NodePath("../Assassin/Right Hand/Weapon")
-armourButton = NodePath("../Assassin/Armour/Armour")
-
-[node name="Button" type="Button" parent="CanvasLayer/Character Select/HBoxContainer/Character Detail/MarginContainer/Choose a Player/Deprived"]
-modulate = Color(1, 1, 1, 0)
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="Herald" parent="CanvasLayer/Character Select/HBoxContainer/Character Detail/MarginContainer/Choose a Player" node_paths=PackedStringArray("backupSlotButton", "leftHandButton", "rightHandButton", "armourButton") instance=ExtResource("3_w8rda")]
-layout_mode = 2
-expand_mode = 3
-name = "Herald"
-character = ExtResource("6_poi7a")
-backupSlotButton = NodePath("../Assassin/Backup/Weapon")
-leftHandButton = NodePath("../Assassin/Left Hand/Weapon")
-rightHandButton = NodePath("../Assassin/Right Hand/Weapon")
-armourButton = NodePath("../Assassin/Armour/Armour")
-
-[node name="Button" type="Button" parent="CanvasLayer/Character Select/HBoxContainer/Character Detail/MarginContainer/Choose a Player/Herald"]
-modulate = Color(1, 1, 1, 0)
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="Knight" parent="CanvasLayer/Character Select/HBoxContainer/Character Detail/MarginContainer/Choose a Player" node_paths=PackedStringArray("backupSlotButton", "leftHandButton", "rightHandButton", "armourButton") instance=ExtResource("3_w8rda")]
-layout_mode = 2
-expand_mode = 3
-name = "Knight"
-backupSlotButton = NodePath("../Assassin/Backup/Weapon")
-leftHandButton = NodePath("../Assassin/Left Hand/Weapon")
-rightHandButton = NodePath("../Assassin/Right Hand/Weapon")
-armourButton = NodePath("../Assassin/Armour/Armour")
-
-[node name="Button" type="Button" parent="CanvasLayer/Character Select/HBoxContainer/Character Detail/MarginContainer/Choose a Player/Knight"]
+[node name="Button" type="Button" parent="CanvasLayer/Character Select/HBoxContainer/MarginContainer2/Assassin"]
 modulate = Color(1, 1, 1, 0)
 layout_mode = 1
 anchors_preset = 15
@@ -289,6 +112,7 @@ size_flags_horizontal = 3
 [node name="Assassin" type="Button" parent="CanvasLayer/Character Select/HBoxContainer/Characters"]
 custom_minimum_size = Vector2(0, 32)
 layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_lrqo7")
 
 [node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/Character Select/HBoxContainer/Characters/Assassin"]
 layout_mode = 1
@@ -305,6 +129,32 @@ texture = ExtResource("7_a8t5y")
 expand_mode = 5
 
 [node name="Label" type="Label" parent="CanvasLayer/Character Select/HBoxContainer/Characters/Assassin/HBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Assassin"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Assassin2" type="Button" parent="CanvasLayer/Character Select/HBoxContainer/Characters"]
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_lrqo7")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/Character Select/HBoxContainer/Characters/Assassin2"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TextureRect" type="TextureRect" parent="CanvasLayer/Character Select/HBoxContainer/Characters/Assassin2/HBoxContainer"]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+texture = ExtResource("7_a8t5y")
+expand_mode = 5
+
+[node name="Label" type="Label" parent="CanvasLayer/Character Select/HBoxContainer/Characters/Assassin2/HBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "Assassin"

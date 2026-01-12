@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="Weapon" load_steps=7 format=3 uid="uid://bcjurnjboece4"]
+[gd_resource type="Resource" load_steps=7 format=3 uid="uid://bcjurnjboece4"]
 
 [ext_resource type="Texture2D" uid="uid://jtyo5t1ufg5b" path="res://Resources/Prefabs/Player/Assassin/Equipment/Estoc.png" id="1_37cjj"]
 [ext_resource type="Script" uid="uid://c6wgrbh73rpq4" path="res://Scripts/Equipment/Weapon.cs" id="1_pnraa"]
