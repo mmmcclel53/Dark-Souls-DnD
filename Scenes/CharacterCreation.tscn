@@ -1,13 +1,12 @@
-[gd_scene load_steps=8 format=3 uid="uid://b4sf7lx74fbd"]
+[gd_scene load_steps=10 format=3 uid="uid://b4sf7lx74fbd"]
 
 [ext_resource type="Texture2D" uid="uid://b45w2ba7qg8j3" path="res://Resources/Images/Backgrounds/CharacterCreation.jpg" id="1_5wgyk"]
-[ext_resource type="Script" uid="uid://tljwlw6ebkuu" path="res://Scripts/MainMenu/CharacterSelect.cs" id="1_cjuwb"]
-[ext_resource type="PackedScene" uid="uid://vyauk3qln5xa" path="res://Resources/Prefabs/Player/Player.tscn" id="3_w8rda"]
-[ext_resource type="Resource" uid="uid://b8ak3h3u7t0t7" path="res://Resources/Prefabs/Player/Assassin/Assassin.tres" id="4_xy7vg"]
-[ext_resource type="Texture2D" uid="uid://dlsl8p2kj33p7" path="res://Resources/Prefabs/Player/Assassin/Avatar.png" id="7_a8t5y"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7aw8v"]
-bg_color = Color(0, 0.247059, 0.0705882, 1)
+[ext_resource type="Script" path="res://Scripts/MainMenu/CharacterSelect.cs" id="1_cjuwb"]
+[ext_resource type="Texture2D" uid="uid://dwfjhol7w8kwo" path="res://Resources/Images/Sprites/add-icon.png" id="3_ypqxi"]
+[ext_resource type="Texture2D" uid="uid://dl5f3dp6ea5rw" path="res://Resources/Prefabs/Player/Assassin/Icon.png" id="4_cjuwb"]
+[ext_resource type="Texture2D" uid="uid://d3d8abdhrq1x2" path="res://Resources/Prefabs/Player/Herald/Icon.png" id="5_5wgyk"]
+[ext_resource type="Texture2D" path="res://Resources/Images/Assassin.jpg" id="5_ypqxi"]
+[ext_resource type="StyleBox" uid="uid://bjdvpd5wrg8qf" path="res://Resources/Prefabs/UI/ConfirmButton.tres" id="7_cjuwb"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_lrqo7"]
 bg_color = Color(0.1254902, 0.1254902, 0.1254902, 1)
@@ -21,11 +20,18 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5wgyk"]
+bg_color = Color(0.1254902, 0.1254902, 0.1254902, 1)
+expand_margin_left = 8.0
+expand_margin_top = 8.0
+expand_margin_right = 8.0
+expand_margin_bottom = 8.0
+
 [node name="CharacterCreation" type="Node2D"]
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
-[node name="Character Select" type="TextureRect" parent="CanvasLayer" node_paths=PackedStringArray("backButton", "playersContainer", "charactersContainer", "startButton")]
+[node name="Character Select" type="TextureRect" parent="CanvasLayer" node_paths=PackedStringArray("backButton", "startButton")]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -36,30 +42,133 @@ size_flags_vertical = 3
 texture = ExtResource("1_5wgyk")
 expand_mode = 3
 script = ExtResource("1_cjuwb")
-rootPanel = null
-backButton = NodePath("Back to Main")
-numPlayersSelect = null
-playersContainer = NodePath("")
-charactersContainer = NodePath("")
-startButton = NodePath("HBoxContainer/MarginContainer/Start")
+backButton = NodePath("MainContainer/PlayerContainer/Back to Main")
+startButton = NodePath("MainContainer/CharacterSelectContainer/StartContainer/Start")
 
-[node name="Back to Main" type="Button" parent="CanvasLayer/Character Select"]
-layout_mode = 0
-offset_right = 114.0
-offset_bottom = 51.0
-theme_override_font_sizes/font_size = 24
-text = "< Back to Main"
-
-[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/Character Select"]
+[node name="MainContainer" type="VBoxContainer" parent="CanvasLayer/Character Select"]
 layout_mode = 1
-anchors_preset = -1
-anchor_top = 0.1
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="MarginContainer" type="MarginContainer" parent="CanvasLayer/Character Select/HBoxContainer"]
+[node name="PlayerContainer" type="HBoxContainer" parent="CanvasLayer/Character Select/MainContainer"]
+custom_minimum_size = Vector2(0, 96)
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="Back to Main" type="Button" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer"]
+custom_minimum_size = Vector2(200, 32)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 24
+text = "< Back to Main"
+
+[node name="Players" type="HBoxContainer" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 24
+alignment = 1
+
+[node name="TextureButton" type="TextureButton" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/Players"]
+custom_minimum_size = Vector2(100, 100)
+layout_mode = 2
+texture_normal = ExtResource("3_ypqxi")
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/Players/TextureButton"]
+visible = false
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 18.0
+grow_horizontal = 2
+text = "Matt"
+horizontal_alignment = 1
+
+[node name="Back to Main2" type="MarginContainer" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer"]
+custom_minimum_size = Vector2(200, 32)
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="CharacterSelectContainer" type="HBoxContainer" parent="CanvasLayer/Character Select/MainContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="CharacterButtons" type="VBoxContainer" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Assassin" type="Button" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons"]
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_lrqo7")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons/Assassin"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TextureRect" type="TextureRect" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons/Assassin/HBoxContainer"]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+texture = ExtResource("4_cjuwb")
+expand_mode = 5
+
+[node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons/Assassin/HBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Assassin"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Cleric" type="Button" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons"]
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_lrqo7")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons/Cleric"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TextureRect" type="TextureRect" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons/Cleric/HBoxContainer"]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+texture = ExtResource("5_5wgyk")
+expand_mode = 5
+
+[node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons/Cleric/HBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Cleric"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CharacterInfo" type="MarginContainer" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/margin_left = 32
+theme_override_constants/margin_top = 32
+theme_override_constants/margin_right = 32
+theme_override_constants/margin_bottom = 32
+
+[node name="CharacterImage" type="TextureRect" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterInfo"]
+layout_mode = 2
+texture = ExtResource("5_ypqxi")
+expand_mode = 3
+
+[node name="StartContainer" type="MarginContainer" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -68,36 +177,22 @@ theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 8
 
-[node name="PlayersOverview" type="VBoxContainer" parent="CanvasLayer/Character Select/HBoxContainer/MarginContainer"]
+[node name="PlayersOverview" type="VBoxContainer" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/StartContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="Panel" type="Panel" parent="CanvasLayer/Character Select/HBoxContainer/MarginContainer/PlayersOverview"]
+[node name="Panel" type="Panel" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/StartContainer/PlayersOverview"]
 layout_mode = 2
 
-[node name="Start" type="Button" parent="CanvasLayer/Character Select/HBoxContainer/MarginContainer"]
+[node name="Start" type="Button" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/StartContainer"]
 custom_minimum_size = Vector2(0, 32)
 layout_mode = 2
 size_flags_vertical = 8
-theme_override_styles/normal = SubResource("StyleBoxFlat_7aw8v")
+theme_override_styles/normal = ExtResource("7_cjuwb")
 text = "Start"
 
-[node name="MarginContainer2" type="MarginContainer" parent="CanvasLayer/Character Select/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-theme_override_constants/margin_left = 64
-theme_override_constants/margin_top = 64
-theme_override_constants/margin_right = 64
-theme_override_constants/margin_bottom = 64
-
-[node name="Assassin" parent="CanvasLayer/Character Select/HBoxContainer/MarginContainer2" instance=ExtResource("3_w8rda")]
-layout_mode = 2
-expand_mode = 3
-character = ExtResource("4_xy7vg")
-
-[node name="Button" type="Button" parent="CanvasLayer/Character Select/HBoxContainer/MarginContainer2/Assassin"]
-modulate = Color(1, 1, 1, 0)
+[node name="Modal" type="Panel" parent="CanvasLayer/Character Select"]
+visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -105,58 +200,40 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Characters" type="VBoxContainer" parent="CanvasLayer/Character Select/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
+[node name="Panel" type="Panel" parent="CanvasLayer/Character Select/Modal"]
+custom_minimum_size = Vector2(200, 100)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -100.0
+offset_top = -75.0
+offset_right = 100.0
+offset_bottom = 25.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_5wgyk")
 
-[node name="Assassin" type="Button" parent="CanvasLayer/Character Select/HBoxContainer/Characters"]
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/Character Select/Modal/Panel"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Label" type="Label" parent="CanvasLayer/Character Select/Modal/Panel/VBoxContainer"]
 custom_minimum_size = Vector2(0, 32)
 layout_mode = 2
-theme_override_styles/normal = SubResource("StyleBoxFlat_lrqo7")
-
-[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/Character Select/HBoxContainer/Characters/Assassin"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="TextureRect" type="TextureRect" parent="CanvasLayer/Character Select/HBoxContainer/Characters/Assassin/HBoxContainer"]
-custom_minimum_size = Vector2(32, 32)
-layout_mode = 2
-texture = ExtResource("7_a8t5y")
-expand_mode = 5
-
-[node name="Label" type="Label" parent="CanvasLayer/Character Select/HBoxContainer/Characters/Assassin/HBoxContainer"]
-layout_mode = 2
 theme_override_font_sizes/font_size = 24
-text = "Assassin"
-horizontal_alignment = 1
-vertical_alignment = 1
+text = "Enter your name"
 
-[node name="Assassin2" type="Button" parent="CanvasLayer/Character Select/HBoxContainer/Characters"]
-custom_minimum_size = Vector2(0, 32)
+[node name="TextEdit" type="TextEdit" parent="CanvasLayer/Character Select/Modal/Panel/VBoxContainer"]
+custom_minimum_size = Vector2(200, 32)
 layout_mode = 2
-theme_override_styles/normal = SubResource("StyleBoxFlat_lrqo7")
 
-[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/Character Select/HBoxContainer/Characters/Assassin2"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="TextureRect" type="TextureRect" parent="CanvasLayer/Character Select/HBoxContainer/Characters/Assassin2/HBoxContainer"]
-custom_minimum_size = Vector2(32, 32)
+[node name="Button" type="Button" parent="CanvasLayer/Character Select/Modal/Panel/VBoxContainer"]
+custom_minimum_size = Vector2(100, 24)
 layout_mode = 2
-texture = ExtResource("7_a8t5y")
-expand_mode = 5
-
-[node name="Label" type="Label" parent="CanvasLayer/Character Select/HBoxContainer/Characters/Assassin2/HBoxContainer"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 24
-text = "Assassin"
-horizontal_alignment = 1
-vertical_alignment = 1
+size_flags_horizontal = 8
+theme_override_styles/normal = ExtResource("7_cjuwb")
+text = "Confirm"

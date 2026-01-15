@@ -2,12 +2,12 @@
 
 [ext_resource type="Texture2D" uid="uid://b04eax8rs3fvm" path="res://Resources/Images/Backgrounds/MainScreen.jpg" id="1_qvkdd"]
 [ext_resource type="Script" uid="uid://fotasgf6k2ch" path="res://Scripts/MainMenu/MainMenu.cs" id="2_0hyib"]
-[ext_resource type="PackedScene" uid="uid://vyauk3qln5xa" path="res://Resources/Prefabs/Player/Player.tscn" id="3_bjv7l"]
-[ext_resource type="Script" uid="uid://tljwlw6ebkuu" path="res://Scripts/MainMenu/CharacterSelect.cs" id="3_nxog1"]
+[ext_resource type="PackedScene" uid="uid://vyauk3qln5xa" path="res://Resources/Prefabs/Player/CharacterSheet.tscn" id="3_bjv7l"]
+[ext_resource type="Script" path="res://Scripts/MainMenu/CharacterSelect.cs" id="3_nxog1"]
 [ext_resource type="Resource" uid="uid://b8ak3h3u7t0t7" path="res://Resources/Prefabs/Player/Assassin/Assassin.tres" id="4_6lrlu"]
 [ext_resource type="Resource" uid="uid://bj2mw383f6eix" path="res://Resources/Prefabs/Player/Herald/Herald.tres" id="5_axr55"]
 [ext_resource type="Resource" uid="uid://haycolrnqmrx" path="res://Resources/Prefabs/Player/Deprived/Deprived.tres" id="5_yemnl"]
-[ext_resource type="Texture2D" uid="uid://cd1iahqc8nfqo" path="res://Resources/Prefabs/Player/Deprived/Deprived.png" id="7_ybjok"]
+[ext_resource type="Texture2D" path="res://Resources/Prefabs/Player/Deprived/Deprived.png" id="7_ybjok"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xkgdk"]
 bg_color = Color(0.12549, 0.12549, 0.12549, 1)
@@ -40,7 +40,7 @@ text = "Dark Souls: The Board Game"
 horizontal_alignment = 2
 vertical_alignment = 1
 
-[node name="Main Menu" type="VBoxContainer" parent="CanvasLayer/Background" node_paths=PackedStringArray("newCampaignButton", "characterSelectPanel", "continueButton", "quitButton")]
+[node name="Main Menu" type="VBoxContainer" parent="CanvasLayer/Background" node_paths=PackedStringArray("newCampaignButton", "continueButton", "quitButton")]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -55,7 +55,6 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("2_0hyib")
 newCampaignButton = NodePath("New Game")
-characterSelectPanel = NodePath("../Character Select")
 continueButton = NodePath("Continue")
 quitButton = NodePath("Quit")
 

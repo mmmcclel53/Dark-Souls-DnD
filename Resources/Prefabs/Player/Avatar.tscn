@@ -1,0 +1,108 @@
+[gd_scene load_steps=11 format=3 uid="uid://c02oejv7f56cj"]
+
+[ext_resource type="Texture2D" uid="uid://bqw4lmb7vhlkw" path="res://Resources/Prefabs/Player/Assassin/Avatar.png" id="1_k4ygr"]
+[ext_resource type="Script" uid="uid://cqvjjejpmoeo5" path="res://Scripts/Encounter/Player/Player.cs" id="2_6hnqv"]
+[ext_resource type="Script" uid="uid://bq0oq55csyxml" path="res://Scripts/Encounter/Player/Character.cs" id="3_krvi1"]
+[ext_resource type="Texture2D" uid="uid://dcraalwhgqqvv" path="res://Resources/Images/Sprites/UI_Frame_Dark_Transparent.png" id="3_uhtwi"]
+[ext_resource type="Texture2D" uid="uid://x5dnyivgfvhv" path="res://Resources/Images/Sprites/ProgressBarFill.png" id="4_40w2h"]
+[ext_resource type="Texture2D" uid="uid://dic7ui5chf8kn" path="res://Resources/Images/Sprites/Statuses/Bleed.png" id="5_bjron"]
+[ext_resource type="Texture2D" uid="uid://m4jhjvt73263" path="res://Resources/Images/Sprites/Statuses/Frost.png" id="5_husnu"]
+[ext_resource type="Texture2D" uid="uid://cr2267o6mybvu" path="res://Resources/Images/Sprites/Statuses/Poison.png" id="7_3gg4x"]
+[ext_resource type="Texture2D" uid="uid://f3eqeucwqox8" path="res://Resources/Images/Sprites/Statuses/Stagger.png" id="8_11kyt"]
+
+[sub_resource type="Resource" id="Resource_85ykj"]
+script = ExtResource("3_krvi1")
+metadata/_custom_type_script = "uid://bq0oq55csyxml"
+
+[node name="Node2D" type="Control" groups=["Player"]]
+layout_mode = 3
+anchors_preset = 0
+
+[node name="Player Button" type="TextureButton" parent="."]
+custom_minimum_size = Vector2(100, 242)
+layout_mode = 0
+offset_right = 302.0
+offset_bottom = 360.0
+texture_normal = ExtResource("1_k4ygr")
+ignore_texture_size = true
+stretch_mode = 5
+script = ExtResource("2_6hnqv")
+character = SubResource("Resource_85ykj")
+
+[node name="Name" type="Label" parent="Player Button"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 18.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 24
+text = "Matt"
+horizontal_alignment = 1
+
+[node name="Status Effects" type="VBoxContainer" parent="Player Button"]
+custom_minimum_size = Vector2(64, 0)
+layout_mode = 1
+anchors_preset = 11
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 0
+grow_vertical = 2
+size_flags_horizontal = 3
+
+[node name="Bleed" type="TextureRect" parent="Player Button/Status Effects"]
+layout_mode = 2
+texture = ExtResource("5_bjron")
+expand_mode = 4
+stretch_mode = 4
+
+[node name="Frost" type="TextureRect" parent="Player Button/Status Effects"]
+layout_mode = 2
+texture = ExtResource("5_husnu")
+expand_mode = 4
+stretch_mode = 4
+
+[node name="Poison" type="TextureRect" parent="Player Button/Status Effects"]
+layout_mode = 2
+texture = ExtResource("7_3gg4x")
+expand_mode = 4
+stretch_mode = 4
+
+[node name="Stagger" type="TextureRect" parent="Player Button/Status Effects"]
+layout_mode = 2
+texture = ExtResource("8_11kyt")
+expand_mode = 4
+stretch_mode = 4
+
+[node name="Health" type="TextureProgressBar" parent="Player Button"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -12.0
+offset_right = -2.0
+offset_bottom = 52.0
+grow_horizontal = 2
+grow_vertical = 0
+max_value = 10.0
+value = 10.0
+rounded = true
+nine_patch_stretch = true
+texture_under = ExtResource("3_uhtwi")
+texture_progress = ExtResource("4_40w2h")
+metadata/_edit_group_ = true
+
+[node name="Label" type="Label" parent="Player Button/Health"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 64
+text = "10"
+horizontal_alignment = 1
+vertical_alignment = 1

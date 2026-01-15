@@ -2,11 +2,11 @@
 
 [ext_resource type="Theme" uid="uid://b4u8wpfygl601" path="res://Theme.tres" id="1_2gf44"]
 [ext_resource type="Texture2D" uid="uid://c1qqm6jq11jti" path="res://Resources/Images/Sprites/Soul.png" id="2_yhsmk"]
-[ext_resource type="PackedScene" uid="uid://vyauk3qln5xa" path="res://Resources/Prefabs/Player/Player.tscn" id="3_gg1so"]
-[ext_resource type="Script" path="res://Scripts/MainMenu/Bonfire/BonfireListener.cs" id="3_jum7p"]
+[ext_resource type="PackedScene" uid="uid://vyauk3qln5xa" path="res://Resources/Prefabs/Player/CharacterSheet.tscn" id="3_gg1so"]
+[ext_resource type="Script" uid="uid://bas3x104pha1e" path="res://Scripts/MainMenu/Bonfire/BonfireListener.cs" id="3_jum7p"]
 [ext_resource type="Texture2D" uid="uid://clgbl7l3wjhxb" path="res://Resources/Images/Backgrounds/Bonfire.png" id="5_7chxv"]
-[ext_resource type="Script" path="res://Scripts/MainMenu/Bonfire/BonfireOptions.cs" id="6_eampm"]
-[ext_resource type="Script" path="res://Scripts/MainMenu/Bonfire/Equipment/EquipmentSelect.cs" id="7_hmn7e"]
+[ext_resource type="Script" uid="uid://cu8wfv8n1co5w" path="res://Scripts/MainMenu/Bonfire/BonfireOptions.cs" id="6_eampm"]
+[ext_resource type="Script" uid="uid://bd7rgo3jgvd58" path="res://Scripts/MainMenu/Bonfire/Equipment/EquipmentSelect.cs" id="7_hmn7e"]
 [ext_resource type="Texture2D" uid="uid://be6t42lo0ceq" path="res://Resources/Prefabs/Player/Knight/Equipment/Kite Shield.png" id="7_o7bno"]
 [ext_resource type="FontVariation" uid="uid://sv82bym31oaq" path="res://DS_Font.tres" id="7_w4dae"]
 

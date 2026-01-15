@@ -1,15 +1,14 @@
-[gd_scene load_steps=14 format=3 uid="uid://cdmyd1komlp81"]
+[gd_scene load_steps=13 format=3 uid="uid://cdmyd1komlp81"]
 
 [ext_resource type="Theme" uid="uid://b4u8wpfygl601" path="res://Theme.tres" id="1_163b3"]
-[ext_resource type="Script" path="res://Scripts/MainMenu/Settings.cs" id="2_cws6m"]
-[ext_resource type="Texture2D" uid="uid://da6fbft6ietum" path="res://Resources/Prefabs/Player/Knight/Knight - Copy.png" id="3_afjsj"]
-[ext_resource type="Script" path="res://Scripts/Encounter/ActionListener.cs" id="4_hmy00"]
+[ext_resource type="Script" uid="uid://38e7hdut52ii" path="res://Scripts/MainMenu/Settings.cs" id="2_cws6m"]
+[ext_resource type="Script" uid="uid://c3wx2mbhefv3x" path="res://Scripts/Encounter/ActionListener.cs" id="4_hmy00"]
 [ext_resource type="PackedScene" uid="uid://dbxmhwiqv3ipn" path="res://Resources/Prefabs/Player/Knight/Knight_Avatar.tscn" id="5_vd6so"]
-[ext_resource type="PackedScene" uid="uid://c02oejv7f56cj" path="res://Resources/Prefabs/Player/Assassin/Assassin_Avatar.tscn" id="6_xdswp"]
+[ext_resource type="PackedScene" uid="uid://c02oejv7f56cj" path="res://Resources/Prefabs/Player/Avatar.tscn" id="6_xdswp"]
 [ext_resource type="PackedScene" uid="uid://dsuwggsiw1hyr" path="res://Resources/Prefabs/Enemies/Hollow Soldier/Hollow Soldier.tscn" id="7_3kqhr"]
 [ext_resource type="Texture2D" uid="uid://df6n2favwrlhq" path="res://Resources/Images/Backgrounds/Tile 2.jpg" id="8_drip3"]
-[ext_resource type="Script" path="res://Scripts/Encounter/Enemy/Pathfinding/PathGrid.cs" id="9_xtn7h"]
-[ext_resource type="Script" path="res://Scripts/Encounter/GameNode.cs" id="10_2lue5"]
+[ext_resource type="Script" uid="uid://bfltixxyyql5j" path="res://Scripts/Encounter/Enemy/Pathfinding/PathGrid.cs" id="9_xtn7h"]
+[ext_resource type="Script" uid="uid://d1a4camaukfpy" path="res://Scripts/Encounter/GameNode.cs" id="10_2lue5"]
 [ext_resource type="Texture2D" uid="uid://b15uect354dvm" path="res://Resources/Images/Sprites/green_circle.png" id="11_0dxsk"]
 [ext_resource type="Texture2D" uid="uid://b22j6y4lrhfdt" path="res://Resources/Prefabs/Enemies/Hollow Soldier/Hollow Soldier.png" id="12_b53l0"]
 
@@ -75,7 +74,6 @@ size_flags_horizontal = 3
 
 [node name="Player 1" type="TextureRect" parent="CanvasLayer/AspectRatioContainer/UI/Board/VBoxContainer"]
 layout_mode = 2
-texture = ExtResource("3_afjsj")
 expand_mode = 5
 
 [node name="HSeparator" type="HSeparator" parent="CanvasLayer/AspectRatioContainer/UI/Board/VBoxContainer"]
@@ -120,7 +118,7 @@ nodesParent = NodePath(".")
 
 [node name="Node1" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
 visible = false
-layout_mode = 2
+layout_mode = 0
 offset_left = -182.0
 offset_top = 235.667
 offset_right = -88.0
@@ -140,7 +138,7 @@ stretch_mode = 3
 
 [node name="Node2" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
 visible = false
-layout_mode = 2
+layout_mode = 0
 offset_left = -112.704
 offset_top = 166.371
 offset_right = -18.7036
@@ -158,7 +156,7 @@ stretch_mode = 3
 
 [node name="Node3" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
 visible = false
-layout_mode = 2
+layout_mode = 0
 offset_left = -43.4071
 offset_top = 97.0743
 offset_right = 50.5929
@@ -175,7 +173,7 @@ texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 3
 
 [node name="Node4" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
-layout_mode = 2
+layout_mode = 0
 offset_left = 25.8894
 offset_top = 27.7778
 offset_right = 119.889
@@ -193,7 +191,7 @@ stretch_mode = 3
 
 [node name="Node5" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
 visible = false
-layout_mode = 2
+layout_mode = 0
 offset_left = 95.1859
 offset_top = -41.5186
 offset_right = 189.186
@@ -211,7 +209,7 @@ stretch_mode = 3
 
 [node name="Node6" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
 visible = false
-layout_mode = 2
+layout_mode = 0
 offset_left = 164.482
 offset_top = -110.815
 offset_right = 257.482
@@ -229,7 +227,7 @@ stretch_mode = 3
 
 [node name="Node7" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
 visible = false
-layout_mode = 2
+layout_mode = 0
 offset_left = 233.072
 offset_top = -179.404
 offset_right = 326.072
@@ -247,7 +245,7 @@ stretch_mode = 3
 
 [node name="Node8" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
 visible = false
-layout_mode = 2
+layout_mode = 0
 offset_left = -112.704
 offset_top = 304.964
 offset_right = -18.7036
@@ -265,7 +263,7 @@ stretch_mode = 3
 
 [node name="Node9" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
 visible = false
-layout_mode = 2
+layout_mode = 0
 offset_left = -43.4071
 offset_top = 235.667
 offset_right = 50.5929
@@ -282,7 +280,7 @@ texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 3
 
 [node name="Node10" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
-layout_mode = 2
+layout_mode = 0
 offset_left = 25.8894
 offset_top = 166.371
 offset_right = 119.889
@@ -299,7 +297,7 @@ texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 3
 
 [node name="Node11" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
-layout_mode = 2
+layout_mode = 0
 offset_left = 95.1859
 offset_top = 97.0743
 offset_right = 189.186
@@ -315,7 +313,7 @@ texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 3
 
 [node name="Node12" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
-layout_mode = 2
+layout_mode = 0
 offset_left = 164.482
 offset_top = 27.7778
 offset_right = 258.482
@@ -332,7 +330,7 @@ stretch_mode = 3
 
 [node name="Node13" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
 visible = false
-layout_mode = 2
+layout_mode = 0
 offset_left = 233.779
 offset_top = -41.5186
 offset_right = 326.779
@@ -350,7 +348,7 @@ stretch_mode = 3
 
 [node name="Node14" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
 visible = false
-layout_mode = 2
+layout_mode = 0
 offset_left = 302.368
 offset_top = -110.108
 offset_right = 395.368
@@ -368,7 +366,7 @@ stretch_mode = 3
 
 [node name="Node15" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
 visible = false
-layout_mode = 2
+layout_mode = 0
 offset_left = -43.4071
 offset_top = 374.26
 offset_right = 50.5929
@@ -385,7 +383,7 @@ texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 3
 
 [node name="Node16" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
-layout_mode = 2
+layout_mode = 0
 offset_left = 25.8894
 offset_top = 304.964
 offset_right = 119.889
@@ -402,7 +400,7 @@ texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 3
 
 [node name="Node17" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
-layout_mode = 2
+layout_mode = 0
 offset_left = 95.1859
 offset_top = 235.667
 offset_right = 189.186
@@ -419,7 +417,7 @@ texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 3
 
 [node name="Node18" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
-layout_mode = 2
+layout_mode = 0
 offset_left = 164.482
 offset_top = 166.371
 offset_right = 258.482
@@ -436,7 +434,7 @@ texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 3
 
 [node name="Node19" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
-layout_mode = 2
+layout_mode = 0
 offset_left = 233.779
 offset_top = 97.0743
 offset_right = 327.779
@@ -453,7 +451,7 @@ texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 3
 
 [node name="Node20" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
-layout_mode = 2
+layout_mode = 0
 offset_left = 303.075
 offset_top = 27.7778
 offset_right = 396.075
@@ -470,7 +468,7 @@ stretch_mode = 3
 
 [node name="Node21" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
 visible = false
-layout_mode = 2
+layout_mode = 0
 offset_left = 371.665
 offset_top = -40.8116
 offset_right = 464.665
@@ -487,7 +485,7 @@ texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 3
 
 [node name="Node22" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
-layout_mode = 2
+layout_mode = 0
 offset_left = 25.8894
 offset_top = 443.557
 offset_right = 119.889
@@ -504,7 +502,7 @@ texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 3
 
 [node name="Node23" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
-layout_mode = 2
+layout_mode = 0
 offset_left = 95.1859
 offset_top = 374.26
 offset_right = 189.186
@@ -520,7 +518,7 @@ texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 3
 
 [node name="Node24" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
-layout_mode = 2
+layout_mode = 0
 offset_left = 164.482
 offset_top = 304.964
 offset_right = 258.482
@@ -536,7 +534,7 @@ texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 3
 
 [node name="Node25" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
-layout_mode = 2
+layout_mode = 0
 offset_left = 233.779
 offset_top = 235.667
 offset_right = 327.779
@@ -553,7 +551,7 @@ texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 3
 
 [node name="Node26" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
-layout_mode = 2
+layout_mode = 0
 offset_left = 303.075
 offset_top = 166.371
 offset_right = 397.075
@@ -570,7 +568,7 @@ texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 3
 
 [node name="Node27" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
-layout_mode = 2
+layout_mode = 0
 offset_left = 372.372
 offset_top = 97.0743
 offset_right = 465.372
@@ -586,7 +584,7 @@ texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 3
 
 [node name="Node28" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
-layout_mode = 2
+layout_mode = 0
 offset_left = 440.961
 offset_top = 28.4849
 offset_right = 533.961
@@ -603,7 +601,7 @@ stretch_mode = 3
 
 [node name="Node29" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
 visible = false
-layout_mode = 2
+layout_mode = 0
 offset_left = 95.1859
 offset_top = 512.853
 offset_right = 189.186
@@ -620,7 +618,7 @@ texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 3
 
 [node name="Node30" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
-layout_mode = 2
+layout_mode = 0
 offset_left = 164.482
 offset_top = 443.557
 offset_right = 258.482
@@ -636,7 +634,7 @@ texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 3
 
 [node name="Node31" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
-layout_mode = 2
+layout_mode = 0
 offset_left = 233.779
 offset_top = 374.26
 offset_right = 327.779
@@ -652,7 +650,7 @@ texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 3
 
 [node name="Node32" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
-layout_mode = 2
+layout_mode = 0
 offset_left = 303.075
 offset_top = 304.964
 offset_right = 397.075
@@ -668,7 +666,7 @@ texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 3
 
 [node name="Node33" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
-layout_mode = 2
+layout_mode = 0
 offset_left = 372.372
 offset_top = 235.667
 offset_right = 466.372
@@ -685,7 +683,7 @@ texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 3
 
 [node name="Node34" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
-layout_mode = 2
+layout_mode = 0
 offset_left = 441.668
 offset_top = 166.371
 offset_right = 534.668
@@ -702,7 +700,7 @@ stretch_mode = 3
 
 [node name="Node35" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
 visible = false
-layout_mode = 2
+layout_mode = 0
 offset_left = 510.258
 offset_top = 97.7814
 offset_right = 603.258
@@ -720,7 +718,7 @@ stretch_mode = 3
 
 [node name="Node36" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
 visible = false
-layout_mode = 2
+layout_mode = 0
 offset_left = 164.482
 offset_top = 582.15
 offset_right = 258.482
@@ -738,7 +736,7 @@ stretch_mode = 3
 
 [node name="Node37" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
 visible = false
-layout_mode = 2
+layout_mode = 0
 offset_left = 233.779
 offset_top = 512.853
 offset_right = 327.779
@@ -755,7 +753,7 @@ texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 3
 
 [node name="Node38" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
-layout_mode = 2
+layout_mode = 0
 offset_left = 303.075
 offset_top = 443.557
 offset_right = 397.075
@@ -771,7 +769,7 @@ texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 3
 
 [node name="Node39" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
-layout_mode = 2
+layout_mode = 0
 offset_left = 372.372
 offset_top = 374.26
 offset_right = 466.372
@@ -787,7 +785,7 @@ texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 3
 
 [node name="Node40" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
-layout_mode = 2
+layout_mode = 0
 offset_left = 441.668
 offset_top = 304.964
 offset_right = 535.668
@@ -805,7 +803,7 @@ stretch_mode = 3
 
 [node name="Node41" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
 visible = false
-layout_mode = 2
+layout_mode = 0
 offset_left = 510.965
 offset_top = 235.667
 offset_right = 603.965
@@ -823,7 +821,7 @@ stretch_mode = 3
 
 [node name="Node42" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
 visible = false
-layout_mode = 2
+layout_mode = 0
 offset_left = 579.554
 offset_top = 167.078
 offset_right = 672.554
@@ -841,7 +839,7 @@ stretch_mode = 3
 
 [node name="Node43" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
 visible = false
-layout_mode = 2
+layout_mode = 0
 offset_left = 233.072
 offset_top = 650.739
 offset_right = 327.072
@@ -859,7 +857,7 @@ stretch_mode = 3
 
 [node name="Node44" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
 visible = false
-layout_mode = 2
+layout_mode = 0
 offset_left = 302.368
 offset_top = 581.442
 offset_right = 396.368
@@ -877,7 +875,7 @@ stretch_mode = 3
 
 [node name="Node45" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
 visible = false
-layout_mode = 2
+layout_mode = 0
 offset_left = 371.665
 offset_top = 512.146
 offset_right = 465.665
@@ -894,7 +892,7 @@ texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 3
 
 [node name="Node46" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
-layout_mode = 2
+layout_mode = 0
 offset_left = 440.961
 offset_top = 442.85
 offset_right = 534.961
@@ -911,7 +909,7 @@ stretch_mode = 3
 
 [node name="Node47" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
 visible = false
-layout_mode = 2
+layout_mode = 0
 offset_left = 510.258
 offset_top = 373.553
 offset_right = 604.258
@@ -929,7 +927,7 @@ stretch_mode = 3
 
 [node name="Node48" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
 visible = false
-layout_mode = 2
+layout_mode = 0
 offset_left = 579.554
 offset_top = 304.257
 offset_right = 672.554
@@ -947,7 +945,7 @@ stretch_mode = 3
 
 [node name="Node49" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter/Grid"]
 visible = false
-layout_mode = 2
+layout_mode = 0
 offset_left = 648.143
 offset_top = 235.667
 offset_right = 741.143

@@ -15,12 +15,12 @@ public partial class Character : Resource
     
     [ExportGroup("Leveling")]
     [Export] public int threatLevel;
-    [Export] public int[] strengthTiers = new int[] { 10, 20, 30, 40 };
-    [Export] public int[] dexterityTiers = new int[] { 10, 20, 30, 40 };
-    [Export] public int[] intelligenceTiers = new int[] { 10, 20, 30, 40 };
-    [Export] public int[] faithTiers = new int[] { 10, 20, 30, 40 };
+    [Export] public int[] strengthTiers = [10, 20, 30, 40];
+    [Export] public int[] dexterityTiers = [10, 20, 30, 40];
+    [Export] public int[] intelligenceTiers = [10, 20, 30, 40];
+    [Export] public int[] faithTiers = [10, 20, 30, 40];
 
-    public Character() : this("Unknown", 1, new int[] { 10, 20, 30, 40 }, new int[] { 10, 20, 30, 40 }, new int[] { 10, 20, 30, 40 }, new int[] { 10, 20, 30, 40 }) {}
+    public Character() : this("Unknown", 1, [10, 20, 30, 40], [10, 20, 30, 40], [10, 20, 30, 40], [10, 20, 30, 40]) {}
 
     public Character(string name, int threatLevel, int[] strengthTiers, int[] dexterityTiers, int[] intelligenceTiers, int[] faithTiers)
     {

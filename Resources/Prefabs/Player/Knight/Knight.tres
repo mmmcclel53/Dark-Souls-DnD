@@ -1,16 +1,14 @@
-[gd_resource type="Resource" script_class="Character" load_steps=7 format=3 uid="uid://cmev7rnhedr1j"]
+[gd_resource type="Resource" script_class="Character" load_steps=6 format=3 uid="uid://cmev7rnhedr1j"]
 
 [ext_resource type="Resource" uid="uid://dd03b702nj0gc" path="res://Resources/Prefabs/Player/Knight/Equipment/Knight Armour.tres" id="1_px2s8"]
-[ext_resource type="Script" path="res://Scripts/Encounter/Player/Character.cs" id="1_t65kf"]
-[ext_resource type="Texture2D" uid="uid://dqnfokqvsp15g" path="res://Resources/Prefabs/Player/Knight/Avatar.png" id="2_6ae56"]
-[ext_resource type="Texture2D" uid="uid://mbbrcuf2gw43" path="res://Resources/Prefabs/Player/Knight/Knight.png" id="2_v2ide"]
+[ext_resource type="Script" uid="uid://bq0oq55csyxml" path="res://Scripts/Encounter/Player/Character.cs" id="1_t65kf"]
+[ext_resource type="Texture2D" uid="uid://dmr3xp6syxbht" path="res://Resources/Prefabs/Player/Knight/Avatar.png" id="2_6ae56"]
 [ext_resource type="Resource" uid="uid://d1lcimbi5nshm" path="res://Resources/Prefabs/Player/Knight/Equipment/Long Sword.tres" id="3_gdn0o"]
 [ext_resource type="Resource" uid="uid://c0a28dee024ro" path="res://Resources/Prefabs/Player/Knight/Equipment/Kite Shield.tres" id="4_roqu1"]
 
 [resource]
 script = ExtResource("1_t65kf")
 name = "Knight"
-image = ExtResource("2_v2ide")
 avatar = ExtResource("2_6ae56")
 leftHandDefault = ExtResource("3_gdn0o")
 rightHandDefault = ExtResource("4_roqu1")
