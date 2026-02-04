@@ -82,7 +82,7 @@ public partial class ActionListener : Node
 		float nodeSize = entrance.Size.X;
 		player.Scale = new Vector2(nodeSize / MAGIC_SIZE, nodeSize / MAGIC_SIZE);
 		EncounterManager.MovePlayer(player, entrance, null);
-	    (player.GetChild(0) as Player).isAggro = playersSpawned == 0 ? true : false;
+	    // (player.GetChild(0) as Player).isAggro = playersSpawned == 0 ? true : false;
 	    EncounterManager.players.Add(player);
 	    // player.GetComponent<Player>().setLocation(entrance.transform.position);
 	    playersSpawned++;
@@ -99,12 +99,12 @@ public partial class ActionListener : Node
 	    Node2D aggroPlayer = EncounterManager.players[0];
 	    List<Node2D> nonAggroPlayers = new List<Node2D>();
 	    foreach (Node2D playerObj in EncounterManager.players) {
-	        Player player = (Player) playerObj.GetChild(0);
-	        if (player.isAggro) {
-	            aggroPlayer = playerObj;
-	        } else {
+	        // Player player = (Player) playerObj.GetChild(0);
+	        // if (player.isAggro) {
+	        //     aggroPlayer = playerObj;
+	        // } else {
 	            nonAggroPlayers.Add(playerObj);
-	        }
+	        // }
 	    }
 
 	    Enemy enemy = (Enemy) EncounterManager.enemies[activeEnemyNum].GetChild(0);

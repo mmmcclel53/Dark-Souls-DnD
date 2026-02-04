@@ -1,12 +1,19 @@
-[gd_scene load_steps=10 format=3 uid="uid://b4sf7lx74fbd"]
+[gd_scene load_steps=19 format=3 uid="uid://b4sf7lx74fbd"]
 
 [ext_resource type="Texture2D" uid="uid://b45w2ba7qg8j3" path="res://Resources/Images/Backgrounds/CharacterCreation.jpg" id="1_5wgyk"]
-[ext_resource type="Script" path="res://Scripts/MainMenu/CharacterSelect.cs" id="1_cjuwb"]
+[ext_resource type="Script" uid="uid://djgumymymr06a" path="res://Scripts/CharacterSelect/CharacterSelect.cs" id="2_cjuwb"]
 [ext_resource type="Texture2D" uid="uid://dwfjhol7w8kwo" path="res://Resources/Images/Sprites/add-icon.png" id="3_ypqxi"]
 [ext_resource type="Texture2D" uid="uid://dl5f3dp6ea5rw" path="res://Resources/Prefabs/Player/Assassin/Icon.png" id="4_cjuwb"]
 [ext_resource type="Texture2D" uid="uid://d3d8abdhrq1x2" path="res://Resources/Prefabs/Player/Herald/Icon.png" id="5_5wgyk"]
-[ext_resource type="Texture2D" path="res://Resources/Images/Assassin.jpg" id="5_ypqxi"]
+[ext_resource type="Texture2D" uid="uid://by2jyivyevc5" path="res://Resources/Prefabs/Player/Deprived/Icon.png" id="6_63apf"]
+[ext_resource type="Texture2D" uid="uid://b455uga5iyt0t" path="res://Resources/Prefabs/Player/Cleric/Icon.png" id="7_7aw8v"]
 [ext_resource type="StyleBox" uid="uid://bjdvpd5wrg8qf" path="res://Resources/Prefabs/UI/ConfirmButton.tres" id="7_cjuwb"]
+[ext_resource type="Texture2D" uid="uid://bq1omx2n0x08b" path="res://Resources/Prefabs/Player/Knight/Icon.png" id="8_441dq"]
+[ext_resource type="Texture2D" uid="uid://c5q1bb67iw38" path="res://Resources/Prefabs/Player/Mercenary/Icon.png" id="9_oxssi"]
+[ext_resource type="Texture2D" uid="uid://d2mona4cwv52a" path="res://Resources/Prefabs/Player/Pyromancer/Icon.png" id="10_p6pro"]
+[ext_resource type="Texture2D" uid="uid://dqsfqctugu2nu" path="res://Resources/Prefabs/Player/Sorcerer/Icon.png" id="11_cs1pt"]
+[ext_resource type="Texture2D" uid="uid://cb462ygl1yomu" path="res://Resources/Prefabs/Player/Thief/Icon.png" id="12_eheue"]
+[ext_resource type="Texture2D" uid="uid://j3y2rnhb27xh" path="res://Resources/Prefabs/Player/Warrior/Icon.png" id="13_imp8f"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_lrqo7"]
 bg_color = Color(0.1254902, 0.1254902, 0.1254902, 1)
@@ -20,6 +27,14 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_y0k8x"]
+content_margin_left = 8.0
+bg_color = Color(0, 0, 0, 0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_lpe55"]
+content_margin_left = 8.0
+bg_color = Color(0, 0, 0, 0)
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5wgyk"]
 bg_color = Color(0.1254902, 0.1254902, 0.1254902, 1)
 expand_margin_left = 8.0
@@ -31,7 +46,7 @@ expand_margin_bottom = 8.0
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
-[node name="Character Select" type="TextureRect" parent="CanvasLayer" node_paths=PackedStringArray("backButton", "startButton")]
+[node name="Character Select" type="TextureRect" parent="CanvasLayer"]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -41,9 +56,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 texture = ExtResource("1_5wgyk")
 expand_mode = 3
-script = ExtResource("1_cjuwb")
-backButton = NodePath("MainContainer/PlayerContainer/Back to Main")
-startButton = NodePath("MainContainer/CharacterSelectContainer/StartContainer/Start")
+script = ExtResource("2_cjuwb")
 
 [node name="MainContainer" type="VBoxContainer" parent="CanvasLayer/Character Select"]
 layout_mode = 1
@@ -54,7 +67,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="PlayerContainer" type="HBoxContainer" parent="CanvasLayer/Character Select/MainContainer"]
-custom_minimum_size = Vector2(0, 96)
+custom_minimum_size = Vector2(0, 112)
 layout_mode = 2
 size_flags_vertical = 4
 
@@ -66,20 +79,19 @@ theme_override_font_sizes/font_size = 24
 text = "< Back to Main"
 
 [node name="Players" type="HBoxContainer" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer"]
-custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 24
 alignment = 1
 
-[node name="TextureButton" type="TextureButton" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/Players"]
-custom_minimum_size = Vector2(100, 100)
+[node name="Player1" type="TextureButton" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/Players"]
+custom_minimum_size = Vector2(112, 0)
 layout_mode = 2
 texture_normal = ExtResource("3_ypqxi")
 ignore_texture_size = true
-stretch_mode = 0
+stretch_mode = 5
 
-[node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/Players/TextureButton"]
+[node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/Players/Player1"]
 visible = false
 layout_mode = 1
 anchors_preset = 10
@@ -89,7 +101,61 @@ grow_horizontal = 2
 text = "Matt"
 horizontal_alignment = 1
 
-[node name="Back to Main2" type="MarginContainer" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer"]
+[node name="Player2" type="TextureButton" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/Players"]
+visible = false
+custom_minimum_size = Vector2(112, 0)
+layout_mode = 2
+texture_normal = ExtResource("3_ypqxi")
+ignore_texture_size = true
+stretch_mode = 5
+
+[node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/Players/Player2"]
+visible = false
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 18.0
+grow_horizontal = 2
+text = "Matt"
+horizontal_alignment = 1
+
+[node name="Player3" type="TextureButton" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/Players"]
+visible = false
+custom_minimum_size = Vector2(112, 0)
+layout_mode = 2
+texture_normal = ExtResource("3_ypqxi")
+ignore_texture_size = true
+stretch_mode = 5
+
+[node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/Players/Player3"]
+visible = false
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 18.0
+grow_horizontal = 2
+text = "Matt"
+horizontal_alignment = 1
+
+[node name="Player4" type="TextureButton" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/Players"]
+visible = false
+custom_minimum_size = Vector2(112, 0)
+layout_mode = 2
+texture_normal = ExtResource("3_ypqxi")
+ignore_texture_size = true
+stretch_mode = 5
+
+[node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/Players/Player4"]
+visible = false
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 18.0
+grow_horizontal = 2
+text = "Matt"
+horizontal_alignment = 1
+
+[node name="Spacer" type="MarginContainer" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer"]
 custom_minimum_size = Vector2(200, 32)
 layout_mode = 2
 size_flags_vertical = 4
@@ -101,9 +167,10 @@ size_flags_vertical = 3
 [node name="CharacterButtons" type="VBoxContainer" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_constants/separation = 14
 
 [node name="Assassin" type="Button" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons"]
-custom_minimum_size = Vector2(0, 32)
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 theme_override_styles/normal = SubResource("StyleBoxFlat_lrqo7")
 
@@ -119,17 +186,19 @@ grow_vertical = 2
 custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
 texture = ExtResource("4_cjuwb")
-expand_mode = 5
+expand_mode = 3
 
 [node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons/Assassin/HBoxContainer"]
 layout_mode = 2
+theme_override_constants/line_spacing = 3
 theme_override_font_sizes/font_size = 24
+theme_override_styles/normal = SubResource("StyleBoxFlat_y0k8x")
 text = "Assassin"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="Cleric" type="Button" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons"]
-custom_minimum_size = Vector2(0, 32)
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 theme_override_styles/normal = SubResource("StyleBoxFlat_lrqo7")
 
@@ -145,16 +214,234 @@ grow_vertical = 2
 custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
 texture = ExtResource("5_5wgyk")
-expand_mode = 5
+expand_mode = 3
 
 [node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons/Cleric/HBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
+theme_override_styles/normal = SubResource("StyleBoxFlat_lpe55")
 text = "Cleric"
 horizontal_alignment = 1
 vertical_alignment = 1
 
+[node name="Deprived" type="Button" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_lrqo7")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons/Deprived"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TextureRect" type="TextureRect" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons/Deprived/HBoxContainer"]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+texture = ExtResource("6_63apf")
+expand_mode = 3
+
+[node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons/Deprived/HBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+theme_override_styles/normal = SubResource("StyleBoxFlat_lpe55")
+text = "Deprived"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Herald" type="Button" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_lrqo7")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons/Herald"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TextureRect" type="TextureRect" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons/Herald/HBoxContainer"]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+texture = ExtResource("7_7aw8v")
+expand_mode = 3
+
+[node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons/Herald/HBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+theme_override_styles/normal = SubResource("StyleBoxFlat_lpe55")
+text = "Herald"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Knight" type="Button" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_lrqo7")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons/Knight"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TextureRect" type="TextureRect" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons/Knight/HBoxContainer"]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+texture = ExtResource("8_441dq")
+expand_mode = 3
+
+[node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons/Knight/HBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+theme_override_styles/normal = SubResource("StyleBoxFlat_lpe55")
+text = "Knight"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Mercenary" type="Button" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_lrqo7")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons/Mercenary"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TextureRect" type="TextureRect" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons/Mercenary/HBoxContainer"]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+texture = ExtResource("9_oxssi")
+expand_mode = 3
+
+[node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons/Mercenary/HBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+theme_override_styles/normal = SubResource("StyleBoxFlat_lpe55")
+text = "Mercenary"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Pyromancer" type="Button" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_lrqo7")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons/Pyromancer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TextureRect" type="TextureRect" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons/Pyromancer/HBoxContainer"]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+texture = ExtResource("10_p6pro")
+expand_mode = 3
+
+[node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons/Pyromancer/HBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+theme_override_styles/normal = SubResource("StyleBoxFlat_lpe55")
+text = "Pyromancer"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Sorcerer" type="Button" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_lrqo7")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons/Sorcerer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TextureRect" type="TextureRect" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons/Sorcerer/HBoxContainer"]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+texture = ExtResource("11_cs1pt")
+expand_mode = 3
+
+[node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons/Sorcerer/HBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+theme_override_styles/normal = SubResource("StyleBoxFlat_lpe55")
+text = "Sorcerer"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Thief" type="Button" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_lrqo7")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons/Thief"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TextureRect" type="TextureRect" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons/Thief/HBoxContainer"]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+texture = ExtResource("12_eheue")
+expand_mode = 3
+
+[node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons/Thief/HBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+theme_override_styles/normal = SubResource("StyleBoxFlat_lpe55")
+text = "Thief"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Warrior" type="Button" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_lrqo7")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons/Warrior"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TextureRect" type="TextureRect" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons/Warrior/HBoxContainer"]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+texture = ExtResource("13_imp8f")
+expand_mode = 3
+
+[node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterButtons/Warrior/HBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+theme_override_styles/normal = SubResource("StyleBoxFlat_lpe55")
+text = "Warrior"
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [node name="CharacterInfo" type="MarginContainer" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer"]
+custom_minimum_size = Vector2(720, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -165,7 +452,6 @@ theme_override_constants/margin_bottom = 32
 
 [node name="CharacterImage" type="TextureRect" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterInfo"]
 layout_mode = 2
-texture = ExtResource("5_ypqxi")
 expand_mode = 3
 
 [node name="StartContainer" type="MarginContainer" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer"]

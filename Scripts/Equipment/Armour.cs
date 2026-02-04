@@ -23,8 +23,6 @@ public partial class Armour : Resource, Equipment {
     [Export] public int intelligenceReq { get; set; }
     [Export] public int faithReq { get; set; }
 
-    
-
     public Armour() : this("", Equipment.EquipmentType.Armour,Equipment.Rarity.COMMON,false, 0,0,0,0, new Array<Dice>{}, new Array<Dice>{}, 0,0) {}
 
     public Armour(string name, Equipment.EquipmentType type, Equipment.Rarity rarity, bool isUpgrade, int strengthReq, int dexterityReq, int intelligenceReq, int faithReq, Array<Dice> physicalDefense, Array<Dice> magicDefense, int dodgeAbility, int upgradeSlots)

@@ -1,31 +1,24 @@
-[gd_scene load_steps=9 format=3 uid="uid://vyauk3qln5xa"]
+[gd_scene load_steps=8 format=3 uid="uid://vyauk3qln5xa"]
 
 [ext_resource type="Texture2D" uid="uid://b4qw6hb7e6826" path="res://Resources/Prefabs/Player/Knight/Knight.jpg" id="1_ei441"]
-[ext_resource type="Script" uid="uid://cqvjjejpmoeo5" path="res://Scripts/Encounter/Player/Player.cs" id="2_m0wws"]
-[ext_resource type="Resource" uid="uid://cmev7rnhedr1j" path="res://Resources/Prefabs/Player/Knight/Knight.tres" id="3_0ocnn"]
+[ext_resource type="Script" uid="uid://yijjrkg451rj" path="res://Scripts/Encounter/Player/CharacterSheet.cs" id="2_x3q7w"]
 [ext_resource type="Texture2D" uid="uid://c8idy1frrmm5n" path="res://Resources/Prefabs/Player/Knight/Equipment/Long Sword.png" id="4_mhl0e"]
 [ext_resource type="Texture2D" uid="uid://cx3brhryrw36t" path="res://Resources/Prefabs/Player/Herald/Equipment/Spear.png" id="4_xeh2h"]
 [ext_resource type="Texture2D" uid="uid://be6t42lo0ceq" path="res://Resources/Prefabs/Player/Knight/Equipment/Kite Shield.png" id="5_ggd7o"]
 [ext_resource type="Texture2D" uid="uid://bi45t16qpeyuh" path="res://Resources/Prefabs/Player/Knight/Equipment/Knight Armour.png" id="5_p1msu"]
 [ext_resource type="Texture2D" uid="uid://ca5x2aikdlepm" path="res://Resources/Images/Sprites/Stamina.png" id="8_33ppw"]
 
-[node name="Character" type="TextureRect" node_paths=PackedStringArray("backupSlotButton", "leftHandButton", "rightHandButton", "armourButton")]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_right = -0.00012207031
-offset_bottom = 219.60999
+[node name="Character" type="TextureRect"]
+anchors_preset = -1
+anchor_right = 0.9999999
+anchor_bottom = 1.3389043
 grow_horizontal = 2
 grow_vertical = 2
 texture = ExtResource("1_ei441")
 expand_mode = 3
 stretch_mode = 4
-script = ExtResource("2_m0wws")
-character = ExtResource("3_0ocnn")
-backupSlotButton = NodePath("Backup/Weapon")
-leftHandButton = NodePath("Left Hand/Weapon")
-rightHandButton = NodePath("Right Hand/Weapon")
-armourButton = NodePath("Armour/Armour")
+script = ExtResource("2_x3q7w")
+metadata/_edit_use_anchors_ = true
 
 [node name="Backup" type="Control" parent="."]
 layout_mode = 1

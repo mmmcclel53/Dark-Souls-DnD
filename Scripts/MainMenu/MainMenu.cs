@@ -27,7 +27,7 @@ public partial class MainMenu : VBoxContainer
 	}
 
 	private void OnPressedContinue() {
-		Node BonfireScene = ResourceLoader.Load<PackedScene>("res://Scenes/PrepareToDie.tscn").Instantiate();
+		Node BonfireScene = ResourceLoader.Load<PackedScene>("res://Scenes/BonfireScene.tscn").Instantiate();
 		GetTree().Root.AddChild(BonfireScene);
 		GetTree().Root.GetChild(0).QueueFree();
 		// loadGamePanel.Visible = true;

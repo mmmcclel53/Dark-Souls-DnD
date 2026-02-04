@@ -6,10 +6,7 @@ public partial class CharacterSelect : Panel
 {
 	private const int MAX_NUM_PLAYERS = 4;
 
-	[Export] public Panel rootPanel;
-	[Export] public Button backButton;
-	
-	[Export] public OptionButton numPlayersSelect;
+	[Export] public Button backButton;	
 	[Export] public VBoxContainer playersContainer;
 	[Export] public BoxContainer charactersContainer;
 
@@ -19,19 +16,19 @@ public partial class CharacterSelect : Panel
 	private int selectedPlayer = 0;
 
 	public override void _Ready() {
-		numPlayersSelect.ItemSelected += (index) => { OnNumPlayersChange(index); };
-		backButton.Pressed += () => { OnPressedBackButton(); };
-		startButton.Pressed += () => { OnSaveGame(); };
+		// numPlayersSelect.ItemSelected += (index) => { OnNumPlayersChange(index); };
+		// backButton.Pressed += () => { OnPressedBackButton(); };
+		// startButton.Pressed += () => { OnStart(); };
 
-		foreach (Control character in charactersContainer.GetChildren()) {
-			Player p = (Player)character;
-			Button btn = (Button)character.GetChild(character.GetChildCount()-1);
-			btn.Pressed += () => { OnCharacterSelect(p.character); };
-		}
+		// foreach (Control character in charactersContainer.GetChildren()) {
+		// 	Player p = (Player)character;
+		// 	Button btn = (Button)character.GetChild(character.GetChildCount()-1);
+		// 	btn.Pressed += () => { OnCharacterSelect(p.character); };
+		// }
 
-		// Init
-		Player firstPlayer = (Player)charactersContainer.GetChild(0);
-		players.Add(0, firstPlayer);
+		// // Init
+		// Player firstPlayer = (Player)charactersContainer.GetChild(0);
+		// players.Add(0, firstPlayer);
 	}
 
 	public override void _Process(double delta) {
@@ -54,17 +51,17 @@ public partial class CharacterSelect : Panel
 
 	private void OnNumPlayersChange(long index) {
 		// Reset
-		players.Clear();
-		for (int i=0;i<MAX_NUM_PLAYERS;i++) {
-			VBoxContainer playerContainer = (VBoxContainer) playersContainer.GetChild(i);
-			playerContainer.Visible = false;
-		} 
+		// players.Clear();
+		// for (int i=0;i<MAX_NUM_PLAYERS;i++) {
+		// 	VBoxContainer playerContainer = (VBoxContainer) playersContainer.GetChild(i);
+		// 	playerContainer.Visible = false;
+		// } 
 
-		for (int i=0;i<index+1;i++) {
-			Player p = (Player)charactersContainer.GetChild(i);
-			players.Add(i, p);
-			GD.Print(p.name);
-		}
+		// for (int i=0;i<index+1;i++) {
+		// 	Player p = (Player)charactersContainer.GetChild(i);
+		// 	players.Add(i, p);
+		// 	GD.Print(p.name);
+		// }
 	}
 
 	private void OnCharacterSelect(Character c) {
@@ -80,22 +77,27 @@ public partial class CharacterSelect : Panel
 	}
 
 	private void OnPressedBackButton() {
-		rootPanel.Visible = false;
+		Node MainMenuScene = ResourceLoader.Load<PackedScene>("res://Scenes/MainMenu.tscn").Instantiate();
+		GetTree().Root.AddChild(MainMenuScene);
+		GetTree().Root.GetChild(0).QueueFree();
 	}
 
-	private void OnSaveGame() {
-		rootPanel.Visible = false;
+	private void OnStart() {
 
 		Dictionary<string, Variant> savedPlayers = new Dictionary<string, Variant>();
 		for (int i=0;i<players.Count;i++) {
-			Dictionary<string, Variant> saveData = players[i].Save();
-			savedPlayers.Add(players[i].name, saveData);
+			// Dictionary<string, Variant> saveData = players[i].Save();
+			// savedPlayers.Add(players[i].name, saveData);
 		}
 
 		Dictionary<string, Variant> saveGame = new Dictionary<string, Variant>();
 		saveGame.Add("players", savedPlayers);
         string jsonString = Json.Stringify(saveGame);
-		using var saveFile = FileAccess.Open("user://savegame.save", FileAccess.ModeFlags.Write);
+		using var saveFile = FileAccess.Open("user://savegame.tres", FileAccess.ModeFlags.Write);
         saveFile.StoreLine(jsonString);
+
+		Node BonfireScene = ResourceLoader.Load<PackedScene>("res://Scenes/BonfireScene.tscn").Instantiate();
+		GetTree().Root.AddChild(BonfireScene);
+		GetTree().Root.GetChild(0).QueueFree();
 	}
 }
