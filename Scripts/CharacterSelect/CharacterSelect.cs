@@ -1,79 +1,81 @@
 using Godot;
 using Godot.Collections;
+using System.Collections.Generic;
 using System.Text.Json;
 
 public partial class CharacterSelect : Panel
 {
 	private const int MAX_NUM_PLAYERS = 4;
 
-	[Export] public Button backButton;	
-	[Export] public VBoxContainer playersContainer;
-	[Export] public BoxContainer charactersContainer;
+	private Character Assassin = ResourceLoader.Load<Character>("res://Resources/Prefabs/Player/Assassin/Assassin.tres");
+	private Character Cleric = ResourceLoader.Load<Character>("res://Resources/Prefabs/Player/Cleric/Cleric.tres");
+	private Character Deprived = ResourceLoader.Load<Character>("res://Resources/Prefabs/Player/Deprived/Deprived.tres");
+	private Character Herald = ResourceLoader.Load<Character>("res://Resources/Prefabs/Player/Herald/Herald.tres");
+	private Character Knight = ResourceLoader.Load<Character>("res://Resources/Prefabs/Player/Knight/Knight.tres");
 
+	[Export] public Button backButton;
+	[Export] public TextureRect characterSheet;
+	[Export] public VBoxContainer playerButtonsContainer;
+	[Export] public BoxContainer characterButtonsContainer;
 	[Export] public Button startButton;
 
-	private Dictionary<int, Player> players = new Dictionary<int, Player>();
+	[Export] public Control nameModal;
+	[Export] public TextEdit nameModalTextEdit;
+	[Export] public Button nameModalConfirm;
+
+	private List<Player> players;
 	private int selectedPlayer = 0;
 
 	public override void _Ready() {
-		// numPlayersSelect.ItemSelected += (index) => { OnNumPlayersChange(index); };
-		// backButton.Pressed += () => { OnPressedBackButton(); };
-		// startButton.Pressed += () => { OnStart(); };
+		backButton.Pressed += () => { OnPressedBackButton(); };
+		startButton.Pressed += () => { OnStart(); };
+		nameModalConfirm.Pressed += () => { OnConfirmName(); };
 
-		// foreach (Control character in charactersContainer.GetChildren()) {
-		// 	Player p = (Player)character;
-		// 	Button btn = (Button)character.GetChild(character.GetChildCount()-1);
-		// 	btn.Pressed += () => { OnCharacterSelect(p.character); };
-		// }
+		for (int i=0; i<playerButtonsContainer.GetChildCount(); i++) {
+			TextureButton playerButton = (TextureButton)playerButtonsContainer.GetChild(i); 
+			playerButton.Pressed += () => { OnPlayerSelect(i); };
+		}
+
+		foreach (Button playerButton in playerButtonsContainer.GetChildren()) {
+			// Button playerButton = 
+			// playerButton.Pressed += () => { OnCharacterSelect(); };
+		}
 
 		// // Init
 		// Player firstPlayer = (Player)charactersContainer.GetChild(0);
 		// players.Add(0, firstPlayer);
 	}
 
-	public override void _Process(double delta) {
-		foreach(var (key, p) in players) {
-			int i = key;
-
-			VBoxContainer playerContainer = (VBoxContainer) playersContainer.GetChild(i);
-			playerContainer.Visible = true;
-			
-			Button btn = (Button)playerContainer.GetChild(0);
-			TextureRect image = (TextureRect)btn.GetChild(0);
-			TextEdit name = (TextEdit)playerContainer.GetChild(1);
-
-			image.Texture = p.character.image;
-
-			name.TextChanged += () => { OnPlayerNameChange(i, name.Text); };
-			btn.Pressed += () => { OnPlayerSelect(i); };
+	private void OnPlayerSelect(int selected) {
+		selectedPlayer = selected;
+		if (players.Count < selected+1) {
+			nameModal.Visible = true;
 		}
 	}
 
-	private void OnNumPlayersChange(long index) {
-		// Reset
-		// players.Clear();
-		// for (int i=0;i<MAX_NUM_PLAYERS;i++) {
-		// 	VBoxContainer playerContainer = (VBoxContainer) playersContainer.GetChild(i);
-		// 	playerContainer.Visible = false;
-		// } 
+	private void OnConfirmName() {
+		Player p = new Player(nameModalTextEdit.Text, Assassin);
+		players.Add(p);
 
-		// for (int i=0;i<index+1;i++) {
-		// 	Player p = (Player)charactersContainer.GetChild(i);
-		// 	players.Add(i, p);
-		// 	GD.Print(p.name);
-		// }
+		nameModal.Visible = false;
+		nameModalTextEdit.Clear();
+
+		int numPlayers = players.Count;
+		TextureButton currPlayerButton = (TextureButton)playerButtonsContainer.GetChild(numPlayers);
+		currPlayerButton.TextureNormal = p.character.avatar;
+		Label currLabel = (Label)currPlayerButton.GetChild(0);
+		currLabel.Text = p.name;
+
+		if (numPlayers < MAX_NUM_PLAYERS){
+			TextureButton nextPlayerButton = (TextureButton)playerButtonsContainer.GetChild(numPlayers+1);
+			nextPlayerButton.Visible = true;
+		}
 	}
 
 	private void OnCharacterSelect(Character c) {
 		Player p = players[selectedPlayer];
 		p.character = c;
-	}
-	private void OnPlayerNameChange(int i, string newName) {
-		Player p = players[i];
-		p.name = newName;
-	}
-	private void OnPlayerSelect(int playerNum) {
-		selectedPlayer = playerNum;
+		// characterSheet.
 	}
 
 	private void OnPressedBackButton() {
@@ -83,18 +85,17 @@ public partial class CharacterSelect : Panel
 	}
 
 	private void OnStart() {
+		// Dictionary<string, Variant> savedPlayers = new Dictionary<string, Variant>();
+		// for (int i=0;i<players.Count;i++) {
+		// 	// Dictionary<string, Variant> saveData = players[i].Save();
+		// 	// savedPlayers.Add(players[i].name, saveData);
+		// }
 
-		Dictionary<string, Variant> savedPlayers = new Dictionary<string, Variant>();
-		for (int i=0;i<players.Count;i++) {
-			// Dictionary<string, Variant> saveData = players[i].Save();
-			// savedPlayers.Add(players[i].name, saveData);
-		}
-
-		Dictionary<string, Variant> saveGame = new Dictionary<string, Variant>();
-		saveGame.Add("players", savedPlayers);
-        string jsonString = Json.Stringify(saveGame);
-		using var saveFile = FileAccess.Open("user://savegame.tres", FileAccess.ModeFlags.Write);
-        saveFile.StoreLine(jsonString);
+		// Dictionary<string, Variant> saveGame = new Dictionary<string, Variant>();
+		// saveGame.Add("players", savedPlayers);
+        // string jsonString = Json.Stringify(saveGame);
+		// using var saveFile = FileAccess.Open("user://savegame.tres", FileAccess.ModeFlags.Write);
+        // saveFile.StoreLine(jsonString);
 
 		Node BonfireScene = ResourceLoader.Load<PackedScene>("res://Scenes/BonfireScene.tscn").Instantiate();
 		GetTree().Root.AddChild(BonfireScene);

@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3 uid="uid://b4sf7lx74fbd"]
+[gd_scene load_steps=20 format=3 uid="uid://b4sf7lx74fbd"]
 
 [ext_resource type="Texture2D" uid="uid://b45w2ba7qg8j3" path="res://Resources/Images/Backgrounds/CharacterCreation.jpg" id="1_5wgyk"]
 [ext_resource type="Script" uid="uid://djgumymymr06a" path="res://Scripts/CharacterSelect/CharacterSelect.cs" id="2_cjuwb"]
@@ -14,6 +14,7 @@
 [ext_resource type="Texture2D" uid="uid://dqsfqctugu2nu" path="res://Resources/Prefabs/Player/Sorcerer/Icon.png" id="11_cs1pt"]
 [ext_resource type="Texture2D" uid="uid://cb462ygl1yomu" path="res://Resources/Prefabs/Player/Thief/Icon.png" id="12_eheue"]
 [ext_resource type="Texture2D" uid="uid://j3y2rnhb27xh" path="res://Resources/Prefabs/Player/Warrior/Icon.png" id="13_imp8f"]
+[ext_resource type="PackedScene" uid="uid://vyauk3qln5xa" path="res://Resources/Prefabs/Player/CharacterSheet.tscn" id="14_7aw8v"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_lrqo7"]
 bg_color = Color(0.1254902, 0.1254902, 0.1254902, 1)
@@ -78,20 +79,20 @@ size_flags_vertical = 4
 theme_override_font_sizes/font_size = 24
 text = "< Back to Main"
 
-[node name="Players" type="HBoxContainer" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer"]
+[node name="PlayersButtons" type="HBoxContainer" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 24
 alignment = 1
 
-[node name="Player1" type="TextureButton" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/Players"]
+[node name="Player1" type="TextureButton" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/PlayersButtons"]
 custom_minimum_size = Vector2(112, 0)
 layout_mode = 2
 texture_normal = ExtResource("3_ypqxi")
 ignore_texture_size = true
 stretch_mode = 5
 
-[node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/Players/Player1"]
+[node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/PlayersButtons/Player1"]
 visible = false
 layout_mode = 1
 anchors_preset = 10
@@ -101,7 +102,7 @@ grow_horizontal = 2
 text = "Matt"
 horizontal_alignment = 1
 
-[node name="Player2" type="TextureButton" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/Players"]
+[node name="Player2" type="TextureButton" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/PlayersButtons"]
 visible = false
 custom_minimum_size = Vector2(112, 0)
 layout_mode = 2
@@ -109,7 +110,7 @@ texture_normal = ExtResource("3_ypqxi")
 ignore_texture_size = true
 stretch_mode = 5
 
-[node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/Players/Player2"]
+[node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/PlayersButtons/Player2"]
 visible = false
 layout_mode = 1
 anchors_preset = 10
@@ -119,7 +120,7 @@ grow_horizontal = 2
 text = "Matt"
 horizontal_alignment = 1
 
-[node name="Player3" type="TextureButton" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/Players"]
+[node name="Player3" type="TextureButton" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/PlayersButtons"]
 visible = false
 custom_minimum_size = Vector2(112, 0)
 layout_mode = 2
@@ -127,7 +128,7 @@ texture_normal = ExtResource("3_ypqxi")
 ignore_texture_size = true
 stretch_mode = 5
 
-[node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/Players/Player3"]
+[node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/PlayersButtons/Player3"]
 visible = false
 layout_mode = 1
 anchors_preset = 10
@@ -137,7 +138,7 @@ grow_horizontal = 2
 text = "Matt"
 horizontal_alignment = 1
 
-[node name="Player4" type="TextureButton" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/Players"]
+[node name="Player4" type="TextureButton" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/PlayersButtons"]
 visible = false
 custom_minimum_size = Vector2(112, 0)
 layout_mode = 2
@@ -145,7 +146,7 @@ texture_normal = ExtResource("3_ypqxi")
 ignore_texture_size = true
 stretch_mode = 5
 
-[node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/Players/Player4"]
+[node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/PlayersButtons/Player4"]
 visible = false
 layout_mode = 1
 anchors_preset = 10
@@ -450,9 +451,8 @@ theme_override_constants/margin_top = 32
 theme_override_constants/margin_right = 32
 theme_override_constants/margin_bottom = 32
 
-[node name="CharacterImage" type="TextureRect" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterInfo"]
+[node name="Character" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterInfo" instance=ExtResource("14_7aw8v")]
 layout_mode = 2
-expand_mode = 3
 
 [node name="StartContainer" type="MarginContainer" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer"]
 layout_mode = 2

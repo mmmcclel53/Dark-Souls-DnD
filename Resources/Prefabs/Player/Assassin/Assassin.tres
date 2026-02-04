@@ -1,17 +1,19 @@
 [gd_resource type="Resource" script_class="Character" load_steps=7 format=3 uid="uid://b8ak3h3u7t0t7"]
 
 [ext_resource type="Resource" uid="uid://b3rb3npeqm00g" path="res://Resources/Prefabs/Player/Assassin/Equipment/Assassin Armour.tres" id="1_b2nkr"]
-[ext_resource type="Texture2D" uid="uid://dlsl8p2kj33p7" path="res://Resources/Prefabs/Player/Assassin/Avatar.png" id="2_p48nc"]
-[ext_resource type="Texture2D" uid="uid://cltmvppoctf5u" path="res://Resources/Prefabs/Player/Assassin/Assassin.png" id="3_cbnrc"]
+[ext_resource type="Texture2D" uid="uid://cldneo8p7eok1" path="res://Resources/Prefabs/Player/Assassin/Assassin.jpg" id="2_6ytwm"]
 [ext_resource type="Resource" uid="uid://bcjurnjboece4" path="res://Resources/Prefabs/Player/Assassin/Equipment/Estoc.tres" id="4_kdm31"]
 [ext_resource type="Resource" uid="uid://bldqkwu224s15" path="res://Resources/Prefabs/Player/Assassin/Equipment/Target Shield.tres" id="5_4jg60"]
-[ext_resource type="Script" path="res://Scripts/Encounter/Player/Character.cs" id="6_6hruq"]
+[ext_resource type="Script" uid="uid://bq0oq55csyxml" path="res://Scripts/Encounter/Player/Character.cs" id="6_6hruq"]
+
+[sub_resource type="Resource" id="Resource_58jl0"]
+metadata/__load_path__ = "res://Resources/Prefabs/Player/Assassin/Assassin.png"
 
 [resource]
 script = ExtResource("6_6hruq")
 name = "Assassin"
-image = ExtResource("3_cbnrc")
-avatar = ExtResource("2_p48nc")
+image = SubResource("Resource_58jl0")
+avatar = ExtResource("2_6ytwm")
 leftHandDefault = ExtResource("4_kdm31")
 rightHandDefault = ExtResource("5_4jg60")
 armourDefault = ExtResource("1_b2nkr")

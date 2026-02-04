@@ -1,8 +1,8 @@
 using Godot;
 
-public partial class CharacterSheet : TextureRect
+public partial class PlayerSheet : TextureRect
 {
-    [Export] public Character character;
+    [Export] public Player player;
 
     // UI
     [Export] public TextureButton backupSlotButton;
@@ -11,11 +11,13 @@ public partial class CharacterSheet : TextureRect
     [Export] public TextureButton armourButton;
 
 	public override void _Ready() {
-        Texture = character.image;
-        backupSlotButton.TextureNormal = character.backupSlotDefault != null ? character.backupSlotDefault.image : null;
-        leftHandButton.TextureNormal = character.leftHandDefault != null ? character.leftHandDefault.image : null;
-        rightHandButton.TextureNormal = character.rightHandDefault != null ? character.rightHandDefault.image : null;
-        armourButton.TextureNormal = character.armourDefault != null ? character.armourDefault.image : null;
+        Texture = player.character.image;
+        backupSlotButton.TextureNormal = player.backupSlot != null ? player.backupSlot.image : null;
+        leftHandButton.TextureNormal = player.leftHand != null ? player.leftHand.image : null;
+        rightHandButton.TextureNormal = player.rightHand != null ? player.rightHand.image : null;
+        armourButton.TextureNormal = player.armour != null ? player.armour.image : null;
+
+        // TODO: Add upgrades
 	}
 
     // Bonfire
