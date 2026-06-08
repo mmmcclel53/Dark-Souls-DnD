@@ -1,7 +1,6 @@
 using Godot;
 using System;
 using System.Collections.Generic;
-using System.Net.NetworkInformation;
 
 public static partial class EncounterManager {
 
@@ -19,8 +18,20 @@ public static partial class EncounterManager {
     public static List<Node2D> enemies = new List<Node2D>();
     public static bool isEnemyMoving = false;
 
+    public static PathGrid pathGrid;
+    public static AcceptDialog enemyInfoModal;
+
     // Settings
     public static bool showEnemyInfo = true;
+
+    public static void Reset() {
+        nodes.Clear();
+        players.Clear();
+        enemies.Clear();
+        action = Action.INACTIVE;
+        isPlayerMoving = false;
+        isEnemyMoving = false;
+    }
 
     public static List<Node2D> GetAllPlayersInNode(Control node) {
         List<Node2D> result = new List<Node2D>();

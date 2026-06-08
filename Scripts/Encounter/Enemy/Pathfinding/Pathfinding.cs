@@ -38,7 +38,7 @@ public static class Pathfinding {
 					if (!openSet.Contains(neighbour))
 						openSet.Add(neighbour);
 					else {
-						//openSet.UpdateItem(neighbour);
+						openSet.UpdateItem(neighbour);
 					}
 				}
 			}

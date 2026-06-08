@@ -12,6 +12,7 @@ public partial class ActionListener : Node
 	[Export] public Array<PackedScene> players;
 	[Export] public Array<PackedScene> enemies;
 	[Export] public Node nodesParent;
+	[Export] public PathGrid pathGrid;
 
 	private int playersSpawned = 0;
 	private List<GameNode> entrances = new List<GameNode>();
@@ -26,6 +27,10 @@ public partial class ActionListener : Node
 	}
 
 	public override void _Ready() {
+		EncounterManager.Reset();
+		EncounterManager.pathGrid = pathGrid;
+		EncounterManager.enemyInfoModal = GetNode<AcceptDialog>("%Enemy Info Dialog");
+
 		ToggleAllNodesOff();
 	    SpawnEnemies();
 	}

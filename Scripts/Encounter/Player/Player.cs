@@ -19,6 +19,8 @@ public partial class Player : Resource
     [Export] public int stamina = 10;
     [Export] public int hits = 0;
 
+    public Player() { }
+
     public Player(string name, Character character)
     {
         this.name = name;

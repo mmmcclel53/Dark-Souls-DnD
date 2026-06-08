@@ -1,7 +1,8 @@
-[gd_resource type="Resource" script_class="Character" load_steps=6 format=3 uid="uid://cgj4vq04u0as7"]
+[gd_resource type="Resource" script_class="Character" load_steps=7 format=3 uid="uid://cgj4vq04u0as7"]
 
 [ext_resource type="Script" uid="uid://bq0oq55csyxml" path="res://Scripts/Encounter/Player/Character.cs" id="1_7cftc"]
 [ext_resource type="Resource" uid="uid://bx5lfxfl2ktxq" path="res://Resources/Prefabs/Player/Cleric/Equipment/Cleric Robes.tres" id="1_ae1st"]
+[ext_resource type="Texture2D" uid="uid://3v4ao6qir6py" path="res://Resources/Prefabs/Player/Cleric/Avatar.png" id="2_nluh4"]
 [ext_resource type="Texture2D" uid="uid://y1ynnl7r5w1o" path="res://Resources/Prefabs/Player/Cleric/Cleric.jpg" id="3_gk8xj"]
 [ext_resource type="Resource" uid="uid://dtnlldxxbws78" path="res://Resources/Prefabs/Player/Cleric/Equipment/Mace.tres" id="4_d2gx6"]
 [ext_resource type="Resource" uid="uid://7pqbrwslle7r" path="res://Resources/Prefabs/Player/Cleric/Equipment/Blue Wooden Shield.tres" id="5_ts0lt"]
@@ -10,7 +11,8 @@
 script = ExtResource("1_7cftc")
 name = "Cleric"
 image = ExtResource("3_gk8xj")
-avatar = ExtResource("3_gk8xj")
+avatar = ExtResource("2_nluh4")
+description = "Faith made flesh. Steady in a fight and steadier in spirit, the Cleric keeps the party breathing when all seems lost — a backbone the group cannot afford to lose."
 leftHandDefault = ExtResource("4_d2gx6")
 rightHandDefault = ExtResource("5_ts0lt")
 armourDefault = ExtResource("1_ae1st")

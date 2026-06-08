@@ -2,18 +2,17 @@
 
 [ext_resource type="Resource" uid="uid://b3rb3npeqm00g" path="res://Resources/Prefabs/Player/Assassin/Equipment/Assassin Armour.tres" id="1_b2nkr"]
 [ext_resource type="Texture2D" uid="uid://cldneo8p7eok1" path="res://Resources/Prefabs/Player/Assassin/Assassin.jpg" id="2_6ytwm"]
+[ext_resource type="Texture2D" uid="uid://bqw4lmb7vhlkw" path="res://Resources/Prefabs/Player/Assassin/Avatar.png" id="2_58jl0"]
 [ext_resource type="Resource" uid="uid://bcjurnjboece4" path="res://Resources/Prefabs/Player/Assassin/Equipment/Estoc.tres" id="4_kdm31"]
 [ext_resource type="Resource" uid="uid://bldqkwu224s15" path="res://Resources/Prefabs/Player/Assassin/Equipment/Target Shield.tres" id="5_4jg60"]
 [ext_resource type="Script" uid="uid://bq0oq55csyxml" path="res://Scripts/Encounter/Player/Character.cs" id="6_6hruq"]
 
-[sub_resource type="Resource" id="Resource_58jl0"]
-metadata/__load_path__ = "res://Resources/Prefabs/Player/Assassin/Assassin.png"
-
 [resource]
 script = ExtResource("6_6hruq")
 name = "Assassin"
-image = SubResource("Resource_58jl0")
-avatar = ExtResource("2_6ytwm")
+image = ExtResource("2_6ytwm")
+avatar = ExtResource("2_58jl0")
+description = "A shadow given edge. Hits fast, bleeds deep, and vanishes before the enemy knows what happened — but paper-thin defenses mean any sustained pressure can be fatal."
 leftHandDefault = ExtResource("4_kdm31")
 rightHandDefault = ExtResource("5_4jg60")
 armourDefault = ExtResource("1_b2nkr")

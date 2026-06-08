@@ -1,17 +1,18 @@
 using Godot;
-using Godot.Collections;
 
 public partial class BonfireListener : Node {
+    [Export] public PackedScene characterSheetScene;
 
-	[Export] public Array<PackedScene> players;
-	
-	public override void _Ready() {
-		int index = 0;
-		foreach (PackedScene p in players) {
-			Control player = (Control)p.Instantiate();
-			Control spawnPoint = (Control)GetChild(index > 1 ? 2 : 0);
-			spawnPoint.AddChild(player);
-			index++;
-		}
-	}
+    public override void _Ready() {
+        var players = CampaignManager.Players;
+        if (players == null || players.Length == 0) return;
+
+        for (int i = 0; i < players.Length; i++) {
+            var sheet = characterSheetScene.Instantiate<CharacterSheet>();
+            // Children: 0 = left VBoxContainer, 1 = Bonfire graphic, 2 = right VBoxContainer
+            Control spawnPoint = (Control)GetChild(i >= 2 ? 2 : 0);
+            spawnPoint.AddChild(sheet);
+            sheet.SetCharacter(players[i].character);
+        }
+    }
 }

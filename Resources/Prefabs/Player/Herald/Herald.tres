@@ -1,7 +1,8 @@
-[gd_resource type="Resource" script_class="Character" load_steps=6 format=3 uid="uid://bj2mw383f6eix"]
+[gd_resource type="Resource" script_class="Character" load_steps=7 format=3 uid="uid://bj2mw383f6eix"]
 
 [ext_resource type="Resource" uid="uid://csufgad53noxc" path="res://Resources/Prefabs/Player/Herald/Equipment/Herald Armour.tres" id="1_dgv6f"]
 [ext_resource type="Script" uid="uid://bq0oq55csyxml" path="res://Scripts/Encounter/Player/Character.cs" id="1_ox508"]
+[ext_resource type="Texture2D" uid="uid://dbsswtevfsey6" path="res://Resources/Prefabs/Player/Herald/Avatar.png" id="2_p73wf"]
 [ext_resource type="Texture2D" uid="uid://bi7b425ha6qvr" path="res://Resources/Prefabs/Player/Herald/Herald.jpg" id="2_q84ks"]
 [ext_resource type="Resource" uid="uid://sj02shnq1juh" path="res://Resources/Prefabs/Player/Herald/Equipment/Spear.tres" id="4_oa0mh"]
 [ext_resource type="Resource" uid="uid://gkpxiv1gtuu7" path="res://Resources/Prefabs/Player/Herald/Equipment/Kite Shield.tres" id="5_qejtc"]
@@ -10,7 +11,8 @@
 script = ExtResource("1_ox508")
 name = "Herald"
 image = ExtResource("2_q84ks")
-avatar = ExtResource("2_q84ks")
+avatar = ExtResource("2_p73wf")
+description = "Shield raised, spear leveled. A dependable frontline anchor who turns punishment into position, keeping enemies where they belong so the party can finish the job."
 leftHandDefault = ExtResource("4_oa0mh")
 rightHandDefault = ExtResource("5_qejtc")
 armourDefault = ExtResource("1_dgv6f")

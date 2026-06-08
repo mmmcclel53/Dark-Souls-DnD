@@ -1,13 +1,18 @@
-[gd_scene load_steps=20 format=3 uid="uid://b4sf7lx74fbd"]
+[gd_scene load_steps=30 format=3 uid="uid://b4sf7lx74fbd"]
 
 [ext_resource type="Texture2D" uid="uid://b45w2ba7qg8j3" path="res://Resources/Images/Backgrounds/CharacterCreation.jpg" id="1_5wgyk"]
 [ext_resource type="Script" uid="uid://djgumymymr06a" path="res://Scripts/CharacterSelect/CharacterSelect.cs" id="2_cjuwb"]
+[ext_resource type="Resource" uid="uid://b8ak3h3u7t0t7" path="res://Resources/Prefabs/Player/Assassin/Assassin.tres" id="3_441dq"]
 [ext_resource type="Texture2D" uid="uid://dwfjhol7w8kwo" path="res://Resources/Images/Sprites/add-icon.png" id="3_ypqxi"]
 [ext_resource type="Texture2D" uid="uid://dl5f3dp6ea5rw" path="res://Resources/Prefabs/Player/Assassin/Icon.png" id="4_cjuwb"]
+[ext_resource type="Resource" uid="uid://cgj4vq04u0as7" path="res://Resources/Prefabs/Player/Cleric/Cleric.tres" id="4_eheue"]
 [ext_resource type="Texture2D" uid="uid://d3d8abdhrq1x2" path="res://Resources/Prefabs/Player/Herald/Icon.png" id="5_5wgyk"]
+[ext_resource type="Resource" uid="uid://haycolrnqmrx" path="res://Resources/Prefabs/Player/Deprived/Deprived.tres" id="5_imp8f"]
 [ext_resource type="Texture2D" uid="uid://by2jyivyevc5" path="res://Resources/Prefabs/Player/Deprived/Icon.png" id="6_63apf"]
+[ext_resource type="Resource" uid="uid://bj2mw383f6eix" path="res://Resources/Prefabs/Player/Herald/Herald.tres" id="6_y0k8x"]
 [ext_resource type="Texture2D" uid="uid://b455uga5iyt0t" path="res://Resources/Prefabs/Player/Cleric/Icon.png" id="7_7aw8v"]
 [ext_resource type="StyleBox" uid="uid://bjdvpd5wrg8qf" path="res://Resources/Prefabs/UI/ConfirmButton.tres" id="7_cjuwb"]
+[ext_resource type="Resource" uid="uid://cmev7rnhedr1j" path="res://Resources/Prefabs/Player/Knight/Knight.tres" id="7_lpe55"]
 [ext_resource type="Texture2D" uid="uid://bq1omx2n0x08b" path="res://Resources/Prefabs/Player/Knight/Icon.png" id="8_441dq"]
 [ext_resource type="Texture2D" uid="uid://c5q1bb67iw38" path="res://Resources/Prefabs/Player/Mercenary/Icon.png" id="9_oxssi"]
 [ext_resource type="Texture2D" uid="uid://d2mona4cwv52a" path="res://Resources/Prefabs/Player/Pyromancer/Icon.png" id="10_p6pro"]
@@ -15,6 +20,11 @@
 [ext_resource type="Texture2D" uid="uid://cb462ygl1yomu" path="res://Resources/Prefabs/Player/Thief/Icon.png" id="12_eheue"]
 [ext_resource type="Texture2D" uid="uid://j3y2rnhb27xh" path="res://Resources/Prefabs/Player/Warrior/Icon.png" id="13_imp8f"]
 [ext_resource type="PackedScene" uid="uid://vyauk3qln5xa" path="res://Resources/Prefabs/Player/CharacterSheet.tscn" id="14_7aw8v"]
+[ext_resource type="Texture2D" uid="uid://bwr4fjdko2nhd" path="res://Resources/Images/Sprites/Health.png" id="15_hlth"]
+[ext_resource type="Texture2D" uid="uid://c1qqm6jq11jti" path="res://Resources/Images/Sprites/Soul.png" id="16_soul"]
+[ext_resource type="Texture2D" uid="uid://ca5x2aikdlepm" path="res://Resources/Images/Sprites/Stamina.png" id="17_stam"]
+[ext_resource type="Texture2D" uid="uid://dxs78hwllf07t" path="res://Resources/Images/Sprites/Character/Heroic.png" id="18_hero"]
+[ext_resource type="Texture2D" uid="uid://cmk3018ghjyiv" path="res://Resources/Images/Sprites/Character/Luck.png" id="19_luck"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_lrqo7"]
 bg_color = Color(0.1254902, 0.1254902, 0.1254902, 1)
@@ -47,7 +57,7 @@ expand_margin_bottom = 8.0
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
-[node name="Character Select" type="TextureRect" parent="CanvasLayer"]
+[node name="Character Select" type="TextureRect" parent="CanvasLayer" node_paths=PackedStringArray("backButton", "characterSheet", "playerButtonsContainer", "characterButtonsContainer", "startButton", "nameModal", "nameModalTextEdit", "nameModalConfirm", "summaryDescLabel", "summaryPhysDamageLabel", "summaryMagicDamageLabel", "summaryPhysDefenseLabel", "summaryMagicDefenseLabel", "summaryDodgeLabel")]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -58,12 +68,30 @@ size_flags_vertical = 3
 texture = ExtResource("1_5wgyk")
 expand_mode = 3
 script = ExtResource("2_cjuwb")
+DEFAULT_CHARACTER = ExtResource("3_441dq")
+characters = [ExtResource("3_441dq"), ExtResource("4_eheue"), ExtResource("5_imp8f"), ExtResource("6_y0k8x"), ExtResource("7_lpe55")]
+backButton = NodePath("MainContainer/PlayerContainer/Back to Main")
+characterSheet = NodePath("MainContainer/CharacterSelectContainer/CharacterInfo/AspectContainer/Character Sheet")
+playerButtonsContainer = NodePath("MainContainer/PlayerContainer/PlayersButtons")
+characterButtonsContainer = NodePath("MainContainer/CharacterSelectContainer/CharacterButtons")
+startButton = NodePath("MainContainer/CharacterSelectContainer/StartContainer/Start")
+nameModal = NodePath("Modal")
+nameModalTextEdit = NodePath("Modal/Panel/VBoxContainer/TextEdit")
+nameModalConfirm = NodePath("Modal/Panel/VBoxContainer/Button")
+summaryDescLabel = NodePath("MainContainer/CharacterSelectContainer/StartContainer/PlayersOverview/CharacterSummary/Description")
+summaryPhysDamageLabel = NodePath("MainContainer/CharacterSelectContainer/StartContainer/PlayersOverview/CharacterSummary/PhysDamageRow/Label")
+summaryMagicDamageLabel = NodePath("MainContainer/CharacterSelectContainer/StartContainer/PlayersOverview/CharacterSummary/MagicDamageRow/Label")
+summaryPhysDefenseLabel = NodePath("MainContainer/CharacterSelectContainer/StartContainer/PlayersOverview/CharacterSummary/PhysDefenseRow/Label")
+summaryMagicDefenseLabel = NodePath("MainContainer/CharacterSelectContainer/StartContainer/PlayersOverview/CharacterSummary/MagicDefenseRow/Label")
+summaryDodgeLabel = NodePath("MainContainer/CharacterSelectContainer/StartContainer/PlayersOverview/CharacterSummary/DodgeRow/Label")
 
 [node name="MainContainer" type="VBoxContainer" parent="CanvasLayer/Character Select"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = 2.0
+offset_right = 2.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -85,15 +113,24 @@ size_flags_horizontal = 3
 theme_override_constants/separation = 24
 alignment = 1
 
-[node name="Player1" type="TextureButton" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/PlayersButtons"]
+[node name="Player1" type="Button" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/PlayersButtons"]
 custom_minimum_size = Vector2(112, 0)
 layout_mode = 2
-texture_normal = ExtResource("3_ypqxi")
-ignore_texture_size = true
-stretch_mode = 5
 
-[node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/PlayersButtons/Player1"]
+[node name="AddIcon" type="TextureRect" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/PlayersButtons/Player1"]
+custom_minimum_size = Vector2(112, 112)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("3_ypqxi")
+expand_mode = 3
+
+[node name="Name" type="Label" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/PlayersButtons/Player1"]
 visible = false
+custom_minimum_size = Vector2(0, 24)
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
@@ -101,17 +138,35 @@ offset_bottom = 18.0
 grow_horizontal = 2
 text = "Matt"
 horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="Player2" type="TextureButton" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/PlayersButtons"]
+[node name="RemoveButton" type="Button" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/PlayersButtons/Player1"]
+visible = false
+layout_mode = 1
+anchor_left = 1.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 0.0
+offset_left = -24.0
+offset_right = 0.0
+offset_bottom = 24.0
+grow_horizontal = 0
+text = "×"
+
+[node name="Player2" type="Button" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/PlayersButtons"]
 visible = false
 custom_minimum_size = Vector2(112, 0)
 layout_mode = 2
-texture_normal = ExtResource("3_ypqxi")
-ignore_texture_size = true
-stretch_mode = 5
 
-[node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/PlayersButtons/Player2"]
+[node name="AddIcon" type="TextureRect" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/PlayersButtons/Player2"]
+custom_minimum_size = Vector2(112, 112)
+layout_mode = 0
+texture = ExtResource("3_ypqxi")
+expand_mode = 3
+
+[node name="Name" type="Label" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/PlayersButtons/Player2"]
 visible = false
+custom_minimum_size = Vector2(0, 24)
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
@@ -119,17 +174,35 @@ offset_bottom = 18.0
 grow_horizontal = 2
 text = "Matt"
 horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="Player3" type="TextureButton" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/PlayersButtons"]
+[node name="RemoveButton" type="Button" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/PlayersButtons/Player2"]
+visible = false
+layout_mode = 1
+anchor_left = 1.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 0.0
+offset_left = -24.0
+offset_right = 0.0
+offset_bottom = 24.0
+grow_horizontal = 0
+text = "×"
+
+[node name="Player3" type="Button" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/PlayersButtons"]
 visible = false
 custom_minimum_size = Vector2(112, 0)
 layout_mode = 2
-texture_normal = ExtResource("3_ypqxi")
-ignore_texture_size = true
-stretch_mode = 5
 
-[node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/PlayersButtons/Player3"]
+[node name="AddIcon" type="TextureRect" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/PlayersButtons/Player3"]
+custom_minimum_size = Vector2(112, 112)
+layout_mode = 0
+texture = ExtResource("3_ypqxi")
+expand_mode = 3
+
+[node name="Name" type="Label" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/PlayersButtons/Player3"]
 visible = false
+custom_minimum_size = Vector2(0, 24)
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
@@ -137,17 +210,35 @@ offset_bottom = 18.0
 grow_horizontal = 2
 text = "Matt"
 horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="Player4" type="TextureButton" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/PlayersButtons"]
+[node name="RemoveButton" type="Button" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/PlayersButtons/Player3"]
+visible = false
+layout_mode = 1
+anchor_left = 1.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 0.0
+offset_left = -24.0
+offset_right = 0.0
+offset_bottom = 24.0
+grow_horizontal = 0
+text = "×"
+
+[node name="Player4" type="Button" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/PlayersButtons"]
 visible = false
 custom_minimum_size = Vector2(112, 0)
 layout_mode = 2
-texture_normal = ExtResource("3_ypqxi")
-ignore_texture_size = true
-stretch_mode = 5
 
-[node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/PlayersButtons/Player4"]
+[node name="AddIcon" type="TextureRect" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/PlayersButtons/Player4"]
+custom_minimum_size = Vector2(112, 112)
+layout_mode = 0
+texture = ExtResource("3_ypqxi")
+expand_mode = 3
+
+[node name="Name" type="Label" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/PlayersButtons/Player4"]
 visible = false
+custom_minimum_size = Vector2(0, 24)
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
@@ -155,6 +246,20 @@ offset_bottom = 18.0
 grow_horizontal = 2
 text = "Matt"
 horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="RemoveButton" type="Button" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer/PlayersButtons/Player4"]
+visible = false
+layout_mode = 1
+anchor_left = 1.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 0.0
+offset_left = -24.0
+offset_right = 0.0
+offset_bottom = 24.0
+grow_horizontal = 0
+text = "×"
 
 [node name="Spacer" type="MarginContainer" parent="CanvasLayer/Character Select/MainContainer/PlayerContainer"]
 custom_minimum_size = Vector2(200, 32)
@@ -442,16 +547,18 @@ horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="CharacterInfo" type="MarginContainer" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer"]
-custom_minimum_size = Vector2(720, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/margin_left = 32
-theme_override_constants/margin_top = 32
-theme_override_constants/margin_right = 32
-theme_override_constants/margin_bottom = 32
+size_flags_stretch_ratio = 3.0
 
-[node name="Character" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterInfo" instance=ExtResource("14_7aw8v")]
+[node name="AspectContainer" type="AspectRatioContainer" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterInfo"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+ratio = 1.33
+
+[node name="Character Sheet" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/CharacterInfo/AspectContainer" instance=ExtResource("14_7aw8v")]
 layout_mode = 2
 
 [node name="StartContainer" type="MarginContainer" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer"]
@@ -469,6 +576,100 @@ size_flags_horizontal = 3
 
 [node name="Panel" type="Panel" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/StartContainer/PlayersOverview"]
 layout_mode = 2
+
+[node name="CharacterSummary" type="VBoxContainer" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/StartContainer/PlayersOverview"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="Description" type="Label" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/StartContainer/PlayersOverview/CharacterSummary"]
+layout_mode = 2
+size_flags_horizontal = 3
+autowrap_mode = 2
+
+[node name="HSeparator" type="HSeparator" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/StartContainer/PlayersOverview/CharacterSummary"]
+layout_mode = 2
+
+[node name="PhysDamageRow" type="HBoxContainer" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/StartContainer/PlayersOverview/CharacterSummary"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Icon" type="TextureRect" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/StartContainer/PlayersOverview/CharacterSummary/PhysDamageRow"]
+custom_minimum_size = Vector2(20, 20)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("15_hlth")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/StartContainer/PlayersOverview/CharacterSummary/PhysDamageRow"]
+layout_mode = 2
+text = "0~0 Physical Damage"
+
+[node name="MagicDamageRow" type="HBoxContainer" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/StartContainer/PlayersOverview/CharacterSummary"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Icon" type="TextureRect" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/StartContainer/PlayersOverview/CharacterSummary/MagicDamageRow"]
+custom_minimum_size = Vector2(20, 20)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("16_soul")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/StartContainer/PlayersOverview/CharacterSummary/MagicDamageRow"]
+layout_mode = 2
+text = "0~0 Magic Damage"
+
+[node name="PhysDefenseRow" type="HBoxContainer" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/StartContainer/PlayersOverview/CharacterSummary"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Icon" type="TextureRect" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/StartContainer/PlayersOverview/CharacterSummary/PhysDefenseRow"]
+custom_minimum_size = Vector2(20, 20)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("17_stam")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/StartContainer/PlayersOverview/CharacterSummary/PhysDefenseRow"]
+layout_mode = 2
+text = "0~0 Physical Defense"
+
+[node name="MagicDefenseRow" type="HBoxContainer" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/StartContainer/PlayersOverview/CharacterSummary"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Icon" type="TextureRect" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/StartContainer/PlayersOverview/CharacterSummary/MagicDefenseRow"]
+custom_minimum_size = Vector2(20, 20)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("18_hero")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/StartContainer/PlayersOverview/CharacterSummary/MagicDefenseRow"]
+layout_mode = 2
+text = "0~0 Magic Defense"
+
+[node name="DodgeRow" type="HBoxContainer" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/StartContainer/PlayersOverview/CharacterSummary"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Icon" type="TextureRect" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/StartContainer/PlayersOverview/CharacterSummary/DodgeRow"]
+custom_minimum_size = Vector2(20, 20)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("19_luck")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Label" type="Label" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/StartContainer/PlayersOverview/CharacterSummary/DodgeRow"]
+layout_mode = 2
+text = "0 Dodge"
 
 [node name="Start" type="Button" parent="CanvasLayer/Character Select/MainContainer/CharacterSelectContainer/StartContainer"]
 custom_minimum_size = Vector2(0, 32)

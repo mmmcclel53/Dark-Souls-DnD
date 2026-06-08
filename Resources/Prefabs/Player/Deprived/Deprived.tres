@@ -2,18 +2,17 @@
 
 [ext_resource type="Resource" uid="uid://bg4skpw0l8ici" path="res://Resources/Prefabs/Player/Deprived/Equipment/Loincloth.tres" id="1_6k31y"]
 [ext_resource type="Script" uid="uid://bq0oq55csyxml" path="res://Scripts/Encounter/Player/Character.cs" id="1_jh1w8"]
+[ext_resource type="Texture2D" uid="uid://bsoldqrq438e5" path="res://Resources/Prefabs/Player/Deprived/Avatar.png" id="2_imcrp"]
 [ext_resource type="Texture2D" uid="uid://df3j8utf1pttv" path="res://Resources/Prefabs/Player/Deprived/Deprived.jpg" id="2_rs754"]
 [ext_resource type="Resource" uid="uid://8el588ed87c6" path="res://Resources/Prefabs/Player/Deprived/Equipment/Club.tres" id="4_5buha"]
 [ext_resource type="Resource" uid="uid://c1riq1p3rl7mr" path="res://Resources/Prefabs/Player/Deprived/Equipment/Plank Shield.tres" id="5_vqg7c"]
 
-[sub_resource type="Resource" id="Resource_imcrp"]
-metadata/__load_path__ = "res://Resources/Prefabs/Player/Deprived/Deprived.png"
-
 [resource]
 script = ExtResource("1_jh1w8")
 name = "Deprived"
-image = SubResource("Resource_imcrp")
-avatar = ExtResource("2_rs754")
+image = ExtResource("2_rs754")
+avatar = ExtResource("2_imcrp")
+description = "Everything stripped away — only instinct remains. Weak to start and weak to everything, but shaped by hardship into someone who can outlast what kills everyone else."
 leftHandDefault = ExtResource("4_5buha")
 rightHandDefault = ExtResource("5_vqg7c")
 armourDefault = ExtResource("1_6k31y")

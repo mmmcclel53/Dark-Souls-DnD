@@ -1,0 +1,388 @@
+[gd_scene load_steps=5 format=3 uid="uid://dloadgame01"]
+
+[ext_resource type="Texture2D" uid="uid://b04eax8rs3fvm" path="res://Resources/Images/Backgrounds/MainScreen.jpg" id="1_bg"]
+[ext_resource type="Script" path="res://Scripts/MainMenu/LoadGame.cs" id="2_script"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_modal_box"]
+bg_color = Color(0.08, 0.09, 0.12, 1.0)
+border_color = Color(0.55, 0.55, 0.55, 1.0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 24.0
+content_margin_top = 24.0
+content_margin_right = 24.0
+content_margin_bottom = 24.0
+
+[node name="LoadGame" type="Node" node_paths=PackedStringArray("backButton", "slot1Panel", "slot1Name", "slot1Timestamp", "slot1Party", "slot1Load", "slot1Delete", "slot2Panel", "slot2Name", "slot2Timestamp", "slot2Party", "slot2Load", "slot2Delete", "slot3Panel", "slot3Name", "slot3Timestamp", "slot3Party", "slot3Load", "slot3Delete", "slot4Panel", "slot4Name", "slot4Timestamp", "slot4Party", "slot4Load", "slot4Delete", "deleteModal", "deleteModalLabel", "confirmDeleteButton", "cancelDeleteButton")]
+script = ExtResource("2_script")
+backButton = NodePath("CanvasLayer/Background/BackButton")
+slot1Panel = NodePath("CanvasLayer/Background/SlotsContainer/Slot1")
+slot1Name = NodePath("CanvasLayer/Background/SlotsContainer/Slot1/HBox/SlotInfo/SlotName")
+slot1Timestamp = NodePath("CanvasLayer/Background/SlotsContainer/Slot1/HBox/SlotInfo/Timestamp")
+slot1Party = NodePath("CanvasLayer/Background/SlotsContainer/Slot1/HBox/SlotInfo/Party")
+slot1Load = NodePath("CanvasLayer/Background/SlotsContainer/Slot1/HBox/Buttons/LoadButton")
+slot1Delete = NodePath("CanvasLayer/Background/SlotsContainer/Slot1/HBox/Buttons/DeleteButton")
+slot2Panel = NodePath("CanvasLayer/Background/SlotsContainer/Slot2")
+slot2Name = NodePath("CanvasLayer/Background/SlotsContainer/Slot2/HBox/SlotInfo/SlotName")
+slot2Timestamp = NodePath("CanvasLayer/Background/SlotsContainer/Slot2/HBox/SlotInfo/Timestamp")
+slot2Party = NodePath("CanvasLayer/Background/SlotsContainer/Slot2/HBox/SlotInfo/Party")
+slot2Load = NodePath("CanvasLayer/Background/SlotsContainer/Slot2/HBox/Buttons/LoadButton")
+slot2Delete = NodePath("CanvasLayer/Background/SlotsContainer/Slot2/HBox/Buttons/DeleteButton")
+slot3Panel = NodePath("CanvasLayer/Background/SlotsContainer/Slot3")
+slot3Name = NodePath("CanvasLayer/Background/SlotsContainer/Slot3/HBox/SlotInfo/SlotName")
+slot3Timestamp = NodePath("CanvasLayer/Background/SlotsContainer/Slot3/HBox/SlotInfo/Timestamp")
+slot3Party = NodePath("CanvasLayer/Background/SlotsContainer/Slot3/HBox/SlotInfo/Party")
+slot3Load = NodePath("CanvasLayer/Background/SlotsContainer/Slot3/HBox/Buttons/LoadButton")
+slot3Delete = NodePath("CanvasLayer/Background/SlotsContainer/Slot3/HBox/Buttons/DeleteButton")
+slot4Panel = NodePath("CanvasLayer/Background/SlotsContainer/Slot4")
+slot4Name = NodePath("CanvasLayer/Background/SlotsContainer/Slot4/HBox/SlotInfo/SlotName")
+slot4Timestamp = NodePath("CanvasLayer/Background/SlotsContainer/Slot4/HBox/SlotInfo/Timestamp")
+slot4Party = NodePath("CanvasLayer/Background/SlotsContainer/Slot4/HBox/SlotInfo/Party")
+slot4Load = NodePath("CanvasLayer/Background/SlotsContainer/Slot4/HBox/Buttons/LoadButton")
+slot4Delete = NodePath("CanvasLayer/Background/SlotsContainer/Slot4/HBox/Buttons/DeleteButton")
+deleteModal = NodePath("CanvasLayer/Background/DeleteModal")
+deleteModalLabel = NodePath("CanvasLayer/Background/DeleteModal/ModalBox/ModalVBox/ConfirmLabel")
+confirmDeleteButton = NodePath("CanvasLayer/Background/DeleteModal/ModalBox/ModalVBox/ButtonRow/YesButton")
+cancelDeleteButton = NodePath("CanvasLayer/Background/DeleteModal/ModalBox/ModalVBox/ButtonRow/NoButton")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="Background" type="TextureRect" parent="CanvasLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("1_bg")
+expand_mode = 5
+stretch_mode = 5
+
+[node name="Title" type="Label" parent="CanvasLayer/Background"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -300.0
+offset_top = 22.0
+offset_right = 300.0
+offset_bottom = 80.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 48
+text = "Load Game"
+horizontal_alignment = 1
+
+[node name="BackButton" type="Button" parent="CanvasLayer/Background"]
+layout_mode = 1
+offset_left = 16.0
+offset_top = 18.0
+offset_right = 150.0
+offset_bottom = 60.0
+theme_override_font_sizes/font_size = 20
+text = "< Back"
+
+[node name="SlotsContainer" type="VBoxContainer" parent="CanvasLayer/Background"]
+layout_mode = 1
+anchor_left = 0.5
+anchor_top = 0.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -450.0
+offset_top = 100.0
+offset_right = 450.0
+offset_bottom = -24.0
+grow_horizontal = 2
+grow_vertical = 2
+alignment = 1
+theme_override_constants/separation = 14
+
+[node name="Slot1" type="PanelContainer" parent="CanvasLayer/Background/SlotsContainer"]
+custom_minimum_size = Vector2(0, 118)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="HBox" type="HBoxContainer" parent="CanvasLayer/Background/SlotsContainer/Slot1"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="SlotInfo" type="VBoxContainer" parent="CanvasLayer/Background/SlotsContainer/Slot1/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+alignment = 1
+theme_override_constants/separation = 4
+
+[node name="SlotName" type="Label" parent="CanvasLayer/Background/SlotsContainer/Slot1/HBox/SlotInfo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "— Empty Slot 1 —"
+
+[node name="Timestamp" type="Label" parent="CanvasLayer/Background/SlotsContainer/Slot1/HBox/SlotInfo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+modulate = Color(0.8, 0.8, 0.8, 1)
+text = ""
+
+[node name="Party" type="Label" parent="CanvasLayer/Background/SlotsContainer/Slot1/HBox/SlotInfo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+modulate = Color(0.75, 0.85, 1, 1)
+text = ""
+
+[node name="Buttons" type="VBoxContainer" parent="CanvasLayer/Background/SlotsContainer/Slot1/HBox"]
+custom_minimum_size = Vector2(130, 0)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 4
+alignment = 1
+theme_override_constants/separation = 8
+
+[node name="LoadButton" type="Button" parent="CanvasLayer/Background/SlotsContainer/Slot1/HBox/Buttons"]
+custom_minimum_size = Vector2(130, 38)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Load"
+
+[node name="DeleteButton" type="Button" parent="CanvasLayer/Background/SlotsContainer/Slot1/HBox/Buttons"]
+custom_minimum_size = Vector2(130, 38)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(1, 0.45, 0.45, 1)
+text = "Delete"
+
+[node name="Slot2" type="PanelContainer" parent="CanvasLayer/Background/SlotsContainer"]
+custom_minimum_size = Vector2(0, 118)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="HBox" type="HBoxContainer" parent="CanvasLayer/Background/SlotsContainer/Slot2"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="SlotInfo" type="VBoxContainer" parent="CanvasLayer/Background/SlotsContainer/Slot2/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+alignment = 1
+theme_override_constants/separation = 4
+
+[node name="SlotName" type="Label" parent="CanvasLayer/Background/SlotsContainer/Slot2/HBox/SlotInfo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "— Empty Slot 2 —"
+
+[node name="Timestamp" type="Label" parent="CanvasLayer/Background/SlotsContainer/Slot2/HBox/SlotInfo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+modulate = Color(0.8, 0.8, 0.8, 1)
+text = ""
+
+[node name="Party" type="Label" parent="CanvasLayer/Background/SlotsContainer/Slot2/HBox/SlotInfo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+modulate = Color(0.75, 0.85, 1, 1)
+text = ""
+
+[node name="Buttons" type="VBoxContainer" parent="CanvasLayer/Background/SlotsContainer/Slot2/HBox"]
+custom_minimum_size = Vector2(130, 0)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 4
+alignment = 1
+theme_override_constants/separation = 8
+
+[node name="LoadButton" type="Button" parent="CanvasLayer/Background/SlotsContainer/Slot2/HBox/Buttons"]
+custom_minimum_size = Vector2(130, 38)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Load"
+
+[node name="DeleteButton" type="Button" parent="CanvasLayer/Background/SlotsContainer/Slot2/HBox/Buttons"]
+custom_minimum_size = Vector2(130, 38)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(1, 0.45, 0.45, 1)
+text = "Delete"
+
+[node name="Slot3" type="PanelContainer" parent="CanvasLayer/Background/SlotsContainer"]
+custom_minimum_size = Vector2(0, 118)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="HBox" type="HBoxContainer" parent="CanvasLayer/Background/SlotsContainer/Slot3"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="SlotInfo" type="VBoxContainer" parent="CanvasLayer/Background/SlotsContainer/Slot3/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+alignment = 1
+theme_override_constants/separation = 4
+
+[node name="SlotName" type="Label" parent="CanvasLayer/Background/SlotsContainer/Slot3/HBox/SlotInfo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "— Empty Slot 3 —"
+
+[node name="Timestamp" type="Label" parent="CanvasLayer/Background/SlotsContainer/Slot3/HBox/SlotInfo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+modulate = Color(0.8, 0.8, 0.8, 1)
+text = ""
+
+[node name="Party" type="Label" parent="CanvasLayer/Background/SlotsContainer/Slot3/HBox/SlotInfo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+modulate = Color(0.75, 0.85, 1, 1)
+text = ""
+
+[node name="Buttons" type="VBoxContainer" parent="CanvasLayer/Background/SlotsContainer/Slot3/HBox"]
+custom_minimum_size = Vector2(130, 0)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 4
+alignment = 1
+theme_override_constants/separation = 8
+
+[node name="LoadButton" type="Button" parent="CanvasLayer/Background/SlotsContainer/Slot3/HBox/Buttons"]
+custom_minimum_size = Vector2(130, 38)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Load"
+
+[node name="DeleteButton" type="Button" parent="CanvasLayer/Background/SlotsContainer/Slot3/HBox/Buttons"]
+custom_minimum_size = Vector2(130, 38)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(1, 0.45, 0.45, 1)
+text = "Delete"
+
+[node name="Slot4" type="PanelContainer" parent="CanvasLayer/Background/SlotsContainer"]
+custom_minimum_size = Vector2(0, 118)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="HBox" type="HBoxContainer" parent="CanvasLayer/Background/SlotsContainer/Slot4"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="SlotInfo" type="VBoxContainer" parent="CanvasLayer/Background/SlotsContainer/Slot4/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+alignment = 1
+theme_override_constants/separation = 4
+
+[node name="SlotName" type="Label" parent="CanvasLayer/Background/SlotsContainer/Slot4/HBox/SlotInfo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "— Empty Slot 4 —"
+
+[node name="Timestamp" type="Label" parent="CanvasLayer/Background/SlotsContainer/Slot4/HBox/SlotInfo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+modulate = Color(0.8, 0.8, 0.8, 1)
+text = ""
+
+[node name="Party" type="Label" parent="CanvasLayer/Background/SlotsContainer/Slot4/HBox/SlotInfo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+modulate = Color(0.75, 0.85, 1, 1)
+text = ""
+
+[node name="Buttons" type="VBoxContainer" parent="CanvasLayer/Background/SlotsContainer/Slot4/HBox"]
+custom_minimum_size = Vector2(130, 0)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 4
+alignment = 1
+theme_override_constants/separation = 8
+
+[node name="LoadButton" type="Button" parent="CanvasLayer/Background/SlotsContainer/Slot4/HBox/Buttons"]
+custom_minimum_size = Vector2(130, 38)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Load"
+
+[node name="DeleteButton" type="Button" parent="CanvasLayer/Background/SlotsContainer/Slot4/HBox/Buttons"]
+custom_minimum_size = Vector2(130, 38)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(1, 0.45, 0.45, 1)
+text = "Delete"
+
+[node name="DeleteModal" type="Panel" parent="CanvasLayer/Background"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ModalBox" type="PanelContainer" parent="CanvasLayer/Background/DeleteModal"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -260.0
+offset_top = -110.0
+offset_right = 260.0
+offset_bottom = 110.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_modal_box")
+
+[node name="ModalVBox" type="VBoxContainer" parent="CanvasLayer/Background/DeleteModal/ModalBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+alignment = 1
+theme_override_constants/separation = 20
+
+[node name="ConfirmLabel" type="Label" parent="CanvasLayer/Background/DeleteModal/ModalBox/ModalVBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+text = "Delete this save?\n\nThis cannot be undone."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="ButtonRow" type="HBoxContainer" parent="CanvasLayer/Background/DeleteModal/ModalBox/ModalVBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 1
+theme_override_constants/separation = 16
+
+[node name="YesButton" type="Button" parent="CanvasLayer/Background/DeleteModal/ModalBox/ModalVBox/ButtonRow"]
+custom_minimum_size = Vector2(110, 42)
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+theme_override_colors/font_color = Color(1, 0.4, 0.4, 1)
+text = "Delete"
+
+[node name="NoButton" type="Button" parent="CanvasLayer/Background/DeleteModal/ModalBox/ModalVBox/ButtonRow"]
+custom_minimum_size = Vector2(110, 42)
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Cancel"
