@@ -43,7 +43,14 @@ Scripts/
     MainMenu.cs            — New Game / Continue / Quit
     Bonfire/
       BonfireOptions.cs    — Rest / Equipment / Ready buttons
-      EquipmentSelect.cs   — Equipment search & swap UI
+  Common/
+    CharacterPortraitPane.cs  — Autoloaded floating party pane (Bonfire/Encounter)
+    CharacterPortrait.cs      — Single portrait: avatar bg, name, HP, stamina, status strip
+    EquipmentModal.cs         — Autoloaded modal: Summary | Equipment | Inventory
+    CharacterSummaryPanel.cs  — Modal column: stats from currently-equipped gear
+    CharacterEquipmentPanel.cs — Modal column: slot + upgrade buttons, no StaminaHealth
+    InventoryPanel.cs         — Modal column: search/filter/sort grid over the owned pool
+    ComparisonPanel.cs        — Slide-in current-vs-proposed stat compare
   CharacterSelect/
     CharacterSelect.cs     — 1–4 player setup; character class picker, name input
   SaveGame/

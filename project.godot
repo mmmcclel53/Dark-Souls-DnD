@@ -15,6 +15,11 @@ run/main_scene="uid://dbh2tlkttdlj0"
 config/features=PackedStringArray("4.5", "C#", "Forward Plus")
 config/icon="res://icon.svg"
 
+[autoload]
+
+CharacterPortraitPane="*res://Scripts/Common/CharacterPortraitPane.cs"
+EquipmentModal="*res://Scripts/Common/EquipmentModal.cs"
+
 [display]
 
 window/stretch/mode="canvas_items"

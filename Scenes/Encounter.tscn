@@ -1,9 +1,8 @@
-[gd_scene load_steps=13 format=3 uid="uid://cdmyd1komlp81"]
+[gd_scene load_steps=12 format=3 uid="uid://cdmyd1komlp81"]
 
 [ext_resource type="Theme" uid="uid://b4u8wpfygl601" path="res://Theme.tres" id="1_163b3"]
 [ext_resource type="Script" uid="uid://38e7hdut52ii" path="res://Scripts/MainMenu/Settings.cs" id="2_cws6m"]
 [ext_resource type="Script" uid="uid://c3wx2mbhefv3x" path="res://Scripts/Encounter/ActionListener.cs" id="4_hmy00"]
-[ext_resource type="PackedScene" uid="uid://dbxmhwiqv3ipn" path="res://Resources/Prefabs/Player/Knight/Knight_Avatar.tscn" id="5_vd6so"]
 [ext_resource type="PackedScene" uid="uid://c02oejv7f56cj" path="res://Resources/Prefabs/Player/Avatar.tscn" id="6_xdswp"]
 [ext_resource type="PackedScene" uid="uid://dsuwggsiw1hyr" path="res://Resources/Prefabs/Enemies/Hollow Soldier/Hollow Soldier.tscn" id="7_3kqhr"]
 [ext_resource type="Texture2D" uid="uid://df6n2favwrlhq" path="res://Resources/Images/Backgrounds/Tile 2.jpg" id="8_drip3"]
@@ -90,7 +89,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_stretch_ratio = 2.0
 script = ExtResource("4_hmy00")
-players = Array[PackedScene]([ExtResource("5_vd6so"), ExtResource("6_xdswp")])
+players = Array[PackedScene]([ExtResource("6_xdswp")])
 enemies = Array[PackedScene]([ExtResource("7_3kqhr"), ExtResource("7_3kqhr")])
 nodesParent = NodePath("Grid")
 

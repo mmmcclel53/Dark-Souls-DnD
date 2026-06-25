@@ -76,6 +76,8 @@ public partial class CharacterSelect : Control
 		nameModal.Visible = true;
 		RefreshSummary(DEFAULT_CHARACTER);
 		RefreshSelectionStyles();
+
+		GetNode<CharacterPortraitPane>("/root/CharacterPortraitPane")?.Hide();
 	}
 
 	private void OnConfirmName() {
@@ -195,6 +197,22 @@ public partial class CharacterSelect : Control
 	}
 
 	private void OnStartCampaign() {
+		GameManager.EnsureCatalogLoaded();
+		GameManager.ResetOwnedPool();
+
+		// Mint a unique instance for each starting slot of each chosen character.
+		// Per design: equipment instances are unique-id'd; two characters with the
+		// same starting weapon get two separate instances.
+		for (int i = 0; i < players.Count; i++) {
+			Player p = players[i];
+			Character c = p.character;
+			if (c == null) continue;
+			p.leftHandId    = MintAndId(c.leftHandDefault);
+			p.rightHandId   = MintAndId(c.rightHandDefault);
+			p.backupSlotId  = MintAndId(c.backupSlotDefault);
+			p.armourId      = MintAndId(c.armourDefault);
+		}
+
 		var save = new SaveGame();
 		save.campaignName = "Campaign " + System.DateTime.Now.ToString("M/d/yy");
 		save.players = players.ToArray();
@@ -212,5 +230,11 @@ public partial class CharacterSelect : Control
 
 		CampaignManager.StartNew(save.players, slot, save);
 		GetTree().ChangeSceneToPacked(ResourceLoader.Load<PackedScene>("res://Scenes/Bonfire.tscn"));
+	}
+
+	private static string MintAndId(Equipment template) {
+		if (template == null || string.IsNullOrEmpty(template.name)) return "";
+		var inst = GameManager.MintInstance(template.name);
+		return inst?.id ?? "";
 	}
 }

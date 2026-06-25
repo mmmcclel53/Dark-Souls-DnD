@@ -5,11 +5,15 @@ public partial class SaveGame : Resource
 {
     [Export] public string campaignName = "New Campaign";
     [Export] public string timestamp = "";
-    [Export] public string[] playerNames = [];
-    [Export] public string[] characterNames = [];
+    [Export] public string[] playerNames = new string[0];
+    [Export] public string[] characterNames = new string[0];
 
     [ExportGroup("Players")]
-    [Export] public Player[] players = [];
+    [Export] public Player[] players = new Player[0];
+
+    [ExportGroup("Equipment Pool")]
+    // Flat (id, templateName) pairs for the party-owned instance pool.
+    [Export] public string[] ownedEquipment = new string[0];
 
     public SaveGame() { }
 
@@ -23,6 +27,7 @@ public partial class SaveGame : Resource
 
     public void SaveToSlot(int slot) {
         timestamp = System.DateTime.Now.ToString("MMM d, yyyy  h:mm tt");
+        ownedEquipment = GameManager.SerializeOwnedFlat();
         ResourceSaver.Save(this, SlotPath(slot));
     }
 }

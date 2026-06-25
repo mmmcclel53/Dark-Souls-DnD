@@ -2,7 +2,10 @@ using Godot;
 
 public interface Equipment {
     public enum Rarity { STARTER, COMMON, RARE, LEGENDARY, EPIC };
-    public enum EquipmentType { Armour, Weapon, Shield, Spell, Ring, Gem };
+    public enum EquipmentType { Armour, Weapon, Shield, Spell, Ring, Gem, Item };
+
+    // Unique runtime instance id. Empty/null on raw templates loaded from disk.
+    string id { get; set; }
 
     string name { get; set; }
     Texture2D image { get; set; }

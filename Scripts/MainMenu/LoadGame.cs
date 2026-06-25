@@ -75,6 +75,8 @@ public partial class LoadGame : Node
 
         deleteModal.Visible = false;
         RefreshAllSlots();
+
+        GetNode<CharacterPortraitPane>("/root/CharacterPortraitPane")?.Hide();
     }
 
     private void ApplySlotStyles() {

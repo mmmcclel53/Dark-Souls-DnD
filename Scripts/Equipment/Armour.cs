@@ -4,6 +4,7 @@ using Godot.Collections;
 [GlobalClass]
 public partial class Armour : Resource, Equipment {
 
+    [Export] public string id { get; set; } = "";
     [Export] public string name { get; set; }
     [Export] public Texture2D image { get; set; }
 

@@ -10,6 +10,8 @@ public partial class MainMenu : VBoxContainer
 		newCampaignButton.Pressed += () => { OnPressedNewCampaign(); };
 		loadGameButton.Pressed += () => { OnPressedLoadGame(); };
 		quitButton.Pressed += () => { OnPressedQuit(); };
+
+		GetNode<CharacterPortraitPane>("/root/CharacterPortraitPane")?.Hide();
 	}
 
 	private void OnPressedNewCampaign() {
