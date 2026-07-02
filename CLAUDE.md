@@ -73,6 +73,28 @@ The physical game rules are in `Dark Souls Board Game Rules.pdf`. Key mechanics 
 - **Bonfire rest**: Costs 1 spark. Refills estus, heroic action, luck. Resets all encounters (enemies respawn).
 - **Souls**: Currency. Earned 2 per character per non-boss encounter win. Spent on treasure (1 soul) and leveling up stats.
 
+### Combat Values & Clarifications
+
+Concrete numbers and rules confirmed while analysing the equipment `.tres` data. Use these when reasoning about balance or implementing combat resolution:
+
+- **Dice**: Only three types (`DiceUtility.DICE_TYPE`). Values and expected averages:
+  - BLACK (0): faces `0,1,1,1,2,2` → avg **1.167**
+  - BLUE (1): faces `1,1,2,2,2,3` → avg **1.833**
+  - ORANGE (2): faces `1,2,3,3,4` → avg **2.5**
+  - Damage/defense are arrays of these dice plus a flat `modifier`; expected value = sum of dice averages + modifier.
+- **One action economy**: A character gets **one move and one attack per activation** — attacks do not chain within a turn.
+- **Stamina is income, not a refill**: You gain **+2 stamina at the start of each activation** (not a full reset). Stamina is a persistent pool on the shared endurance bar, so an attack costing >2 must be *banked* over multiple turns (you attack less often). Sustainable damage ≈ `attackDamage × min(1, 2/cost)`.
+- **Endurance bar is shared for stamina AND health** (10 boxes): every stamina point spent is a box unavailable to absorb damage. Overspending while wounded can kill you; spending competes with running/dodging.
+- **Upgrade slots** (`upgradeSlots`):
+  - *Weapon slot* — each grants **+1 damage OR +1 black die** (avg 1.167) to the weapon's attacks.
+  - *Armour slot* — each grants **+1 stamina OR +1 health at the start of every activation** (persistent regen; stamina slots effectively raise the +2 income).
+- **Status effects** (`EncounterManager.StatusEffect` = `BLEED=0, POISON=1, FROST=2, STAGGER=3, NONE=4`):
+  - Auto-applied on **any** hit, regardless of whether damage gets past enemy Block/Resist. **No enemy immunity.** Only ever applied to enemies (never turned on the player).
+  - An enemy can carry multiple *different* statuses at once, but a single status does **not** stack (no double BLEED).
+  - **All statuses except BLEED are removed at the end of the enemy's activation.** BLEED persists until a hit consumes it (+2 damage on that next hit, then removed — and reapplied by that same hit).
+  - Effect magnitudes: BLEED +2 on next hit; POISON 1 dmg at end of enemy activation; FROST +1 stamina cost to enemy movement; STAGGER +1 stamina to enemy attack / −1 enemy damage.
+  - ⚠️ `BLEED = 0` collides with "falsy"/default-int handling — when parsing `statusEffect`, default missing values to `NONE (4)`, not `0`, or bleed weapons get silently misread.
+
 ## Architecture Notes
 
 ### Global State

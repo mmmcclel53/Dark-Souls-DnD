@@ -1,7 +1,7 @@
 using Godot;
 
 public interface Equipment {
-    public enum Rarity { STARTER, COMMON, RARE, LEGENDARY, EPIC };
+    public enum Rarity { STARTER, COMMON, UNCOMMON, RARE, LEGENDARY, EPIC };
     public enum EquipmentType { Armour, Weapon, Shield, Spell, Ring, Gem, Item };
 
     // Unique runtime instance id. Empty/null on raw templates loaded from disk.

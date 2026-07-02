@@ -23,6 +23,7 @@ public partial class InventoryPanel : Control
 
     private static readonly Color RARITY_STARTER   = new Color(0.55f, 0.55f, 0.55f);
     private static readonly Color RARITY_COMMON    = new Color(0.85f, 0.85f, 0.85f);
+    private static readonly Color RARITY_UNCOMMON  = new Color(0.4f, 0.8f, 0.4f);
     private static readonly Color RARITY_RARE      = new Color(0.35f, 0.65f, 1.0f);
     private static readonly Color RARITY_LEGENDARY = new Color(0.9f, 0.65f, 0.15f);
     private static readonly Color RARITY_EPIC      = new Color(0.75f, 0.35f, 0.95f);
@@ -211,6 +212,7 @@ public partial class InventoryPanel : Control
         switch (r) {
             case Equipment.Rarity.STARTER:   return RARITY_STARTER;
             case Equipment.Rarity.COMMON:    return RARITY_COMMON;
+            case Equipment.Rarity.UNCOMMON:  return RARITY_UNCOMMON;
             case Equipment.Rarity.RARE:      return RARITY_RARE;
             case Equipment.Rarity.LEGENDARY: return RARITY_LEGENDARY;
             case Equipment.Rarity.EPIC:      return RARITY_EPIC;
