@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="Armour" load_steps=5 format=3 uid="uid://ciejvcr9ym16"]
+
+[ext_resource type="Script" path="res://Scripts/Equipment/Armour.cs" id="1_x"]
+[ext_resource type="Texture2D" path="res://Resources/Prefabs/Equipment/Armor/Smelter Demon Armour/Smelter Demon Armour.png" id="2_x"]
+[ext_resource type="Resource" path="res://Resources/Prefabs/Dice/Blue Dice.tres" id="3_x"]
+[ext_resource type="Resource" path="res://Resources/Prefabs/Dice/Orange Dice.tres" id="4_x"]
+
+[resource]
+script = ExtResource("1_x")
+name = "Smelter Demon Armour"
+image = ExtResource("2_x")
+type = 0
+rarity = 1
+isUpgrade = false
+physicalDefense = Array[Object]([ExtResource("3_x"), ExtResource("3_x")])
+physicalDefenseModifier = 0
+magicDefense = Array[Object]([ExtResource("4_x")])
+magicDefenseModifier = 0
+dodgeAbility = 0
+upgradeSlots = 2
+strengthReq = 35
+dexterityReq = 0
+intelligenceReq = 0
+faithReq = 21

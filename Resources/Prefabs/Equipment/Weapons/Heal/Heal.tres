@@ -1,0 +1,56 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=10 format=3 uid="uid://ec5oecy9hzfg"]
+
+[ext_resource type="Script" path="res://Scripts/Equipment/Weapon.cs" id="1_x"]
+[ext_resource type="Texture2D" path="res://Resources/Prefabs/Equipment/Weapons/Heal/Heal.png" id="2_x"]
+[ext_resource type="Script" path="res://Scripts/Encounter/Player/PlayerMove.cs" id="3_x"]
+[ext_resource type="Script" path="res://Scripts/Equipment/EquipmentEffect.cs" id="4_x"]
+
+[sub_resource type="Resource" id="EE0"]
+script = ExtResource("4_x")
+type = 9
+magnitude = 1
+scope = 5
+
+[sub_resource type="Resource" id="EE1"]
+script = ExtResource("4_x")
+type = 7
+magnitude = 1
+scope = 5
+
+[sub_resource type="Resource" id="PM0"]
+script = ExtResource("3_x")
+attackRange = 3
+repeat = 1
+bonusEffects = Array[Object]([SubResource("EE0"), SubResource("EE1")])
+
+[sub_resource type="Resource" id="EE3"]
+script = ExtResource("4_x")
+type = 7
+magnitude = 4
+scope = 5
+
+[sub_resource type="Resource" id="PM3"]
+script = ExtResource("3_x")
+staminaCost = 3
+attackRange = 3
+repeat = 1
+bonusEffects = Array[Object]([SubResource("EE3")])
+
+[resource]
+script = ExtResource("1_x")
+name = "Heal"
+image = ExtResource("2_x")
+type = 3
+rarity = 1
+isUpgrade = false
+numHands = 1
+attackRange = 3
+attacks = Array[Object]([SubResource("PM0"), SubResource("PM3")])
+physicalDefense = null
+magicDefense = null
+dodgeAbility = 0
+upgradeSlots = 0
+strengthReq = 0
+dexterityReq = 0
+intelligenceReq = 0
+faithReq = 23

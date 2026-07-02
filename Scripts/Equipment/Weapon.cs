@@ -11,6 +11,7 @@ public partial class Weapon : Resource, Equipment {
     [Export] public Equipment.EquipmentType type { get; set; }
     [Export] public Equipment.Rarity rarity { get; set; }
     [Export] public bool isUpgrade { get; set; }
+    [Export] public int numHands = 1;   // hand slots required to wield (1 or 2)
 
     [ExportGroup("Attacks")]
     [Export] public int attackRange;
@@ -21,6 +22,14 @@ public partial class Weapon : Resource, Equipment {
     [Export] public Array<Dice> magicDefense;
     [Export] public int dodgeAbility;
     [Export] public int upgradeSlots;
+
+    // Weapon-level passives (e.g. Vordt "Suffer Bleed / If Attack") and status
+    // immunities. Shields are authored as Weapons, so their passives/immunities
+    // (Bypass Two Hand Check, Immune to Poison & Bleed, etc.) live here too.
+    // See EquipmentEffect.
+    [ExportGroup("Passives")]
+    [Export] public Array<EquipmentEffect> passives = new();
+    [Export] public Array<EncounterManager.StatusEffect> immunities = new();
 
     [ExportGroup("Weapon Reqs")]
     [Export] public int strengthReq { get; set; }

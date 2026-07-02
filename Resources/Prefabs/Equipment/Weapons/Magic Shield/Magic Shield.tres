@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=5 format=3 uid="uid://w4sjnij03mgd"]
+
+[ext_resource type="Script" path="res://Scripts/Equipment/Weapon.cs" id="1_x"]
+[ext_resource type="Texture2D" path="res://Resources/Prefabs/Equipment/Weapons/Magic Shield/Magic Shield.png" id="2_x"]
+[ext_resource type="Resource" path="res://Resources/Prefabs/Dice/Black Dice.tres" id="3_x"]
+[ext_resource type="Resource" path="res://Resources/Prefabs/Dice/Orange Dice.tres" id="4_x"]
+
+[resource]
+script = ExtResource("1_x")
+name = "Magic Shield"
+image = ExtResource("2_x")
+type = 2
+rarity = 1
+isUpgrade = false
+numHands = 1
+attackRange = 0
+attacks = null
+physicalDefense = Array[Object]([ExtResource("3_x")])
+magicDefense = Array[Object]([ExtResource("4_x")])
+dodgeAbility = 0
+upgradeSlots = 0
+strengthReq = 0
+dexterityReq = 0
+intelligenceReq = 27
+faithReq = 14

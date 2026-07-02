@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=7 format=3 uid="uid://yj6mp1u4izlx"]
+
+[ext_resource type="Script" path="res://Scripts/Equipment/Weapon.cs" id="1_x"]
+[ext_resource type="Texture2D" path="res://Resources/Prefabs/Equipment/Weapons/Stone Greatshield/Stone Greatshield.png" id="2_x"]
+[ext_resource type="Script" path="res://Scripts/Equipment/EquipmentEffect.cs" id="3_x"]
+[ext_resource type="Resource" path="res://Resources/Prefabs/Dice/Blue Dice.tres" id="4_x"]
+[ext_resource type="Resource" path="res://Resources/Prefabs/Dice/Orange Dice.tres" id="5_x"]
+
+[sub_resource type="Resource" id="EE0"]
+script = ExtResource("3_x")
+type = 19
+duration = 4
+
+[resource]
+script = ExtResource("1_x")
+name = "Stone Greatshield"
+image = ExtResource("2_x")
+type = 2
+rarity = 1
+isUpgrade = false
+numHands = 1
+attackRange = 0
+attacks = null
+physicalDefense = Array[Object]([ExtResource("4_x")])
+magicDefense = Array[Object]([ExtResource("5_x")])
+dodgeAbility = 0
+upgradeSlots = 1
+passives = Array[Object]([SubResource("EE0")])
+strengthReq = 33
+dexterityReq = 0
+intelligenceReq = 0
+faithReq = 0

@@ -14,9 +14,17 @@ public partial class Armour : Resource, Equipment {
 
     [ExportGroup("Defense")]
     [Export] public Array<Dice> physicalDefense;
+    [Export] public int physicalDefenseModifier = 0;
     [Export] public Array<Dice> magicDefense;
+    [Export] public int magicDefenseModifier = 0;
     [Export] public int dodgeAbility;
     [Export] public int upgradeSlots;
+
+    // Passive abilities (dodge/move modifiers, conditional bonuses) and status
+    // immunities. Shared effect type with weapon attacks; see EquipmentEffect.
+    [ExportGroup("Passives")]
+    [Export] public Array<EquipmentEffect> passives = new();
+    [Export] public Array<EncounterManager.StatusEffect> immunities = new();
 
     [ExportGroup("Armour Reqs")]
     [Export] public int strengthReq { get; set; }

@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=4 format=3 uid="uid://3nmj7zn1luf4"]
+
+[ext_resource type="Script" path="res://Scripts/Equipment/Weapon.cs" id="1_x"]
+[ext_resource type="Texture2D" path="res://Resources/Prefabs/Equipment/Weapons/Twin Dragon Greatshield/Twin Dragon Greatshield.png" id="2_x"]
+[ext_resource type="Resource" path="res://Resources/Prefabs/Dice/Blue Dice.tres" id="3_x"]
+
+[resource]
+script = ExtResource("1_x")
+name = "Twin Dragon Greatshield"
+image = ExtResource("2_x")
+type = 2
+rarity = 1
+isUpgrade = false
+numHands = 1
+attackRange = 0
+attacks = null
+physicalDefense = Array[Object]([ExtResource("3_x"), ExtResource("3_x")])
+magicDefense = Array[Object]([ExtResource("3_x")])
+dodgeAbility = 0
+upgradeSlots = 0
+strengthReq = 35
+dexterityReq = 35
+intelligenceReq = 15
+faithReq = 15

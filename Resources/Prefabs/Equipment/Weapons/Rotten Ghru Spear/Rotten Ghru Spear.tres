@@ -1,0 +1,43 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=7 format=3 uid="uid://e0n09gsvfx2c"]
+
+[ext_resource type="Script" path="res://Scripts/Equipment/Weapon.cs" id="1_x"]
+[ext_resource type="Texture2D" path="res://Resources/Prefabs/Equipment/Weapons/Rotten Ghru Spear/Rotten Ghru Spear.png" id="2_x"]
+[ext_resource type="Script" path="res://Scripts/Encounter/Player/PlayerMove.cs" id="3_x"]
+[ext_resource type="Resource" path="res://Resources/Prefabs/Dice/Black Dice.tres" id="4_x"]
+
+[sub_resource type="Resource" id="PM0"]
+script = ExtResource("3_x")
+damage = Array[Object]([ExtResource("4_x"), ExtResource("4_x")])
+modifier = -1
+attackRange = 1
+isNotZeroRange = true
+statusEffect = 1
+repeat = 1
+
+[sub_resource type="Resource" id="PM1"]
+script = ExtResource("3_x")
+staminaCost = 3
+damage = Array[Object]([ExtResource("4_x"), ExtResource("4_x")])
+attackRange = 1
+isNotZeroRange = true
+statusEffect = 1
+repeat = 1
+
+[resource]
+script = ExtResource("1_x")
+name = "Rotten Ghru Spear"
+image = ExtResource("2_x")
+type = 1
+rarity = 1
+isUpgrade = false
+numHands = 1
+attackRange = 1
+attacks = Array[Object]([SubResource("PM0"), SubResource("PM1")])
+physicalDefense = null
+magicDefense = null
+dodgeAbility = 0
+upgradeSlots = 1
+strengthReq = 0
+dexterityReq = 21
+intelligenceReq = 12
+faithReq = 0

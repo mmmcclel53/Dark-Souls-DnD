@@ -1,0 +1,53 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=11 format=3 uid="uid://3j4epm5k0dkk"]
+
+[ext_resource type="Script" path="res://Scripts/Equipment/Weapon.cs" id="1_x"]
+[ext_resource type="Texture2D" path="res://Resources/Prefabs/Equipment/Weapons/Smough's Hammer/Smough's Hammer.png" id="2_x"]
+[ext_resource type="Script" path="res://Scripts/Encounter/Player/PlayerMove.cs" id="3_x"]
+[ext_resource type="Resource" path="res://Resources/Prefabs/Dice/Blue Dice.tres" id="4_x"]
+[ext_resource type="Resource" path="res://Resources/Prefabs/Dice/Orange Dice.tres" id="5_x"]
+[ext_resource type="Script" path="res://Scripts/Equipment/EquipmentEffect.cs" id="6_x"]
+
+[sub_resource type="Resource" id="EE0"]
+script = ExtResource("6_x")
+type = 7
+magnitude = 1
+
+[sub_resource type="Resource" id="PM0"]
+script = ExtResource("3_x")
+staminaCost = 2
+damage = Array[Object]([ExtResource("4_x"), ExtResource("5_x")])
+attackRange = 1
+repeat = 1
+bonusEffects = Array[Object]([SubResource("EE0")])
+
+[sub_resource type="Resource" id="EE2"]
+script = ExtResource("6_x")
+type = 7
+magnitude = 1
+
+[sub_resource type="Resource" id="PM2"]
+script = ExtResource("3_x")
+staminaCost = 6
+damage = Array[Object]([ExtResource("4_x"), ExtResource("4_x"), ExtResource("5_x"), ExtResource("5_x")])
+attackRange = 1
+repeat = 1
+bonusEffects = Array[Object]([SubResource("EE2")])
+
+[resource]
+script = ExtResource("1_x")
+name = "Smough's Hammer"
+image = ExtResource("2_x")
+type = 1
+rarity = 1
+isUpgrade = false
+numHands = 2
+attackRange = 1
+attacks = Array[Object]([SubResource("PM0"), SubResource("PM2")])
+physicalDefense = null
+magicDefense = null
+dodgeAbility = 0
+upgradeSlots = 1
+strengthReq = 37
+dexterityReq = 0
+intelligenceReq = 0
+faithReq = 0

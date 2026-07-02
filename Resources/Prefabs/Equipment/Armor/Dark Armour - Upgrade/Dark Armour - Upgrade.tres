@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="Armour" load_steps=6 format=3 uid="uid://9x2hkhmlbfft"]
+
+[ext_resource type="Script" path="res://Scripts/Equipment/Armour.cs" id="1_x"]
+[ext_resource type="Texture2D" path="res://Resources/Prefabs/Equipment/Armor/Dark Armour - Upgrade/Dark Armour - Upgrade.png" id="2_x"]
+[ext_resource type="Script" path="res://Scripts/Equipment/EquipmentEffect.cs" id="3_x"]
+[ext_resource type="Resource" path="res://Resources/Prefabs/Dice/Orange Dice.tres" id="4_x"]
+
+[sub_resource type="Resource" id="EE0"]
+script = ExtResource("3_x")
+type = 15
+magnitude = 1
+condition = 4
+duration = 4
+
+[resource]
+script = ExtResource("1_x")
+name = "Dark Armour - Upgrade"
+image = ExtResource("2_x")
+type = 0
+rarity = 1
+isUpgrade = true
+physicalDefense = Array[Object]([ExtResource("4_x")])
+physicalDefenseModifier = 0
+magicDefense = Array[Object]([ExtResource("4_x")])
+magicDefenseModifier = 0
+dodgeAbility = 1
+upgradeSlots = 2
+passives = Array[Object]([SubResource("EE0")])
+strengthReq = 0
+dexterityReq = 28
+intelligenceReq = 28
+faithReq = 0

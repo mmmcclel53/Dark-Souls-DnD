@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=6 format=3 uid="uid://23fwoq8k0h3t"]
+
+[ext_resource type="Script" path="res://Scripts/Equipment/Weapon.cs" id="1_x"]
+[ext_resource type="Texture2D" path="res://Resources/Prefabs/Equipment/Weapons/Sunlight Shield/Sunlight Shield.png" id="2_x"]
+[ext_resource type="Script" path="res://Scripts/Equipment/EquipmentEffect.cs" id="3_x"]
+[ext_resource type="Resource" path="res://Resources/Prefabs/Dice/Black Dice.tres" id="4_x"]
+
+[sub_resource type="Resource" id="EE0"]
+script = ExtResource("3_x")
+type = 13
+condition = 13
+scope = 1
+
+[resource]
+script = ExtResource("1_x")
+name = "Sunlight Shield"
+image = ExtResource("2_x")
+type = 2
+rarity = 1
+isUpgrade = false
+numHands = 1
+attackRange = 0
+attacks = null
+physicalDefense = Array[Object]([ExtResource("4_x"), ExtResource("4_x")])
+magicDefense = Array[Object]([ExtResource("4_x")])
+dodgeAbility = 0
+upgradeSlots = 0
+passives = Array[Object]([SubResource("EE0")])
+strengthReq = 0
+dexterityReq = 0
+intelligenceReq = 0
+faithReq = 30

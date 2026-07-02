@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="Armour" load_steps=5 format=3 uid="uid://hf9pe52aey02"]
+
+[ext_resource type="Script" path="res://Scripts/Equipment/Armour.cs" id="1_x"]
+[ext_resource type="Texture2D" path="res://Resources/Prefabs/Equipment/Armor/Silver Knight Armour/Silver Knight Armour.png" id="2_x"]
+[ext_resource type="Resource" path="res://Resources/Prefabs/Dice/Black Dice.tres" id="3_x"]
+[ext_resource type="Resource" path="res://Resources/Prefabs/Dice/Blue Dice.tres" id="4_x"]
+
+[resource]
+script = ExtResource("1_x")
+name = "Silver Knight Armour"
+image = ExtResource("2_x")
+type = 0
+rarity = 1
+isUpgrade = false
+physicalDefense = Array[Object]([ExtResource("3_x"), ExtResource("4_x")])
+physicalDefenseModifier = 0
+magicDefense = null
+magicDefenseModifier = 0
+dodgeAbility = 1
+upgradeSlots = 2
+strengthReq = 26
+dexterityReq = 26
+intelligenceReq = 0
+faithReq = 0

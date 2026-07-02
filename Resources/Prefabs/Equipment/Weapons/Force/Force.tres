@@ -1,0 +1,44 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=8 format=3 uid="uid://2m3aoddx0ju4"]
+
+[ext_resource type="Script" path="res://Scripts/Equipment/Weapon.cs" id="1_x"]
+[ext_resource type="Texture2D" path="res://Resources/Prefabs/Equipment/Weapons/Force/Force.png" id="2_x"]
+[ext_resource type="Script" path="res://Scripts/Encounter/Player/PlayerMove.cs" id="3_x"]
+[ext_resource type="Script" path="res://Scripts/Equipment/EquipmentEffect.cs" id="4_x"]
+
+[sub_resource type="Resource" id="PM0"]
+script = ExtResource("3_x")
+attackRange = 2
+isPush = true
+repeat = 1
+
+[sub_resource type="Resource" id="EE1"]
+script = ExtResource("4_x")
+type = 6
+magnitude = 2
+
+[sub_resource type="Resource" id="PM1"]
+script = ExtResource("3_x")
+staminaCost = 2
+attackRange = 2
+isPush = true
+repeat = 1
+bonusEffects = Array[Object]([SubResource("EE1")])
+
+[resource]
+script = ExtResource("1_x")
+name = "Force"
+image = ExtResource("2_x")
+type = 3
+rarity = 1
+isUpgrade = false
+numHands = 1
+attackRange = 2
+attacks = Array[Object]([SubResource("PM0"), SubResource("PM1")])
+physicalDefense = null
+magicDefense = null
+dodgeAbility = 0
+upgradeSlots = 0
+strengthReq = 0
+dexterityReq = 0
+intelligenceReq = 12
+faithReq = 0

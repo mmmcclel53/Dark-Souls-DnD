@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=5 format=3 uid="uid://neqns1dgp7h4"]
+
+[ext_resource type="Script" path="res://Scripts/Equipment/Weapon.cs" id="1_x"]
+[ext_resource type="Texture2D" path="res://Resources/Prefabs/Equipment/Weapons/Kukris/Kukris.png" id="2_x"]
+[ext_resource type="Script" path="res://Scripts/Encounter/Player/PlayerMove.cs" id="3_x"]
+
+[sub_resource type="Resource" id="PM0"]
+script = ExtResource("3_x")
+attackRange = 1
+statusEffect = 0
+repeat = 1
+
+[resource]
+script = ExtResource("1_x")
+name = "Kukris"
+image = ExtResource("2_x")
+type = 1
+rarity = 1
+isUpgrade = false
+numHands = 1
+attackRange = 1
+attacks = Array[Object]([SubResource("PM0")])
+physicalDefense = null
+magicDefense = null
+dodgeAbility = 0
+upgradeSlots = 0
+strengthReq = 0
+dexterityReq = 15
+intelligenceReq = 0
+faithReq = 0

@@ -1,0 +1,58 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=11 format=3 uid="uid://8z8hgrrmdyfq"]
+
+[ext_resource type="Script" path="res://Scripts/Equipment/Weapon.cs" id="1_x"]
+[ext_resource type="Texture2D" path="res://Resources/Prefabs/Equipment/Weapons/Lothric's Holy Sword/Lothric's Holy Sword.png" id="2_x"]
+[ext_resource type="Script" path="res://Scripts/Encounter/Player/PlayerMove.cs" id="3_x"]
+[ext_resource type="Resource" path="res://Resources/Prefabs/Dice/Blue Dice.tres" id="4_x"]
+[ext_resource type="Script" path="res://Scripts/Equipment/EquipmentEffect.cs" id="5_x"]
+[ext_resource type="Resource" path="res://Resources/Prefabs/Dice/Black Dice.tres" id="6_x"]
+
+[sub_resource type="Resource" id="EE0"]
+script = ExtResource("5_x")
+type = 9
+magnitude = 1
+scope = 8
+scopeRange = 1
+
+[sub_resource type="Resource" id="PM0"]
+script = ExtResource("3_x")
+damage = Array[Object]([ExtResource("4_x")])
+attackRange = 0
+isMagic = true
+repeat = 1
+bonusEffects = Array[Object]([SubResource("EE0")])
+
+[sub_resource type="Resource" id="EE2"]
+script = ExtResource("5_x")
+type = 9
+magnitude = 1
+scope = 8
+scopeRange = 1
+
+[sub_resource type="Resource" id="PM2"]
+script = ExtResource("3_x")
+staminaCost = 3
+damage = Array[Object]([ExtResource("6_x"), ExtResource("4_x")])
+attackRange = 0
+isMagic = true
+repeat = 1
+bonusEffects = Array[Object]([SubResource("EE2")])
+
+[resource]
+script = ExtResource("1_x")
+name = "Lothric's Holy Sword"
+image = ExtResource("2_x")
+type = 1
+rarity = 1
+isUpgrade = false
+numHands = 1
+attackRange = 0
+attacks = Array[Object]([SubResource("PM0"), SubResource("PM2")])
+physicalDefense = null
+magicDefense = Array[Object]([ExtResource("6_x")])
+dodgeAbility = 0
+upgradeSlots = 1
+strengthReq = 27
+dexterityReq = 0
+intelligenceReq = 0
+faithReq = 31

@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=9 format=3 uid="uid://lekkd06xji5a"]
+
+[ext_resource type="Script" path="res://Scripts/Equipment/Weapon.cs" id="1_x"]
+[ext_resource type="Texture2D" path="res://Resources/Prefabs/Equipment/Weapons/Falchion/Falchion.png" id="2_x"]
+[ext_resource type="Script" path="res://Scripts/Encounter/Player/PlayerMove.cs" id="3_x"]
+[ext_resource type="Resource" path="res://Resources/Prefabs/Dice/Blue Dice.tres" id="4_x"]
+[ext_resource type="Resource" path="res://Resources/Prefabs/Dice/Orange Dice.tres" id="5_x"]
+[ext_resource type="Resource" path="res://Resources/Prefabs/Dice/Black Dice.tres" id="6_x"]
+
+[sub_resource type="Resource" id="PM0"]
+script = ExtResource("3_x")
+damage = Array[Object]([ExtResource("4_x"), ExtResource("4_x")])
+attackRange = 0
+repeat = 1
+
+[sub_resource type="Resource" id="PM1"]
+script = ExtResource("3_x")
+staminaCost = 3
+damage = Array[Object]([ExtResource("5_x"), ExtResource("5_x")])
+attackRange = 0
+repeat = 1
+
+[resource]
+script = ExtResource("1_x")
+name = "Falchion"
+image = ExtResource("2_x")
+type = 1
+rarity = 1
+isUpgrade = false
+numHands = 1
+attackRange = 0
+attacks = Array[Object]([SubResource("PM0"), SubResource("PM1")])
+physicalDefense = Array[Object]([ExtResource("6_x")])
+magicDefense = Array[Object]([ExtResource("4_x")])
+dodgeAbility = 0
+upgradeSlots = 2
+strengthReq = 37
+dexterityReq = 30
+intelligenceReq = 0
+faithReq = 23

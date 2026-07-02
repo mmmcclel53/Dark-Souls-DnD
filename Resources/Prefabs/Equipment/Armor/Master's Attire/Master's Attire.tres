@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="Armour" load_steps=3 format=3 uid="uid://yrvv4w5m327s"]
+
+[ext_resource type="Script" path="res://Scripts/Equipment/Armour.cs" id="1_x"]
+[ext_resource type="Texture2D" path="res://Resources/Prefabs/Equipment/Armor/Master's Attire/Master's Attire.png" id="2_x"]
+
+[resource]
+script = ExtResource("1_x")
+name = "Master's Attire"
+image = ExtResource("2_x")
+type = 0
+rarity = 1
+isUpgrade = false
+physicalDefense = null
+physicalDefenseModifier = 0
+magicDefense = null
+magicDefenseModifier = 0
+dodgeAbility = 2
+upgradeSlots = 2
+strengthReq = 0
+dexterityReq = 30
+intelligenceReq = 18
+faithReq = 0

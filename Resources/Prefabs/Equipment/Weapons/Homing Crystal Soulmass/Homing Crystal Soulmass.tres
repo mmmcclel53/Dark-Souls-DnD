@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=6 format=3 uid="uid://kw9v5xcgbjqm"]
+
+[ext_resource type="Script" path="res://Scripts/Equipment/Weapon.cs" id="1_x"]
+[ext_resource type="Texture2D" path="res://Resources/Prefabs/Equipment/Weapons/Homing Crystal Soulmass/Homing Crystal Soulmass.png" id="2_x"]
+[ext_resource type="Script" path="res://Scripts/Encounter/Player/PlayerMove.cs" id="3_x"]
+[ext_resource type="Resource" path="res://Resources/Prefabs/Dice/Orange Dice.tres" id="4_x"]
+
+[sub_resource type="Resource" id="PM0"]
+script = ExtResource("3_x")
+staminaCost = 5
+damage = Array[Object]([ExtResource("4_x")])
+attackRange = 3
+isMagic = true
+repeat = 5
+repeatConstraint = 1
+
+[resource]
+script = ExtResource("1_x")
+name = "Homing Crystal Soulmass"
+image = ExtResource("2_x")
+type = 3
+rarity = 1
+isUpgrade = false
+numHands = 1
+attackRange = 3
+attacks = Array[Object]([SubResource("PM0")])
+physicalDefense = null
+magicDefense = null
+dodgeAbility = 0
+upgradeSlots = 0
+strengthReq = 0
+dexterityReq = 0
+intelligenceReq = 40
+faithReq = 0
