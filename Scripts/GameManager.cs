@@ -72,6 +72,12 @@ public static partial class GameManager {
         return equipmentMap.Keys;
     }
 
+    // Every catalog template (read-only, empty ids). Used by the inventory Dev Mode preview.
+    public static IEnumerable<Equipment> GetAllTemplates() {
+        EnsureCatalogLoaded();
+        return equipmentMap.Values;
+    }
+
     // Duplicate a template, assign a fresh GUID id, add to the owned pool, return it.
     public static Equipment MintInstance(string templateName) {
         var template = GetTemplate(templateName);
@@ -93,6 +99,13 @@ public static partial class GameManager {
         if (ownedInstances.ContainsKey(inst.id)) return;
         ownedInstances[inst.id] = inst;
         ownedOrder.Add(inst.id);
+    }
+
+    // Drop an instance from the owned pool (used to undo a throwaway preview mint).
+    public static void RemoveInstance(string id) {
+        if (string.IsNullOrEmpty(id)) return;
+        ownedInstances.Remove(id);
+        ownedOrder.Remove(id);
     }
 
     public static Equipment GetInstance(string id) {

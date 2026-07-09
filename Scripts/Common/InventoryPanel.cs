@@ -17,16 +17,10 @@ public partial class InventoryPanel : Control
 
     private Player viewer;
     private EquipmentModal.SlotKind slotFilter = EquipmentModal.SlotKind.None;
+    private bool devMode = false;
 
-    private const int TILE_W = 52;
-    private const int TILE_H = 78;
-
-    private static readonly Color RARITY_STARTER   = new Color(0.55f, 0.55f, 0.55f);
-    private static readonly Color RARITY_COMMON    = new Color(0.85f, 0.85f, 0.85f);
-    private static readonly Color RARITY_UNCOMMON  = new Color(0.4f, 0.8f, 0.4f);
-    private static readonly Color RARITY_RARE      = new Color(0.35f, 0.65f, 1.0f);
-    private static readonly Color RARITY_LEGENDARY = new Color(0.9f, 0.65f, 0.15f);
-    private static readonly Color RARITY_EPIC      = new Color(0.75f, 0.35f, 0.95f);
+    private const int TILE_W = 62;
+    private const int TILE_H = 92;
 
     public override void _Ready() {
         if (typeFilter != null) {
@@ -65,19 +59,29 @@ public partial class InventoryPanel : Control
         Refresh();
     }
 
+    // Dev Mode reveals every catalog template as a read-only preview (not owned, not equippable).
+    public void SetDevMode(bool on) {
+        devMode = on;
+        Refresh();
+    }
+
     public void Refresh() {
         if (grid == null) return;
         foreach (Node child in grid.GetChildren()) child.QueueFree();
 
-        // Build the set of equipped instance ids across the entire party.
-        var equippedIds = new HashSet<string>();
-        if (CampaignManager.Players != null) {
-            foreach (var p in CampaignManager.Players) CollectEquippedIds(p, equippedIds);
+        List<Equipment> items;
+        if (devMode) {
+            items = GameManager.GetAllTemplates().Where(e => e != null).ToList();
+        } else {
+            // Build the set of equipped instance ids across the entire party.
+            var equippedIds = new HashSet<string>();
+            if (CampaignManager.Players != null) {
+                foreach (var p in CampaignManager.Players) CollectEquippedIds(p, equippedIds);
+            }
+            items = GameManager.GetAllInstances()
+                .Where(e => e != null && !equippedIds.Contains(e.id))
+                .ToList();
         }
-
-        var items = GameManager.GetAllInstances()
-            .Where(e => e != null && !equippedIds.Contains(e.id))
-            .ToList();
 
         // Search
         string query = searchField?.Text?.Trim().ToLowerInvariant() ?? "";
@@ -89,13 +93,17 @@ public partial class InventoryPanel : Control
             ).ToList();
         }
 
-        // Type filter
-        int typeId = typeFilter != null && typeFilter.Selected >= 0 ? (int)typeFilter.GetItemId(typeFilter.Selected) : -1;
-        if (typeId >= 0) items = items.Where(e => (int)e.type == typeId).ToList();
+        // Type filter — index 0 is the "All Types" sentinel; only filter past it.
+        if (typeFilter != null && typeFilter.Selected > 0) {
+            int typeId = (int)typeFilter.GetItemId(typeFilter.Selected);
+            items = items.Where(e => (int)e.type == typeId).ToList();
+        }
 
-        // Rarity filter
-        int rarityId = rarityFilter != null && rarityFilter.Selected >= 0 ? (int)rarityFilter.GetItemId(rarityFilter.Selected) : -1;
-        if (rarityId >= 0) items = items.Where(e => (int)e.rarity == rarityId).ToList();
+        // Rarity filter — index 0 is the "All Rarities" sentinel.
+        if (rarityFilter != null && rarityFilter.Selected > 0) {
+            int rarityId = (int)rarityFilter.GetItemId(rarityFilter.Selected);
+            items = items.Where(e => (int)e.rarity == rarityId).ToList();
+        }
 
         // Slot compatibility (auto, when a slot is selected)
         if (slotFilter != EquipmentModal.SlotKind.None)
@@ -130,7 +138,7 @@ public partial class InventoryPanel : Control
 
         var border = new StyleBoxFlat();
         border.BgColor = new Color(0.07f, 0.07f, 0.07f, 0.85f);
-        border.BorderColor = RarityColor(item.rarity);
+        border.BorderColor = EquipmentModal.RarityColor(item.rarity);
         border.SetBorderWidthAll(2);
         border.SetCornerRadiusAll(4);
         panel.AddThemeStyleboxOverride("panel", border);
@@ -147,7 +155,9 @@ public partial class InventoryPanel : Control
             btn.Disabled = true;
         }
 
-        btn.Pressed += () => EmitSignal(SignalName.EquipmentClicked, item.id);
+        // Owned items carry a GUID id; dev-preview templates have none, so fall back to name.
+        string key = string.IsNullOrEmpty(item.id) ? item.name : item.id;
+        btn.Pressed += () => EmitSignal(SignalName.EquipmentClicked, key);
 
         // Tooltip with the basics.
         btn.TooltipText = $"{item.name}\n{item.type} · {item.rarity}";
@@ -208,15 +218,4 @@ public partial class InventoryPanel : Control
         if (!string.IsNullOrEmpty(id)) s.Add(id);
     }
 
-    private static Color RarityColor(Equipment.Rarity r) {
-        switch (r) {
-            case Equipment.Rarity.STARTER:   return RARITY_STARTER;
-            case Equipment.Rarity.COMMON:    return RARITY_COMMON;
-            case Equipment.Rarity.UNCOMMON:  return RARITY_UNCOMMON;
-            case Equipment.Rarity.RARE:      return RARITY_RARE;
-            case Equipment.Rarity.LEGENDARY: return RARITY_LEGENDARY;
-            case Equipment.Rarity.EPIC:      return RARITY_EPIC;
-            default: return RARITY_COMMON;
-        }
-    }
 }

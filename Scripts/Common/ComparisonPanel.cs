@@ -1,8 +1,9 @@
 using Godot;
+using System.Text;
 
-// A small overlay panel that slides in from the right edge of the equipment column,
-// showing "Currently equipped" vs "Proposed" with stat deltas. Confirm equips,
-// Cancel hides the panel.
+// A panel that overlays the loadout column showing "Current" vs "Proposed" as two
+// rarity-framed cards, plus a colour-coded table of stat changes (green better, red
+// worse). Confirm equips; Cancel hides the panel.
 public partial class ComparisonPanel : PanelContainer
 {
     [Signal] public delegate void ConfirmedEventHandler(int slotKind, string incomingInstanceId);
@@ -10,15 +11,21 @@ public partial class ComparisonPanel : PanelContainer
 
     [Export] public Label headerLabel;
 
+    [Export] public PanelContainer currentIconFrame;
     [Export] public TextureRect currentIcon;
     [Export] public Label currentNameLabel;
     [Export] public Label currentStatsLabel;
 
+    [Export] public PanelContainer incomingIconFrame;
     [Export] public TextureRect incomingIcon;
     [Export] public Label incomingNameLabel;
     [Export] public Label incomingStatsLabel;
 
-    [Export] public Label deltaLabel;
+    [Export] public Label physDmgDelta;
+    [Export] public Label magDmgDelta;
+    [Export] public Label physDefDelta;
+    [Export] public Label magDefDelta;
+    [Export] public Label dodgeDelta;
 
     [Export] public Button confirmButton;
     [Export] public Button cancelButton;
@@ -46,15 +53,33 @@ public partial class ComparisonPanel : PanelContainer
 
         if (headerLabel != null) headerLabel.Text = $"Equip to {SlotLabel(slot)}";
 
-        if (currentIcon != null) currentIcon.Texture = current?.image;
-        if (currentNameLabel != null) currentNameLabel.Text = current?.name ?? "— empty —";
-        if (currentStatsLabel != null) currentStatsLabel.Text = StatBlock(current);
+        SetCard(currentIconFrame, currentIcon, currentNameLabel, currentStatsLabel, current);
+        SetCard(incomingIconFrame, incomingIcon, incomingNameLabel, incomingStatsLabel, incoming);
 
-        if (incomingIcon != null) incomingIcon.Texture = incoming.image;
-        if (incomingNameLabel != null) incomingNameLabel.Text = incoming.name;
-        if (incomingStatsLabel != null) incomingStatsLabel.Text = StatBlock(incoming);
+        var (pd, md, pf, mf, dodge) = ComputeDeltas(p, slot, incoming);
+        EquipmentModal.SetDeltaLabel(physDmgDelta, pd);
+        EquipmentModal.SetDeltaLabel(magDmgDelta, md);
+        EquipmentModal.SetDeltaLabel(physDefDelta, pf);
+        EquipmentModal.SetDeltaLabel(magDefDelta, mf);
+        EquipmentModal.SetDeltaLabel(dodgeDelta, dodge);
+    }
 
-        if (deltaLabel != null) deltaLabel.Text = DeltaBlock(p, slot, current, incoming);
+    private static void SetCard(PanelContainer frame, TextureRect icon, Label name, Label stats, Equipment e) {
+        if (icon != null) icon.Texture = e?.image;
+        if (frame != null) {
+            var st = new StyleBoxFlat();
+            st.BgColor = new Color(0.03f, 0.03f, 0.03f, 0.85f);
+            st.BorderColor = e != null ? EquipmentModal.RarityColor(e.rarity) : new Color(0.4f, 0.4f, 0.4f);
+            st.SetBorderWidthAll(2);
+            st.SetCornerRadiusAll(3);
+            frame.AddThemeStyleboxOverride("panel", st);
+        }
+        if (name != null) {
+            name.Text = e?.name ?? "— Empty —";
+            name.AddThemeColorOverride("font_color",
+                e != null ? EquipmentModal.RarityColor(e.rarity) : new Color(0.6f, 0.6f, 0.6f));
+        }
+        if (stats != null) stats.Text = StatBlock(e);
     }
 
     private static string SlotLabel(EquipmentModal.SlotKind s) {
@@ -76,63 +101,69 @@ public partial class ComparisonPanel : PanelContainer
     }
 
     private static string StatBlock(Equipment e) {
-        if (e == null) return "—";
-        string s = $"{e.type} · {e.rarity}\n";
+        if (e == null) return "— empty —";
+        var sb = new StringBuilder();
+        sb.AppendLine($"{e.type} · {e.rarity}");
         if (e is Weapon w) {
-            s += $"Atk options: {(w.attacks?.Count ?? 0)}\n";
-            s += $"Dodge +{w.dodgeAbility}\n";
-            s += $"Upgrade slots: {w.upgradeSlots}\n";
+            sb.AppendLine($"Attacks: {(w.attacks?.Count ?? 0)}");
+            if (w.dodgeAbility != 0) sb.AppendLine($"Dodge {Signed(w.dodgeAbility)}");
+            if (w.upgradeSlots != 0) sb.AppendLine($"Upgrade slots: {w.upgradeSlots}");
         }
         if (e is Armour a) {
-            s += $"Dodge +{a.dodgeAbility}\n";
-            s += $"Upgrade slots: {a.upgradeSlots}\n";
+            if (a.dodgeAbility != 0) sb.AppendLine($"Dodge {Signed(a.dodgeAbility)}");
+            if (a.upgradeSlots != 0) sb.AppendLine($"Upgrade slots: {a.upgradeSlots}");
         }
-        s += ReqLine(e);
-        return s;
+        string reqs = ReqLine(e);
+        if (!string.IsNullOrEmpty(reqs)) sb.Append(reqs);
+        return sb.ToString().TrimEnd();
     }
+
+    private static string Signed(int n) => n > 0 ? $"+{n}" : n.ToString();
 
     private static string ReqLine(Equipment e) {
-        string s = "Reqs: ";
+        var sb = new StringBuilder("Reqs: ");
         bool any = false;
-        if (e.strengthReq > 0)     { s += $"STR {e.strengthReq} ";     any = true; }
-        if (e.dexterityReq > 0)    { s += $"DEX {e.dexterityReq} ";    any = true; }
-        if (e.intelligenceReq > 0) { s += $"INT {e.intelligenceReq} "; any = true; }
-        if (e.faithReq > 0)        { s += $"FAI {e.faithReq} ";        any = true; }
-        return any ? s : "";
+        if (e.strengthReq > 0)     { sb.Append($"STR {e.strengthReq} ");     any = true; }
+        if (e.dexterityReq > 0)    { sb.Append($"DEX {e.dexterityReq} ");    any = true; }
+        if (e.intelligenceReq > 0) { sb.Append($"INT {e.intelligenceReq} "); any = true; }
+        if (e.faithReq > 0)        { sb.Append($"FAI {e.faithReq} ");        any = true; }
+        return any ? sb.ToString().TrimEnd() : "";
     }
 
-    // Recomputes the player's summary stats with a hypothetical equip swap,
-    // then prints the deltas vs. the player's current stats.
-    private static string DeltaBlock(Player p, EquipmentModal.SlotKind slot, Equipment current, Equipment incoming) {
-        var (pdMinB, pdMaxB) = p.GetBestPhysicalDamage();
-        var (mdMinB, mdMaxB) = p.GetBestMagicDamage();
-        var (pfMinB, pfMaxB) = p.GetPhysicalDefense();
-        var (mfMinB, mfMaxB) = p.GetMagicDefense();
+    // Recomputes the player's best stats with a hypothetical equip swap and returns the
+    // deltas vs. the player's current stats. A template (empty id) is temporarily minted
+    // so its stats resolve, then removed — keeping the preview accurate without polluting
+    // the owned pool.
+    private static (int pd, int md, int pf, int mf, int dodge) ComputeDeltas(
+            Player p, EquipmentModal.SlotKind slot, Equipment incoming) {
+        var (_, pdB) = p.GetBestPhysicalDamage();
+        var (_, mdB) = p.GetBestMagicDamage();
+        var (_, pfB) = p.GetPhysicalDefense();
+        var (_, mfB) = p.GetMagicDefense();
         int dodgeB = p.GetDodge();
 
-        // Temporarily swap, recompute, then restore.
-        string slotIdField = SlotIdSnapshot(p, slot, out int upgradeIdx, out string[] upgradeArrSnapshot);
-        Equipment.EquipmentType prevTypeMarker = current?.type ?? Equipment.EquipmentType.Item;
-        SwapForPreview(p, slot, incoming);
+        Equipment previewItem = incoming;
+        string tempId = null;
+        if (string.IsNullOrEmpty(incoming.id)) {
+            previewItem = GameManager.MintInstance(incoming.name);
+            tempId = previewItem?.id;
+            if (previewItem == null) previewItem = incoming;
+        }
 
-        var (pdMinA, pdMaxA) = p.GetBestPhysicalDamage();
-        var (mdMinA, mdMaxA) = p.GetBestMagicDamage();
-        var (pfMinA, pfMaxA) = p.GetPhysicalDefense();
-        var (mfMinA, mfMaxA) = p.GetMagicDefense();
+        string prevId = SlotIdSnapshot(p, slot, out int upgradeIdx, out string[] upgradeArr);
+        SwapForPreview(p, slot, previewItem);
+
+        var (_, pdA) = p.GetBestPhysicalDamage();
+        var (_, mdA) = p.GetBestMagicDamage();
+        var (_, pfA) = p.GetPhysicalDefense();
+        var (_, mfA) = p.GetMagicDefense();
         int dodgeA = p.GetDodge();
 
-        // Restore.
-        RestoreFromSnapshot(p, slot, slotIdField, upgradeIdx, upgradeArrSnapshot);
+        RestoreFromSnapshot(p, slot, prevId, upgradeIdx, upgradeArr);
+        if (tempId != null) GameManager.RemoveInstance(tempId);
 
-        return
-            $"Phys Dmg: {Fmt(pdMaxA - pdMaxB)}\n" +
-            $"Mag Dmg:  {Fmt(mdMaxA - mdMaxB)}\n" +
-            $"Phys Def: {Fmt(pfMaxA - pfMaxB)}\n" +
-            $"Mag Def:  {Fmt(mfMaxA - mfMaxB)}\n" +
-            $"Dodge:    {Fmt(dodgeA - dodgeB)}";
+        return (pdA - pdB, mdA - mdB, pfA - pfB, mfA - mfB, dodgeA - dodgeB);
     }
-
-    private static string Fmt(int delta) => delta >= 0 ? $"+{delta}" : delta.ToString();
 
     // Snapshot helpers — these preserve enough to undo a preview swap.
 

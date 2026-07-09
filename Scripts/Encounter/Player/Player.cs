@@ -1,4 +1,5 @@
 using Godot;
+using System.Collections.Generic;
 
 [GlobalClass]
 public partial class Player : Resource
@@ -45,6 +46,65 @@ public partial class Player : Resource
     public int GetMaxEndurance() => 10;
     public int GetRemainingHP() => GetMaxEndurance() - hits;
     public int GetCurrentStamina() => stamina;
+
+    // Character level = 1 + total stat investments: how many tiers each attribute has
+    // climbed above its starting tier, summed across all four. A freshly created
+    // character is Level 1.
+    public int GetLevel() {
+        if (character == null) return 1;
+        return 1
+             + TierIndex(strength, character.strengthTiers)
+             + TierIndex(dexterity, character.dexterityTiers)
+             + TierIndex(intelligence, character.intelligenceTiers)
+             + TierIndex(faith, character.faithTiers);
+    }
+
+    private static int TierIndex(int value, int[] tiers) {
+        if (tiers == null) return 0;
+        int idx = 0;
+        for (int i = 0; i < tiers.Length; i++) if (value >= tiers[i]) idx = i;
+        return idx;
+    }
+
+    // Status effects the wearer is immune to, gathered from every equipped piece.
+    public List<EncounterManager.StatusEffect> GetImmunities() {
+        var set = new HashSet<EncounterManager.StatusEffect>();
+        void Collect(Godot.Collections.Array<EncounterManager.StatusEffect> arr) {
+            if (arr == null) return;
+            foreach (var s in arr)
+                if (s != EncounterManager.StatusEffect.NONE) set.Add(s);
+        }
+        Collect(GetArmour()?.immunities);
+        foreach (Weapon w in new[] { GetLeftHand(), GetRightHand(), GetBackupSlot() })
+            Collect(w?.immunities);
+        return new List<EncounterManager.StatusEffect>(set);
+    }
+
+    // Passive EquipmentEffects contributed by all equipped gear (armour + weapons/shields).
+    public List<EquipmentEffect> GetEquippedPassives() {
+        var list = new List<EquipmentEffect>();
+        void Collect(Godot.Collections.Array<EquipmentEffect> arr) {
+            if (arr == null) return;
+            foreach (var e in arr)
+                if (e != null && e.type != EquipmentEffect.EffectType.NONE) list.Add(e);
+        }
+        Collect(GetArmour()?.passives);
+        foreach (Weapon w in new[] { GetLeftHand(), GetRightHand(), GetBackupSlot() })
+            Collect(w?.passives);
+        return list;
+    }
+
+    // Statuses this character's weapon attacks inflict on hit.
+    public List<EncounterManager.StatusEffect> GetInflictedStatuses() {
+        var set = new HashSet<EncounterManager.StatusEffect>();
+        foreach (Weapon w in new[] { GetLeftHand(), GetRightHand(), GetBackupSlot() }) {
+            if (w?.attacks == null) continue;
+            foreach (PlayerMove m in w.attacks)
+                if (m != null && m.statusEffect != EncounterManager.StatusEffect.NONE)
+                    set.Add(m.statusEffect);
+        }
+        return new List<EncounterManager.StatusEffect>(set);
+    }
 
     // ----- Stat summary, mirrors Character.* but reads currently-equipped instances -----
 

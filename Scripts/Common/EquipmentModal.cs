@@ -15,12 +15,48 @@ public partial class EquipmentModal : CanvasLayer
         Armour, ArmourUpgrade1, ArmourUpgrade2,
     }
 
+    // ----- Dark Souls AAA palette -----
+    private static readonly Color GOLD       = new Color(0.80f, 0.66f, 0.37f);
+    private static readonly Color GOLD_DIM   = new Color(0.55f, 0.47f, 0.31f);
+    private static readonly Color TEXT       = new Color(0.84f, 0.82f, 0.75f);
+    private static readonly Color TEXT_DIM   = new Color(0.62f, 0.60f, 0.54f);
+    private static readonly Color PANEL_BG   = new Color(0.085f, 0.082f, 0.078f, 0.98f);
+    private static readonly Color PANEL_LINE = new Color(0.32f, 0.28f, 0.19f);
+
+    // Comparison deltas: green = improvement, red = worse, dim = no change.
+    public static readonly Color BETTER  = new Color(0.44f, 0.82f, 0.44f);
+    public static readonly Color WORSE   = new Color(0.87f, 0.38f, 0.35f);
+    public static readonly Color NEUTRAL = new Color(0.58f, 0.56f, 0.50f);
+
+    // Rarity tint, shared across the inventory grid and comparison cards.
+    public static Color RarityColor(Equipment.Rarity r) {
+        switch (r) {
+            case Equipment.Rarity.STARTER:   return new Color(0.62f, 0.62f, 0.62f);
+            case Equipment.Rarity.COMMON:    return new Color(0.86f, 0.86f, 0.86f);
+            case Equipment.Rarity.UNCOMMON:  return new Color(0.40f, 0.80f, 0.40f);
+            case Equipment.Rarity.RARE:      return new Color(0.35f, 0.65f, 1.00f);
+            case Equipment.Rarity.LEGENDARY: return new Color(0.75f, 0.35f, 0.95f);
+            case Equipment.Rarity.EPIC:      return new Color(0.90f, 0.65f, 0.15f);
+            default:                         return new Color(0.86f, 0.86f, 0.86f);
+        }
+    }
+
+    // Formats a comparison delta into a label: "+N" green, "-N" red, "—" dim for zero.
+    // No signed zeros — zero always renders as a neutral dash.
+    public static void SetDeltaLabel(Label l, int delta) {
+        if (l == null) return;
+        if (delta > 0)      { l.Text = $"+{delta}"; l.AddThemeColorOverride("font_color", BETTER); }
+        else if (delta < 0) { l.Text = delta.ToString(); l.AddThemeColorOverride("font_color", WORSE); }
+        else                { l.Text = "—"; l.AddThemeColorOverride("font_color", NEUTRAL); }
+    }
+
     private Control root;
     private CharacterSummaryPanel summaryPanel;
     private CharacterEquipmentPanel equipmentPanel;
     private InventoryPanel inventoryPanel;
     private ComparisonPanel comparisonPanel;
     private Button closeButton;
+    private CheckButton devToggle;
 
     private Player currentPlayer;
     private SlotKind selectedSlot = SlotKind.None;
@@ -33,6 +69,7 @@ public partial class EquipmentModal : CanvasLayer
         BuildUi();
 
         if (closeButton != null) closeButton.Pressed += () => Close();
+        if (devToggle != null) devToggle.Toggled += on => inventoryPanel?.SetDevMode(on);
         if (equipmentPanel != null) equipmentPanel.SlotSelected += OnSlotSelected;
         if (inventoryPanel != null) inventoryPanel.EquipmentClicked += OnInventoryClicked;
         if (comparisonPanel != null) {
@@ -53,16 +90,16 @@ public partial class EquipmentModal : CanvasLayer
         backdrop.MouseFilter = Control.MouseFilterEnum.Stop;
         AddChild(backdrop);
 
-        // Frame: 90% of screen, dark panel.
+        // Frame: near-full screen, dark panel with a warm gold border.
         var frame = new PanelContainer();
-        frame.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect, Control.LayoutPresetMode.KeepSize, 32);
+        frame.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect, Control.LayoutPresetMode.KeepSize, 28);
         var frameStyle = new StyleBoxFlat();
-        frameStyle.BgColor = new Color(0.07f, 0.07f, 0.08f, 0.97f);
-        frameStyle.BorderColor = new Color(0.35f, 0.35f, 0.35f, 1);
+        frameStyle.BgColor = new Color(0.055f, 0.052f, 0.05f, 0.99f);
+        frameStyle.BorderColor = PANEL_LINE;
         frameStyle.SetBorderWidthAll(2);
-        frameStyle.SetCornerRadiusAll(8);
-        frameStyle.ContentMarginLeft = frameStyle.ContentMarginRight = 16;
-        frameStyle.ContentMarginTop = frameStyle.ContentMarginBottom = 12;
+        frameStyle.SetCornerRadiusAll(4);
+        frameStyle.ContentMarginLeft = frameStyle.ContentMarginRight = 20;
+        frameStyle.ContentMarginTop = frameStyle.ContentMarginBottom = 16;
         frame.AddThemeStyleboxOverride("panel", frameStyle);
         AddChild(frame);
         root = frame;
@@ -70,21 +107,34 @@ public partial class EquipmentModal : CanvasLayer
         var vbox = new VBoxContainer();
         vbox.SizeFlagsHorizontal = Control.SizeFlags.Fill;
         vbox.SizeFlagsVertical = Control.SizeFlags.Fill;
-        vbox.AddThemeConstantOverride("separation", 8);
+        vbox.AddThemeConstantOverride("separation", 12);
         frame.AddChild(vbox);
 
-        // Header: title + close button.
+        // Header: title + Dev Mode toggle + close button.
         var header = new HBoxContainer();
+        header.AddThemeConstantOverride("separation", 12);
         var title = new Label();
-        title.Text = "Equipment";
+        title.Text = "EQUIPMENT";
         title.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        title.AddThemeFontSizeOverride("font_size", 22);
+        title.AddThemeFontSizeOverride("font_size", 28);
+        title.AddThemeColorOverride("font_color", GOLD);
         header.AddChild(title);
+
+        devToggle = new CheckButton();
+        devToggle.Text = "Dev Mode";
+        devToggle.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+        devToggle.AddThemeColorOverride("font_color", TEXT_DIM);
+        devToggle.TooltipText = "Reveal every catalog card (preview only — not owned or equippable)";
+        header.AddChild(devToggle);
+
         closeButton = new Button();
-        closeButton.Text = "X";
-        closeButton.CustomMinimumSize = new Vector2(32, 32);
+        closeButton.Text = "✕";
+        closeButton.CustomMinimumSize = new Vector2(36, 36);
+        closeButton.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
         header.AddChild(closeButton);
         vbox.AddChild(header);
+
+        vbox.AddChild(MakeDivider());
 
         // Three columns: 30 / 30 / 40.
         var columns = new HBoxContainer();
@@ -114,19 +164,14 @@ public partial class EquipmentModal : CanvasLayer
         BuildInventoryChildren(inventoryPanel);
         columns.AddChild(inventoryPanel);
 
-        // Comparison overlay (sits on top of the equipment column, slides in from right).
+        // Comparison overlay fills the loadout column while an item is being previewed.
         comparisonPanel = new ComparisonPanel();
-        comparisonPanel.SetAnchorsPreset(Control.LayoutPreset.CenterRight);
-        comparisonPanel.CustomMinimumSize = new Vector2(260, 280);
-        comparisonPanel.OffsetLeft = -270;
-        comparisonPanel.OffsetTop = -140;
-        comparisonPanel.OffsetRight = -10;
-        comparisonPanel.OffsetBottom = 140;
+        comparisonPanel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect, Control.LayoutPresetMode.KeepSize, 2);
         var cmpStyle = new StyleBoxFlat();
-        cmpStyle.BgColor = new Color(0.1f, 0.1f, 0.12f, 0.97f);
-        cmpStyle.BorderColor = new Color(0.5f, 0.5f, 0.55f, 1);
+        cmpStyle.BgColor = new Color(0.1f, 0.095f, 0.088f, 0.99f);
+        cmpStyle.BorderColor = GOLD_DIM;
         cmpStyle.SetBorderWidthAll(1);
-        cmpStyle.SetCornerRadiusAll(6);
+        cmpStyle.SetCornerRadiusAll(4);
         cmpStyle.ContentMarginLeft = cmpStyle.ContentMarginRight = 10;
         cmpStyle.ContentMarginTop = cmpStyle.ContentMarginBottom = 10;
         comparisonPanel.AddThemeStyleboxOverride("panel", cmpStyle);
@@ -137,203 +182,443 @@ public partial class EquipmentModal : CanvasLayer
     // ----- Column constructors (each instantiates the panel's children + wires its [Export] refs) -----
 
     private static void BuildSummaryChildren(CharacterSummaryPanel s) {
+        var outer = WrapColumn(s, null);
+
+        // Scrollable so the extra sections never clip on a small window.
+        var scroll = new ScrollContainer();
+        scroll.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        scroll.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+        scroll.HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled;
+        outer.AddChild(scroll);
+
         var vbox = new VBoxContainer();
-        vbox.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
-        vbox.AddThemeConstantOverride("separation", 6);
-        s.AddChild(vbox);
+        vbox.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        vbox.AddThemeConstantOverride("separation", 5);
+        scroll.AddChild(vbox);
 
-        s.playerNameLabel = AddLabel(vbox, "", 20, HorizontalAlignment.Center);
+        s.playerNameLabel = AddLabel(vbox, "", 19, HorizontalAlignment.Center, GOLD);
 
+        // Framed avatar portrait — trimmed height to keep the panel scroll-free by default.
+        var avatarFrame = new PanelContainer();
+        avatarFrame.SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter;
+        avatarFrame.AddThemeStyleboxOverride("panel", SlotFrameStyle());
+        vbox.AddChild(avatarFrame);
         s.avatarRect = new TextureRect();
-        s.avatarRect.CustomMinimumSize = new Vector2(120, 160);
+        s.avatarRect.CustomMinimumSize = new Vector2(124, 148);
         s.avatarRect.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
         s.avatarRect.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
-        vbox.AddChild(s.avatarRect);
+        avatarFrame.AddChild(s.avatarRect);
 
-        s.classNameLabel = AddLabel(vbox, "", 14, HorizontalAlignment.Center);
-        s.descriptionLabel = AddLabel(vbox, "", 11);
-        s.descriptionLabel.AutowrapMode = TextServer.AutowrapMode.Word;
+        s.levelClassLabel = AddLabel(vbox, "", 14, HorizontalAlignment.Center, GOLD_DIM);
 
-        AddLabel(vbox, "— Stats —", 12, HorizontalAlignment.Center);
-        var statsRow = new GridContainer();
-        statsRow.Columns = 2;
-        vbox.AddChild(statsRow);
-        s.strLabel = AddLabel(statsRow, "STR", 12);
-        s.dexLabel = AddLabel(statsRow, "DEX", 12);
-        s.intLabel = AddLabel(statsRow, "INT", 12);
-        s.faiLabel = AddLabel(statsRow, "FAI", 12);
+        // Attributes — headers on one row, values directly beneath (BG3-style).
+        vbox.AddChild(MakeOrnamentHeader("Attributes"));
+        var attrGrid = new GridContainer();
+        attrGrid.Columns = 4;
+        attrGrid.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        attrGrid.AddThemeConstantOverride("h_separation", 6);
+        attrGrid.AddThemeConstantOverride("v_separation", 2);
+        vbox.AddChild(attrGrid);
+        AddAttrHeader(attrGrid, "STR");
+        AddAttrHeader(attrGrid, "DEX");
+        AddAttrHeader(attrGrid, "INT");
+        AddAttrHeader(attrGrid, "FAI");
+        s.strLabel = AddAttrValue(attrGrid);
+        s.dexLabel = AddAttrValue(attrGrid);
+        s.intLabel = AddAttrValue(attrGrid);
+        s.faiLabel = AddAttrValue(attrGrid);
 
-        AddLabel(vbox, "— Summary —", 12, HorizontalAlignment.Center);
-        s.physDamageLabel  = AddLabel(vbox, "", 12);
-        s.magicDamageLabel = AddLabel(vbox, "", 12);
-        s.physDefenseLabel = AddLabel(vbox, "", 12);
-        s.magicDefenseLabel = AddLabel(vbox, "", 12);
-        s.dodgeLabel       = AddLabel(vbox, "", 12);
+        // Combat table: rows = Damage / Defense, columns = Phys / Mag, with sword/shield glyphs.
+        vbox.AddChild(MakeOrnamentHeader("Combat"));
+        var combat = new GridContainer();
+        combat.Columns = 3;
+        combat.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        combat.AddThemeConstantOverride("h_separation", 8);
+        combat.AddThemeConstantOverride("v_separation", 2);
+        vbox.AddChild(combat);
+
+        combat.AddChild(new Control());                 // empty top-left corner
+        AddCombatColHeader(combat, "Phys");
+        AddCombatColHeader(combat, "Mag");
+
+        combat.AddChild(MakeIconRow(VectorIcon.IconKind.Sword, "Damage"));
+        s.physDamageLabel  = AddCombatValue(combat);
+        s.magicDamageLabel = AddCombatValue(combat);
+
+        combat.AddChild(MakeIconRow(VectorIcon.IconKind.Shield, "Defense"));
+        s.physDefenseLabel = AddCombatValue(combat);
+        s.magicDefenseLabel = AddCombatValue(combat);
+
+        s.dodgeLabel = AddLabel(vbox, "", 13, HorizontalAlignment.Center, TEXT_DIM);
+
+        vbox.AddChild(MakeOrnamentHeader("Immunities"));
+        var immRow = new HBoxContainer();
+        immRow.Alignment = BoxContainer.AlignmentMode.Center;
+        immRow.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        immRow.AddThemeConstantOverride("separation", 8);
+        vbox.AddChild(immRow);
+        s.immunitiesRow = immRow;
+
+        vbox.AddChild(MakeOrnamentHeader("Notable Features"));
+        var features = new VBoxContainer();
+        features.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        features.AddThemeConstantOverride("separation", 3);
+        vbox.AddChild(features);
+        s.featuresList = features;
+    }
+
+    private static void AddAttrHeader(Container parent, string text) {
+        var l = AddLabel(parent, text, 12, HorizontalAlignment.Center, GOLD_DIM);
+        l.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+    }
+
+    private static Label AddAttrValue(Container parent) {
+        var l = AddLabel(parent, "", 16, HorizontalAlignment.Center, TEXT);
+        l.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        return l;
+    }
+
+    private static void AddCombatColHeader(Container parent, string text) {
+        var l = AddLabel(parent, text, 12, HorizontalAlignment.Center, GOLD_DIM);
+        l.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+    }
+
+    private static Label AddCombatValue(Container parent) {
+        var l = AddLabel(parent, "", 13, HorizontalAlignment.Center, TEXT);
+        l.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        return l;
+    }
+
+    // A row-label cell: sword/shield glyph followed by "Damage"/"Defense".
+    private static Control MakeIconRow(VectorIcon.IconKind kind, string text) {
+        var row = new HBoxContainer();
+        row.AddThemeConstantOverride("separation", 6);
+        var icon = new VectorIcon();
+        icon.kind = kind;
+        icon.CustomMinimumSize = new Vector2(18, 18);
+        icon.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+        icon.MouseFilter = Control.MouseFilterEnum.Ignore;
+        row.AddChild(icon);
+        AddLabel(row, text, 13, HorizontalAlignment.Left, TEXT).SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+        return row;
+    }
+
+    // "─◆ Title ◆─" ornamental section header: gold label flanked by divider rules.
+    private static Control MakeOrnamentHeader(string title) {
+        var row = new HBoxContainer();
+        row.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        row.AddThemeConstantOverride("separation", 8);
+
+        var lineL = MakeDivider();
+        lineL.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        lineL.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+        row.AddChild(lineL);
+
+        var label = AddLabel(row, title, 12, HorizontalAlignment.Center, GOLD_DIM);
+        label.SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter;
+
+        var lineR = MakeDivider();
+        lineR.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        lineR.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+        row.AddChild(lineR);
+
+        // Small pad above the header so sections breathe.
+        var wrap = new VBoxContainer();
+        wrap.AddThemeConstantOverride("separation", 4);
+        var pad = new Control();
+        pad.CustomMinimumSize = new Vector2(0, 4);
+        wrap.AddChild(pad);
+        wrap.AddChild(row);
+        return wrap;
     }
 
     private static void BuildEquipmentChildren(CharacterEquipmentPanel e) {
-        // Background avatar.
-        var bg = new TextureRect();
-        bg.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
-        bg.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
-        bg.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
-        bg.Modulate = new Color(1, 1, 1, 0.35f);
-        e.AddChild(bg);
-        e.background = bg;
+        e.background = null;                        // no more character-art backdrop
+        var vbox = WrapColumn(e, "LOADOUT");
 
-        // Slot anchors relative to the panel: Backup top, Left/Right middle, Armour bottom.
-        AddSlotCluster(e, new Vector2(0.42f, 0.04f), out e.backupSlotButton,
-                       out e.backupUpgrade1Button, out e.backupUpgrade2Button);
-        AddSlotCluster(e, new Vector2(0.04f, 0.30f), out e.leftHandButton,
-                       out e.leftHandUpgrade1Button, out e.leftHandUpgrade2Button);
-        AddSlotCluster(e, new Vector2(0.78f, 0.30f), out e.rightHandButton,
-                       out e.rightHandUpgrade1Button, out e.rightHandUpgrade2Button);
-        AddSlotCluster(e, new Vector2(0.42f, 0.66f), out e.armourButton,
-                       out e.armourUpgrade1Button, out e.armourUpgrade2Button);
+        // Weapons side by side.
+        var hands = new HBoxContainer();
+        hands.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        hands.AddThemeConstantOverride("separation", 10);
+        vbox.AddChild(hands);
+        hands.AddChild(BuildSlotCard("LEFT HAND", 72, 30, out e.leftHandButton,
+                                     out e.leftHandUpgrade1Button, out e.leftHandUpgrade2Button));
+        hands.AddChild(BuildSlotCard("RIGHT HAND", 72, 30, out e.rightHandButton,
+                                     out e.rightHandUpgrade1Button, out e.rightHandUpgrade2Button));
+
+        vbox.AddChild(BuildSlotCard("ARMOUR", 80, 32, out e.armourButton,
+                                    out e.armourUpgrade1Button, out e.armourUpgrade2Button));
+        vbox.AddChild(BuildSlotCard("BACKUP", 72, 30, out e.backupSlotButton,
+                                    out e.backupUpgrade1Button, out e.backupUpgrade2Button));
+
+        // Push cards to the top; leave breathing room below for the comparison overlay.
+        var spacer = new Control();
+        spacer.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+        vbox.AddChild(spacer);
     }
 
-    private static void AddSlotCluster(Control parent, Vector2 anchorTopLeft,
-                                       out TextureButton main, out TextureButton up1, out TextureButton up2) {
-        var cluster = new Control();
-        cluster.AnchorLeft = anchorTopLeft.X;
-        cluster.AnchorTop = anchorTopLeft.Y;
-        cluster.AnchorRight = anchorTopLeft.X + 0.18f;
-        cluster.AnchorBottom = anchorTopLeft.Y + 0.28f;
-        parent.AddChild(cluster);
+    // A framed loadout card: title, a main slot square, and two upgrade squares stacked beside it.
+    private static Control BuildSlotCard(string title, int mainSize, int upSize,
+                                         out TextureButton main, out TextureButton up1, out TextureButton up2) {
+        var card = new PanelContainer();
+        card.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        card.AddThemeStyleboxOverride("panel", SlotCardStyle());
 
-        main = MakeSlotButton();
-        main.AnchorRight = 1; main.AnchorBottom = 0.55f;
-        cluster.AddChild(main);
+        var v = new VBoxContainer();
+        v.AddThemeConstantOverride("separation", 6);
+        card.AddChild(v);
 
-        up1 = MakeSlotButton();
-        up1.AnchorTop = 0.55f; up1.AnchorRight = 0.48f; up1.AnchorBottom = 1f;
-        cluster.AddChild(up1);
+        AddLabel(v, title, 12, HorizontalAlignment.Center, GOLD_DIM);
 
-        up2 = MakeSlotButton();
-        up2.AnchorLeft = 0.52f; up2.AnchorTop = 0.55f; up2.AnchorRight = 1f; up2.AnchorBottom = 1f;
-        cluster.AddChild(up2);
+        var row = new HBoxContainer();
+        row.Alignment = BoxContainer.AlignmentMode.Center;
+        row.AddThemeConstantOverride("separation", 8);
+        v.AddChild(row);
+
+        main = MakeSlotButton(mainSize);
+        row.AddChild(main);
+
+        var upCol = new VBoxContainer();
+        upCol.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+        upCol.AddThemeConstantOverride("separation", 6);
+        row.AddChild(upCol);
+        up1 = MakeSlotButton(upSize);
+        up2 = MakeSlotButton(upSize);
+        upCol.AddChild(up1);
+        upCol.AddChild(up2);
+
+        return card;
     }
 
-    private static TextureButton MakeSlotButton() {
+    // Container-friendly slot button with an inset framed border. Hiding the button hides its frame.
+    private static TextureButton MakeSlotButton(int size) {
         var b = new TextureButton();
         b.IgnoreTextureSize = true;
         b.StretchMode = TextureButton.StretchModeEnum.KeepAspectCentered;
-        b.AnchorLeft = 0; b.AnchorTop = 0;
+        b.CustomMinimumSize = new Vector2(size, size);
         var border = new Panel();
         border.MouseFilter = Control.MouseFilterEnum.Ignore;
-        var style = new StyleBoxFlat();
-        style.BgColor = new Color(0, 0, 0, 0);
-        style.BorderColor = new Color(0.6f, 0.6f, 0.6f, 0.7f);
-        style.SetBorderWidthAll(1);
-        style.SetCornerRadiusAll(2);
-        border.AddThemeStyleboxOverride("panel", style);
         border.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        border.AddThemeStyleboxOverride("panel", SlotFrameStyle());
         b.AddChild(border);
         return b;
     }
 
     private static void BuildInventoryChildren(InventoryPanel inv) {
-        var vbox = new VBoxContainer();
-        vbox.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
-        vbox.AddThemeConstantOverride("separation", 6);
-        inv.AddChild(vbox);
+        inv.ClipContents = true;                    // never let controls spill past the column
+        var vbox = WrapColumn(inv, "INVENTORY");
 
-        // Search row.
-        var searchRow = new HBoxContainer();
-        searchRow.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        AddLabel(searchRow, "Search", 11);
+        // Search.
         inv.searchField = new LineEdit();
         inv.searchField.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        inv.searchField.PlaceholderText = "name, type, rarity";
-        searchRow.AddChild(inv.searchField);
-        vbox.AddChild(searchRow);
+        inv.searchField.PlaceholderText = "Search name, type, rarity…";
+        vbox.AddChild(inv.searchField);
 
-        // Filter / Sort row.
+        // Filters: Type + Rarity + Sort on a single row, equal width.
         var filterRow = new HBoxContainer();
-        AddLabel(filterRow, "Type", 11);
-        inv.typeFilter = new OptionButton();
+        filterRow.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        filterRow.AddThemeConstantOverride("separation", 8);
+        inv.typeFilter = MakeFilterOption();
+        inv.rarityFilter = MakeFilterOption();
+        inv.sortSelect = MakeFilterOption();
         filterRow.AddChild(inv.typeFilter);
-        AddLabel(filterRow, "Rarity", 11);
-        inv.rarityFilter = new OptionButton();
         filterRow.AddChild(inv.rarityFilter);
-        AddLabel(filterRow, "Sort", 11);
-        inv.sortSelect = new OptionButton();
         filterRow.AddChild(inv.sortSelect);
         vbox.AddChild(filterRow);
 
-        // Scrollable grid.
+        // Scrollable grid (vertical only).
         var scroll = new ScrollContainer();
         scroll.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         scroll.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+        scroll.HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled;
         vbox.AddChild(scroll);
 
         inv.grid = new GridContainer();
-        inv.grid.Columns = 7;                       // smaller icons → more per row
-        inv.grid.AddThemeConstantOverride("h_separation", 4);
-        inv.grid.AddThemeConstantOverride("v_separation", 4);
+        inv.grid.Columns = 5;
+        inv.grid.AddThemeConstantOverride("h_separation", 6);
+        inv.grid.AddThemeConstantOverride("v_separation", 6);
         inv.grid.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         scroll.AddChild(inv.grid);
     }
 
+    private static OptionButton MakeFilterOption() {
+        var o = new OptionButton();
+        o.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        o.ClipText = true;                          // shrink to share row width instead of overflowing
+        o.CustomMinimumSize = new Vector2(60, 0);
+        o.AddThemeFontSizeOverride("font_size", 13);
+        return o;
+    }
+
     private static void BuildComparisonChildren(ComparisonPanel cmp) {
+        var margin = new MarginContainer();
+        margin.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        foreach (string m in new[] { "margin_left", "margin_right", "margin_top", "margin_bottom" })
+            margin.AddThemeConstantOverride(m, 6);
+        cmp.AddChild(margin);
+
         var v = new VBoxContainer();
-        v.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
-        v.AddThemeConstantOverride("separation", 6);
-        cmp.AddChild(v);
+        v.AddThemeConstantOverride("separation", 8);
+        margin.AddChild(v);
 
-        cmp.headerLabel = AddLabel(v, "Compare", 14, HorizontalAlignment.Center);
+        cmp.headerLabel = AddLabel(v, "Compare", 18, HorizontalAlignment.Center, GOLD);
+        v.AddChild(MakeDivider());
 
+        // Current | Proposed cards, side by side.
         var pair = new HBoxContainer();
         pair.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        pair.AddThemeConstantOverride("separation", 8);
         v.AddChild(pair);
+        BuildCompareColumn(pair, "CURRENT", out cmp.currentIconFrame, out cmp.currentIcon,
+                           out cmp.currentNameLabel, out cmp.currentStatsLabel);
+        BuildCompareColumn(pair, "PROPOSED", out cmp.incomingIconFrame, out cmp.incomingIcon,
+                           out cmp.incomingNameLabel, out cmp.incomingStatsLabel);
 
-        var curCol = new VBoxContainer();
-        curCol.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        pair.AddChild(curCol);
-        AddLabel(curCol, "Current", 11, HorizontalAlignment.Center);
-        cmp.currentIcon = MakeCompareIcon();
-        curCol.AddChild(cmp.currentIcon);
-        cmp.currentNameLabel = AddLabel(curCol, "", 11, HorizontalAlignment.Center);
-        cmp.currentStatsLabel = AddLabel(curCol, "", 10);
+        v.AddChild(MakeDivider());
+        AddLabel(v, "CHANGES", 12, HorizontalAlignment.Center, GOLD_DIM);
 
-        var incCol = new VBoxContainer();
-        incCol.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        pair.AddChild(incCol);
-        AddLabel(incCol, "Proposed", 11, HorizontalAlignment.Center);
-        cmp.incomingIcon = MakeCompareIcon();
-        incCol.AddChild(cmp.incomingIcon);
-        cmp.incomingNameLabel = AddLabel(incCol, "", 11, HorizontalAlignment.Center);
-        cmp.incomingStatsLabel = AddLabel(incCol, "", 10);
+        var grid = new GridContainer();
+        grid.Columns = 2;
+        grid.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        grid.AddThemeConstantOverride("h_separation", 12);
+        grid.AddThemeConstantOverride("v_separation", 4);
+        v.AddChild(grid);
+        cmp.physDmgDelta  = AddDeltaRow(grid, "Physical Damage");
+        cmp.magDmgDelta   = AddDeltaRow(grid, "Magic Damage");
+        cmp.physDefDelta  = AddDeltaRow(grid, "Physical Defense");
+        cmp.magDefDelta   = AddDeltaRow(grid, "Magic Defense");
+        cmp.dodgeDelta    = AddDeltaRow(grid, "Dodge");
 
-        cmp.deltaLabel = AddLabel(v, "", 11, HorizontalAlignment.Center);
+        var spacer = new Control();
+        spacer.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+        v.AddChild(spacer);
 
         var actions = new HBoxContainer();
         actions.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         actions.Alignment = BoxContainer.AlignmentMode.Center;
+        actions.AddThemeConstantOverride("separation", 16);
         cmp.confirmButton = new Button();
         cmp.confirmButton.Text = "Equip";
+        cmp.confirmButton.CustomMinimumSize = new Vector2(110, 38);
+        cmp.confirmButton.AddThemeColorOverride("font_color", GOLD);
         actions.AddChild(cmp.confirmButton);
         cmp.cancelButton = new Button();
         cmp.cancelButton.Text = "Cancel";
+        cmp.cancelButton.CustomMinimumSize = new Vector2(90, 38);
+        cmp.cancelButton.AddThemeColorOverride("font_color", TEXT_DIM);
         actions.AddChild(cmp.cancelButton);
         v.AddChild(actions);
     }
 
-    private static TextureRect MakeCompareIcon() {
-        var t = new TextureRect();
-        t.CustomMinimumSize = new Vector2(56, 56);
-        t.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
-        t.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
-        return t;
+    private static void BuildCompareColumn(HBoxContainer parent, string title,
+                                           out PanelContainer frame, out TextureRect icon,
+                                           out Label name, out Label stats) {
+        var col = new VBoxContainer();
+        col.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        col.AddThemeConstantOverride("separation", 4);
+        parent.AddChild(col);
+
+        AddLabel(col, title, 11, HorizontalAlignment.Center, GOLD_DIM);
+
+        frame = new PanelContainer();
+        frame.SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter;
+        frame.AddThemeStyleboxOverride("panel", SlotFrameStyle());
+        col.AddChild(frame);
+
+        icon = new TextureRect();
+        icon.CustomMinimumSize = new Vector2(104, 104);
+        icon.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
+        icon.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
+        frame.AddChild(icon);
+
+        name = AddLabel(col, "", 14, HorizontalAlignment.Center);
+        name.AutowrapMode = TextServer.AutowrapMode.Word;
+        stats = AddLabel(col, "", 10, HorizontalAlignment.Center, TEXT_DIM);
+        stats.AutowrapMode = TextServer.AutowrapMode.Word;
     }
 
-    private static Label AddLabel(Container parent, string text, int fontSize, HorizontalAlignment align = HorizontalAlignment.Left) {
+    // A "Stat name | value" row in the changes grid; returns the (initially dim) value label.
+    private static Label AddDeltaRow(GridContainer grid, string label) {
+        AddLabel(grid, label, 12, HorizontalAlignment.Left, TEXT);
+        var val = AddLabel(grid, "—", 13, HorizontalAlignment.Right, NEUTRAL);
+        val.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        return val;
+    }
+
+    private static Label AddLabel(Container parent, string text, int fontSize,
+                                  HorizontalAlignment align = HorizontalAlignment.Left, Color? color = null) {
         var l = new Label();
         l.Text = text;
         l.AddThemeFontSizeOverride("font_size", fontSize);
         l.HorizontalAlignment = align;
+        if (color.HasValue) l.AddThemeColorOverride("font_color", color.Value);
         parent.AddChild(l);
         return l;
+    }
+
+    // ----- Shared AAA styling helpers -----
+
+    // Wraps a column Control in a framed panel + margin, returns the content VBox.
+    // Adds a gold section header when heading is non-null.
+    private static VBoxContainer WrapColumn(Control col, string heading) {
+        var frame = new PanelContainer();
+        frame.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        frame.AddThemeStyleboxOverride("panel", ColumnStyle());
+        col.AddChild(frame);
+
+        var margin = new MarginContainer();
+        foreach (string m in new[] { "margin_left", "margin_right", "margin_top", "margin_bottom" })
+            margin.AddThemeConstantOverride(m, 14);
+        frame.AddChild(margin);
+
+        var vbox = new VBoxContainer();
+        vbox.AddThemeConstantOverride("separation", 8);
+        margin.AddChild(vbox);
+
+        if (heading != null) {
+            AddLabel(vbox, heading, 15, HorizontalAlignment.Center, GOLD);
+            vbox.AddChild(MakeDivider());
+        }
+        return vbox;
+    }
+
+    private static Control MakeDivider() {
+        var line = new Panel();
+        line.CustomMinimumSize = new Vector2(0, 2);
+        line.MouseFilter = Control.MouseFilterEnum.Ignore;
+        var st = new StyleBoxFlat();
+        st.BgColor = PANEL_LINE;
+        line.AddThemeStyleboxOverride("panel", st);
+        return line;
+    }
+
+    private static StyleBoxFlat ColumnStyle() {
+        var st = new StyleBoxFlat();
+        st.BgColor = PANEL_BG;
+        st.BorderColor = PANEL_LINE;
+        st.SetBorderWidthAll(1);
+        st.SetCornerRadiusAll(4);
+        return st;
+    }
+
+    private static StyleBoxFlat SlotCardStyle() {
+        var st = new StyleBoxFlat();
+        st.BgColor = new Color(0.12f, 0.115f, 0.10f, 0.9f);
+        st.BorderColor = PANEL_LINE;
+        st.SetBorderWidthAll(1);
+        st.SetCornerRadiusAll(4);
+        st.ContentMarginLeft = st.ContentMarginRight = 8;
+        st.ContentMarginTop = st.ContentMarginBottom = 8;
+        return st;
+    }
+
+    private static StyleBoxFlat SlotFrameStyle() {
+        var st = new StyleBoxFlat();
+        st.BgColor = new Color(0.03f, 0.03f, 0.03f, 0.85f);
+        st.BorderColor = GOLD_DIM;
+        st.SetBorderWidthAll(1);
+        st.SetCornerRadiusAll(3);
+        return st;
     }
 
     public void Open(Player p) {
@@ -382,8 +667,9 @@ public partial class EquipmentModal : CanvasLayer
         equipmentPanel?.SetSelectedSlot(selectedSlot);
     }
 
-    private void OnInventoryClicked(string instanceId) {
-        Equipment item = GameManager.GetInstance(instanceId);
+    private void OnInventoryClicked(string key) {
+        // key is either an owned instance id or (for dev-preview cards) a template name.
+        Equipment item = GameManager.GetInstance(key) ?? GameManager.GetTemplate(key);
         selectedItem = item;
         if (item == null) return;
         equipmentPanel?.HighlightCompatibleSlots(item);
@@ -402,9 +688,13 @@ public partial class EquipmentModal : CanvasLayer
     private void OnEquipConfirmed(int slotKindInt, string newInstanceId) {
         if (currentPlayer == null) return;
         SlotKind slot = (SlotKind)slotKindInt;
+
+        // Normal path: incoming is an owned instance. Dev-preview path: incoming is a
+        // catalog template (no id yet) — mint a real owned instance so it can be equipped.
         Equipment incoming = GameManager.GetInstance(newInstanceId);
+        if (incoming == null && selectedItem != null && string.IsNullOrEmpty(selectedItem.id))
+            incoming = GameManager.MintInstance(selectedItem.name);
         if (incoming == null) return;
-        Equipment outgoing = GetEquipped(currentPlayer, slot);
 
         // Outgoing returns to the pool; incoming was already in the pool — just rewire the slot ref.
         SetEquipped(currentPlayer, slot, incoming);
