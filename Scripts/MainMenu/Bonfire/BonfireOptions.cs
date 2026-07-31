@@ -41,6 +41,6 @@ public partial class BonfireOptions : VBoxContainer
     }
 
     private void OnPressedReady() {
-        GD.Print("Ready!");
+        GetTree().ChangeSceneToPacked(ResourceLoader.Load<PackedScene>("res://Scenes/WorldMap.tscn"));
     }
 }

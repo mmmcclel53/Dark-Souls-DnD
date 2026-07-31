@@ -1,0 +1,137 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Theme" uid="uid://b4u8wpfygl601" path="res://Theme.tres" id="1_theme"]
+[ext_resource type="Script" path="res://Scripts/WorldMap/WorldMap.cs" id="2_worldmap"]
+[ext_resource type="FontVariation" uid="uid://sv82bym31oaq" path="res://DS_Font.tres" id="3_font"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_title"]
+bg_color = Color(0.12549, 0.12549, 0.12549, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_info"]
+bg_color = Color(0.08, 0.09, 0.11, 0.92)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.5, 0.5, 0.5, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 14.0
+content_margin_top = 10.0
+content_margin_right = 14.0
+content_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn"]
+bg_color = Color(0.12549, 0.12549, 0.12549, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.5, 0.5, 0.5, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+
+[node name="WorldMap" type="Node"]
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+unique_name_in_owner = true
+
+[node name="Background" type="ColorRect" parent="CanvasLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.06, 0.065, 0.08, 1)
+
+[node name="AspectRatioContainer" type="AspectRatioContainer" parent="CanvasLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+ratio = 1.78
+
+[node name="UI" type="VBoxContainer" parent="CanvasLayer/AspectRatioContainer" node_paths=PackedStringArray("titleLabel", "board", "mapView", "infoPanel", "nodeTitleLabel", "nodeDetailsLabel", "actionButton")]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme = ExtResource("1_theme")
+script = ExtResource("2_worldmap")
+titleLabel = NodePath("TitleBar/HBox/Title")
+board = NodePath("Board")
+mapView = NodePath("Board/MapView")
+infoPanel = NodePath("Board/InfoPanel")
+nodeTitleLabel = NodePath("Board/InfoPanel/VBox/NodeTitle")
+nodeDetailsLabel = NodePath("Board/InfoPanel/VBox/NodeDetails")
+actionButton = NodePath("Board/InfoPanel/VBox/ActionButton")
+
+[node name="TitleBar" type="PanelContainer" parent="CanvasLayer/AspectRatioContainer/UI"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_title")
+
+[node name="HBox" type="HBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI/TitleBar"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="CanvasLayer/AspectRatioContainer/UI/TitleBar/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 24
+text = "World Map"
+
+[node name="Board" type="Control" parent="CanvasLayer/AspectRatioContainer/UI"]
+clip_contents = true
+layout_mode = 2
+size_flags_vertical = 3
+size_flags_stretch_ratio = 15.0
+mouse_filter = 1
+
+[node name="MapView" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board"]
+layout_mode = 0
+mouse_filter = 2
+
+[node name="InfoPanel" type="PanelContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board"]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = -204.0
+offset_right = 340.0
+offset_bottom = -16.0
+grow_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_info")
+
+[node name="VBox" type="VBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/InfoPanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="NodeTitle" type="Label" parent="CanvasLayer/AspectRatioContainer/UI/Board/InfoPanel/VBox"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 22
+text = "Node"
+
+[node name="NodeDetails" type="Label" parent="CanvasLayer/AspectRatioContainer/UI/Board/InfoPanel/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 15
+text = ""
+vertical_alignment = 0
+
+[node name="ActionButton" type="Button" parent="CanvasLayer/AspectRatioContainer/UI/Board/InfoPanel/VBox"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn")
+text = "Start Encounter"

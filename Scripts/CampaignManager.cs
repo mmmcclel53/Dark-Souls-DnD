@@ -7,6 +7,7 @@ public static class CampaignManager {
         Players = players;
         SaveSlot = slot;
         CurrentSave = save;
+        WorldMapManager.Reset();
     }
 
     public static bool LoadFromSlot(int slot) {
@@ -18,6 +19,7 @@ public static class CampaignManager {
         Players = save.players;
         SaveSlot = slot;
         CurrentSave = save;
+        WorldMapManager.Reset();
         return true;
     }
 
@@ -26,5 +28,6 @@ public static class CampaignManager {
         SaveSlot = -1;
         CurrentSave = null;
         GameManager.ResetOwnedPool();
+        WorldMapManager.Reset();
     }
 }

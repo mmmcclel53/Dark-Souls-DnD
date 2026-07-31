@@ -15,6 +15,13 @@ public partial class SaveGame : Resource
     // Flat (id, templateName) pairs for the party-owned instance pool.
     [Export] public string[] ownedEquipment = new string[0];
 
+    [ExportGroup("World Map")]
+    // Campaign JSON file name inside res://Campaigns.
+    [Export] public string campaignFile = "";
+    [Export] public string worldCurrentNode = "";
+    [Export] public string worldLastBonfire = "";
+    [Export] public string[] worldClearedNodes = new string[0];
+
     public SaveGame() { }
 
     public static string SlotPath(int slot) => $"user://savegame_{slot}.tres";

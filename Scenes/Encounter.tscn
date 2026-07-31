@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://cdmyd1komlp81"]
+[gd_scene load_steps=13 format=3 uid="uid://cdmyd1komlp81"]
 
 [ext_resource type="Theme" uid="uid://b4u8wpfygl601" path="res://Theme.tres" id="1_163b3"]
 [ext_resource type="Script" uid="uid://38e7hdut52ii" path="res://Scripts/MainMenu/Settings.cs" id="2_cws6m"]
@@ -10,6 +10,7 @@
 [ext_resource type="Script" uid="uid://d1a4camaukfpy" path="res://Scripts/Encounter/GameNode.cs" id="10_2lue5"]
 [ext_resource type="Texture2D" uid="uid://b15uect354dvm" path="res://Resources/Images/Sprites/green_circle.png" id="11_0dxsk"]
 [ext_resource type="Texture2D" uid="uid://b22j6y4lrhfdt" path="res://Resources/Prefabs/Enemies/Hollow Soldier/Hollow Soldier.png" id="12_b53l0"]
+[ext_resource type="Script" path="res://Scripts/WorldMap/EncounterDevControls.cs" id="13_devwm"]
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_fakve"]
 texture_margin_left = 8.0
@@ -991,5 +992,17 @@ offset_bottom = 319.62
 texture = ExtResource("12_b53l0")
 expand_mode = 5
 stretch_mode = 5
+
+[node name="EncounterDevControls" type="Control" parent="CanvasLayer" node_paths=PackedStringArray("encounterTitle")]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -220.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = 48.0
+grow_horizontal = 0
+script = ExtResource("13_devwm")
+encounterTitle = NodePath("../AspectRatioContainer/UI/Title Panel/HBoxContainer/Encounter Title")
 
 [connection signal="pressed" from="CanvasLayer/AspectRatioContainer/UI/Title Panel/HBoxContainer/CheckButton" to="CanvasLayer/AspectRatioContainer/UI/Title Panel/HBoxContainer/CheckButton" method="OnPressed"]

@@ -28,7 +28,7 @@ text = "Dark Souls: The Board Game"
 horizontal_alignment = 2
 vertical_alignment = 1
 
-[node name="Main Menu" type="VBoxContainer" parent="CanvasLayer/Background" node_paths=PackedStringArray("newCampaignButton", "loadGameButton", "quitButton")]
+[node name="Main Menu" type="VBoxContainer" parent="CanvasLayer/Background" node_paths=PackedStringArray("newCampaignButton", "loadGameButton", "quitButton", "campaignSelect")]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -45,6 +45,21 @@ script = ExtResource("2_0hyib")
 newCampaignButton = NodePath("New Game")
 loadGameButton = NodePath("Load Game")
 quitButton = NodePath("Quit")
+campaignSelect = NodePath("Campaign Row/Campaign Select")
+
+[node name="Campaign Row" type="HBoxContainer" parent="CanvasLayer/Background/Main Menu"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Campaign Label" type="Label" parent="CanvasLayer/Background/Main Menu/Campaign Row"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Campaign:"
+
+[node name="Campaign Select" type="OptionButton" parent="CanvasLayer/Background/Main Menu/Campaign Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 20
 
 [node name="New Game" type="Button" parent="CanvasLayer/Background/Main Menu"]
 custom_minimum_size = Vector2(0, 64)

@@ -215,6 +215,8 @@ public partial class CharacterSelect : Control
 
 		var save = new SaveGame();
 		save.campaignName = "Campaign " + System.DateTime.Now.ToString("M/d/yy");
+		save.campaignFile = string.IsNullOrEmpty(WorldMapManager.SelectedCampaignFile)
+			? WorldMapManager.DEFAULT_CAMPAIGN : WorldMapManager.SelectedCampaignFile;
 		save.players = players.ToArray();
 		save.playerNames = new string[players.Count];
 		save.characterNames = new string[players.Count];

@@ -1,0 +1,33 @@
+{
+	"name": "Demo Campaign",
+	"nodes": [
+		{ "id": "firelink", "name": "Firelink Shrine", "q": 0, "r": 0, "terrain": "Grass", "encounter": "Bonfire", "elevation": 1, "start": true },
+		{ "id": "cemetery-path", "name": "Cemetery Path", "q": 1, "r": 0, "terrain": "Grass", "encounter": "Encounter", "level": 1, "elevation": 1 },
+		{ "id": "high-wall", "name": "High Wall Gate", "q": 2, "r": 0, "terrain": "Grass", "encounter": "Encounter", "level": 1, "elevation": 2 },
+		{ "id": "cliffside", "name": "Cliffside Ascent", "q": 3, "r": 0, "terrain": "Mountain", "encounter": "Encounter", "level": 2, "elevation": 3 },
+		{ "id": "summit-pass", "name": "Summit Pass", "q": 4, "r": 0, "terrain": "Mountain", "elevation": 4 },
+
+		{ "id": "snowfield", "name": "Silent Snowfield", "q": 2, "r": -1, "terrain": "Snow", "elevation": 3 },
+		{ "id": "frozen-ridge", "name": "Frozen Ridge", "q": 3, "r": -1, "terrain": "Snow", "encounter": "Encounter", "level": 3, "elevation": 4 },
+		{ "id": "painted-world", "name": "Painted World Bonfire", "q": 4, "r": -1, "terrain": "Snow", "encounter": "Bonfire", "elevation": 4 },
+
+		{ "id": "old-road", "name": "Old Road", "q": 0, "r": 1, "terrain": "Sand", "elevation": 1 },
+		{ "id": "dune-camp", "name": "Dune Camp", "q": 1, "r": 1, "terrain": "Sand", "encounter": "Encounter", "level": 1, "elevation": 1 },
+		{ "id": "dry-ravine", "name": "Dry Ravine", "q": 2, "r": 1, "terrain": "Sand", "elevation": 2 },
+		{ "id": "goat-trail", "name": "Goat Trail", "q": 3, "r": 1, "terrain": "Mountain", "encounter": "Encounter", "level": 2, "elevation": 3 },
+
+		{ "id": "west-lake", "name": "Western Lake", "q": -1, "r": 2, "terrain": "Water", "elevation": 0 },
+		{ "id": "west-lake-2", "name": "Western Lake", "q": 0, "r": 2, "terrain": "Water", "elevation": 0 },
+		{ "id": "oasis", "name": "Oasis Bonfire", "q": 1, "r": 2, "terrain": "Sand", "encounter": "Bonfire", "elevation": 1 },
+		{ "id": "outer-ward", "name": "Outer Ward", "q": 2, "r": 2, "terrain": "City", "encounter": "Encounter", "level": 2, "elevation": 2 },
+		{ "id": "cathedral-ward", "name": "Cathedral Ward", "q": 3, "r": 2, "terrain": "City", "encounter": "Encounter", "level": 3, "elevation": 3 },
+		{ "id": "demon-foothills", "name": "Demon Foothills", "q": 4, "r": 2, "terrain": "Volcano", "encounter": "Encounter", "level": 3, "elevation": 3 },
+		{ "id": "demon-peak", "name": "Demon Peak", "q": 5, "r": 2, "terrain": "Volcano", "encounter": "Encounter", "level": 4, "elevation": 4 },
+		{ "id": "crucible", "name": "The Crucible", "q": 6, "r": 1, "terrain": "Volcano", "encounter": "Boss", "elevation": 4 },
+
+		{ "id": "undercroft", "name": "Undercroft", "q": 2, "r": 3, "terrain": "City", "elevation": 1 },
+		{ "id": "chapel", "name": "Chapel Bonfire", "q": 3, "r": 3, "terrain": "City", "encounter": "Bonfire", "elevation": 2 },
+		{ "id": "lava-flow", "name": "Lava Flow", "q": 4, "r": 3, "terrain": "Lava", "elevation": 0 },
+		{ "id": "lava-flow-2", "name": "Lava Flow", "q": 5, "r": 3, "terrain": "Lava", "elevation": 0 }
+	]
+}
