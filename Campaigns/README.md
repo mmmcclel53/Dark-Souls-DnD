@@ -3,6 +3,16 @@
 Each `.json` file in this folder is one campaign world map. Every file here
 automatically appears in the **Campaign** dropdown on the New Game screen.
 
+After editing a campaign, sanity-check it with:
+
+```bash
+powershell -File Campaigns/Validate-Campaign.ps1 -Path Campaigns/DemoCampaign.json
+```
+
+It reports duplicate ids/coordinates, missing start nodes, floating scenery,
+and any passable node that can't be reached from the start under the ±1
+elevation rule (treating encounters as clearable).
+
 ## Format
 
 ```json

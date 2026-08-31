@@ -30,16 +30,10 @@ public partial class WorldMapPartyMarker : Control {
 	}
 
 	private void DrawHexOutline(float radius, Color color, float width) {
-		const float W = 0.8660254f;
-		var pts = new[] {
-			new Vector2(0, -radius),
-			new Vector2(W * radius, -0.5f * radius),
-			new Vector2(W * radius, 0.5f * radius),
-			new Vector2(0, radius),
-			new Vector2(-W * radius, 0.5f * radius),
-			new Vector2(-W * radius, -0.5f * radius),
-			new Vector2(0, -radius),
-		};
-		DrawPolyline(pts, color, width, true);
+		var hex = WorldMapNode.HexPoints(Vector2.Zero, radius, WorldMapNode.FlatTop);
+		var closed = new Vector2[hex.Length + 1];
+		hex.CopyTo(closed, 0);
+		closed[hex.Length] = hex[0];
+		DrawPolyline(closed, color, width, true);
 	}
 }
