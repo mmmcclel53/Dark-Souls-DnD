@@ -7,7 +7,9 @@ public partial class EnemyMove : Resource {
     [Export] public bool towardsAggro;
     [Export] public int damage;
 
-    // Move
+    // Move: nodes travelled. Positive moves towards the target, negative moves away
+    // (the card shows the count at the top of the movement icon for towards, bottom for away).
+    // Zero on a pure attack, and on a leap, which always reaches its target.
     [Export] public int direction;
     
     // Attack

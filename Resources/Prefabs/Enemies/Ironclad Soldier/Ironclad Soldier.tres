@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=6 format=3]
+
+[ext_resource type="Script" uid="uid://vgcsex11gg6y" path="res://Scripts/Encounter/Enemy/EnemyMove.cs" id="1_move"]
+[ext_resource type="Texture2D" uid="uid://bra2ax3ipyn6g" path="res://Resources/Prefabs/Enemies/Ironclad Soldier/Ironclad Soldier.png" id="2_card"]
+[ext_resource type="Texture2D" uid="uid://dhrr0lsseoy28" path="res://Resources/Prefabs/Enemies/Ironclad Soldier/Ironclad Soldier - Avatar.png" id="3_avatar"]
+[ext_resource type="Script" path="res://Scripts/Encounter/Enemy/EnemyData.cs" id="4_data"]
+
+[sub_resource type="Resource" id="Resource_move0"]
+script = ExtResource("1_move")
+isLeap = false
+isPush = true
+towardsAggro = false
+damage = 5
+direction = 1
+attackRange = 0
+dodgeDifficulty = 2
+isAOE = false
+isMagic = false
+statusEffect = 3
+
+[resource]
+script = ExtResource("4_data")
+enemyName = "Ironclad Soldier"
+cardTexture = ExtResource("2_card")
+avatarTexture = ExtResource("3_avatar")
+threatLevel = 6
+health = 5
+physicalDefense = 3
+magicalDefense = 2
+moves = Array[Object]([SubResource("Resource_move0")])

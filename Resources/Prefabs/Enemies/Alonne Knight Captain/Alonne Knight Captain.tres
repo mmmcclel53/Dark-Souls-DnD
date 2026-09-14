@@ -1,0 +1,43 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=7 format=3]
+
+[ext_resource type="Script" uid="uid://vgcsex11gg6y" path="res://Scripts/Encounter/Enemy/EnemyMove.cs" id="1_move"]
+[ext_resource type="Texture2D" uid="uid://bxhb4vavfs5ce" path="res://Resources/Prefabs/Enemies/Alonne Knight Captain/Alonne Knight Captain.png" id="2_card"]
+[ext_resource type="Texture2D" uid="uid://cdw7kt1xqk1y0" path="res://Resources/Prefabs/Enemies/Alonne Knight Captain/Alonne Knight Captain - Avatar.png" id="3_avatar"]
+[ext_resource type="Script" path="res://Scripts/Encounter/Enemy/EnemyData.cs" id="4_data"]
+
+[sub_resource type="Resource" id="Resource_move0"]
+script = ExtResource("1_move")
+isLeap = false
+isPush = false
+towardsAggro = false
+damage = 0
+direction = 2
+attackRange = 0
+dodgeDifficulty = 1
+isAOE = false
+isMagic = false
+statusEffect = 4
+
+[sub_resource type="Resource" id="Resource_move1"]
+script = ExtResource("1_move")
+isLeap = false
+isPush = false
+towardsAggro = false
+damage = 5
+direction = 0
+attackRange = 0
+dodgeDifficulty = 1
+isAOE = false
+isMagic = true
+statusEffect = 4
+
+[resource]
+script = ExtResource("4_data")
+enemyName = "Alonne Knight Captain"
+cardTexture = ExtResource("2_card")
+avatarTexture = ExtResource("3_avatar")
+threatLevel = 8
+health = 5
+physicalDefense = 2
+magicalDefense = 2
+moves = Array[Object]([SubResource("Resource_move0"), SubResource("Resource_move1")])

@@ -69,7 +69,7 @@ The physical game rules are in `Dark Souls Board Game Rules.pdf`. Key mechanics 
 - **Combat (player attacks)**: Roll dice per weapon attack option, subtract enemy Block (physical) or Resist (magic). Result = damage.
 - **Combat (enemy attacks)**: Fixed damage value. Player rolls defense dice to reduce. Or spend 1 stamina to attempt dodge roll vs dodge difficulty.
 - **Endurance bar**: 10 boxes. Black cubes = stamina spent (left to right). Red cubes = damage taken (right to left). All boxes filled = dead.
-- **Status effects**: BLEED (extra 2 damage on next hit, then remove), POISON (1 damage at end of activation), FROST (+1 stamina cost to move), STAGGER (+1 stamina to attack / -1 enemy damage).
+- **Status effects** (rules p21): conditions apply to **any model — characters and enemies alike**. BLEED (2 extra damage next time the model is damaged, then remove), POISON (1 damage at end of the model's activation), FROST/Frostbite (character: +1 stamina to walk/run/dodge; enemy: Move icon values −1), STAGGER (character: +1 stamina to use weapon actions; enemy: attack damage values −1).
 - **Bonfire rest**: Costs 1 spark. Refills estus, heroic action, luck. Resets all encounters (enemies respawn).
 - **Souls**: Currency. Earned 2 per character per non-boss encounter win. Spent on treasure (1 soul) and leveling up stats.
 
@@ -89,10 +89,10 @@ Concrete numbers and rules confirmed while analysing the equipment `.tres` data.
   - *Weapon slot* — each grants **+1 damage OR +1 black die** (avg 1.167) to the weapon's attacks.
   - *Armour slot* — each grants **+1 stamina OR +1 health at the start of every activation** (persistent regen; stamina slots effectively raise the +2 income).
 - **Status effects** (`EncounterManager.StatusEffect` = `BLEED=0, POISON=1, FROST=2, STAGGER=3, NONE=4`):
-  - Auto-applied on **any** hit, regardless of whether damage gets past enemy Block/Resist. **No enemy immunity.** Only ever applied to enemies (never turned on the player).
-  - An enemy can carry multiple *different* statuses at once, but a single status does **not** stack (no double BLEED).
-  - **All statuses except BLEED are removed at the end of the enemy's activation.** BLEED persists until a hit consumes it (+2 damage on that next hit, then removed — and reapplied by that same hit).
-  - Effect magnitudes: BLEED +2 on next hit; POISON 1 dmg at end of enemy activation; FROST +1 stamina cost to enemy movement; STAGGER +1 stamina to enemy attack / −1 enemy damage.
+  - Applied to **any model hit by an attack carrying a condition icon** — enemies inflict them on characters just as weapons inflict them on enemies. Auto-applied on **any** hit, regardless of whether damage gets past Block/Resist. **No immunity.**
+  - A model can carry multiple *different* conditions at once, but a single condition does **not** stack (no double BLEED).
+  - **POISON, FROST and STAGGER are removed at the end of the afflicted model's own activation**, and any remaining conditions are cleared at the end of the encounter. BLEED persists until the model next suffers damage (+2 on that damage, then removed — and reapplied by that same hit if the attack carries BLEED).
+  - Effect magnitudes differ by target: BLEED +2 damage for both. POISON 1 dmg at end of activation for both. FROST — character pays +1 stamina to walk/run/dodge, enemy has its Move icon values reduced by 1. STAGGER — character pays +1 stamina for weapon actions, enemy has its attack damage values reduced by 1.
   - ⚠️ `BLEED = 0` collides with "falsy"/default-int handling — when parsing `statusEffect`, default missing values to `NONE (4)`, not `0`, or bleed weapons get silently misread.
 
 ## Architecture Notes
@@ -136,6 +136,22 @@ Scenes are swapped by instantiating the next scene, adding it to root, then free
 - Player turn / combat resolution not yet implemented — `ENEMY_MOVE` state has no follow-through
 - Save/load is scaffolded but non-functional
 - Bonfire "Rest" button does nothing
+
+### Enemy data (`Resources/Prefabs/Enemies/*/<Name>.tres`)
+
+All 32 non-boss enemies are transcribed from their data cards into `EnemyData` resources. Card → field mapping:
+threat top-left, health top-right (heart), Block/Resist on the centre shield, attack range in the left circle,
+dodge difficulty in the right circle, behaviour icons along the bottom resolved left to right.
+`EnemyMove.direction` is signed — positive moves towards the target, negative away (the card puts the node count
+at the top of the Move icon for towards, the bottom for away). `EnemyData.UNLIMITED_RANGE` (99) stands in for the
+∞ range symbol. Enemies whose range circle shows `–` have no attack behaviour at all, so range never applies.
+Enemies with a Repeat icon (Bonewheel Skeleton, Skeleton Beast, Shears Scarecrow) have their behaviour list
+duplicated in `moves` rather than carrying a repeat count.
+
+Two card abilities are transcribed nowhere because nothing models them yet:
+
+- **Necromancer**: the raised-skeletal-hand icon (summons additional enemies) is not implemented — its `.tres` only carries the magic AOE attack.
+- **Crystal Lizard**: rules text "If the only enemies left are Crystal Lizards, they escape" is not implemented.
 
 ## What NOT to Do
 

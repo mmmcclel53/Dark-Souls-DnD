@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=6 format=3]
+
+[ext_resource type="Script" uid="uid://vgcsex11gg6y" path="res://Scripts/Encounter/Enemy/EnemyMove.cs" id="1_move"]
+[ext_resource type="Texture2D" uid="uid://cskplusquip42" path="res://Resources/Prefabs/Enemies/Crow Demon/31_crow_demon.png" id="2_card"]
+[ext_resource type="Texture2D" uid="uid://bwkql32lktjww" path="res://Resources/Prefabs/Enemies/Crow Demon/Crow Demon - Avatar.png" id="3_avatar"]
+[ext_resource type="Script" path="res://Scripts/Encounter/Enemy/EnemyData.cs" id="4_data"]
+
+[sub_resource type="Resource" id="Resource_move0"]
+script = ExtResource("1_move")
+isLeap = true
+isPush = true
+towardsAggro = true
+damage = 6
+direction = 0
+attackRange = 0
+dodgeDifficulty = 2
+isAOE = false
+isMagic = false
+statusEffect = 4
+
+[resource]
+script = ExtResource("4_data")
+enemyName = "Crow Demon"
+cardTexture = ExtResource("2_card")
+avatarTexture = ExtResource("3_avatar")
+threatLevel = 9
+health = 5
+physicalDefense = 1
+magicalDefense = 2
+moves = Array[Object]([SubResource("Resource_move0")])

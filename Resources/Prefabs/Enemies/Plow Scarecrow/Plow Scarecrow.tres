@@ -1,0 +1,43 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=7 format=3]
+
+[ext_resource type="Script" uid="uid://vgcsex11gg6y" path="res://Scripts/Encounter/Enemy/EnemyMove.cs" id="1_move"]
+[ext_resource type="Texture2D" uid="uid://r5n8rq0i0as3" path="res://Resources/Prefabs/Enemies/Plow Scarecrow/Plow Scarecrow.png" id="2_card"]
+[ext_resource type="Texture2D" uid="uid://b3apf2wtn0ubk" path="res://Resources/Prefabs/Enemies/Plow Scarecrow/Plow Scarecrow - Avatar.png" id="3_avatar"]
+[ext_resource type="Script" path="res://Scripts/Encounter/Enemy/EnemyData.cs" id="4_data"]
+
+[sub_resource type="Resource" id="Resource_move0"]
+script = ExtResource("1_move")
+isLeap = false
+isPush = false
+towardsAggro = true
+damage = 0
+direction = 2
+attackRange = 1
+dodgeDifficulty = 2
+isAOE = false
+isMagic = false
+statusEffect = 4
+
+[sub_resource type="Resource" id="Resource_move1"]
+script = ExtResource("1_move")
+isLeap = false
+isPush = false
+towardsAggro = true
+damage = 4
+direction = 0
+attackRange = 1
+dodgeDifficulty = 2
+isAOE = false
+isMagic = false
+statusEffect = 4
+
+[resource]
+script = ExtResource("4_data")
+enemyName = "Plow Scarecrow"
+cardTexture = ExtResource("2_card")
+avatarTexture = ExtResource("3_avatar")
+threatLevel = 4
+health = 1
+physicalDefense = 1
+magicalDefense = 1
+moves = Array[Object]([SubResource("Resource_move0"), SubResource("Resource_move1")])

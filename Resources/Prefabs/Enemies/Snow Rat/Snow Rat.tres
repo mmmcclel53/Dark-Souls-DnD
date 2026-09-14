@@ -1,0 +1,43 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=7 format=3]
+
+[ext_resource type="Script" uid="uid://vgcsex11gg6y" path="res://Scripts/Encounter/Enemy/EnemyMove.cs" id="1_move"]
+[ext_resource type="Texture2D" uid="uid://b72pxbhaiu52s" path="res://Resources/Prefabs/Enemies/Snow Rat/Snow Rat.png" id="2_card"]
+[ext_resource type="Texture2D" uid="uid://crr3u2544ubfc" path="res://Resources/Prefabs/Enemies/Snow Rat/Snow Rat - Avatar.png" id="3_avatar"]
+[ext_resource type="Script" path="res://Scripts/Encounter/Enemy/EnemyData.cs" id="4_data"]
+
+[sub_resource type="Resource" id="Resource_move0"]
+script = ExtResource("1_move")
+isLeap = true
+isPush = false
+towardsAggro = true
+damage = 0
+direction = 0
+attackRange = 0
+dodgeDifficulty = 1
+isAOE = false
+isMagic = false
+statusEffect = 4
+
+[sub_resource type="Resource" id="Resource_move1"]
+script = ExtResource("1_move")
+isLeap = false
+isPush = false
+towardsAggro = true
+damage = 3
+direction = 0
+attackRange = 0
+dodgeDifficulty = 1
+isAOE = false
+isMagic = false
+statusEffect = 1
+
+[resource]
+script = ExtResource("4_data")
+enemyName = "Snow Rat"
+cardTexture = ExtResource("2_card")
+avatarTexture = ExtResource("3_avatar")
+threatLevel = 1
+health = 1
+physicalDefense = 0
+magicalDefense = 1
+moves = Array[Object]([SubResource("Resource_move0"), SubResource("Resource_move1")])

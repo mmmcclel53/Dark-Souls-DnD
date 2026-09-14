@@ -1,0 +1,43 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=7 format=3]
+
+[ext_resource type="Script" uid="uid://vgcsex11gg6y" path="res://Scripts/Encounter/Enemy/EnemyMove.cs" id="1_move"]
+[ext_resource type="Texture2D" uid="uid://c8xoo16jr7mir" path="res://Resources/Prefabs/Enemies/Bonewheel Skeleton/Bonewheel Skeleton.png" id="2_card"]
+[ext_resource type="Texture2D" uid="uid://124d17w2mcvc" path="res://Resources/Prefabs/Enemies/Bonewheel Skeleton/Bonewheel Skeleton - Avatar.png" id="3_avatar"]
+[ext_resource type="Script" path="res://Scripts/Encounter/Enemy/EnemyData.cs" id="4_data"]
+
+[sub_resource type="Resource" id="Resource_move0"]
+script = ExtResource("1_move")
+isLeap = false
+isPush = true
+towardsAggro = false
+damage = 4
+direction = 1
+attackRange = 0
+dodgeDifficulty = 2
+isAOE = false
+isMagic = false
+statusEffect = 4
+
+[sub_resource type="Resource" id="Resource_move1"]
+script = ExtResource("1_move")
+isLeap = false
+isPush = true
+towardsAggro = false
+damage = 4
+direction = 1
+attackRange = 0
+dodgeDifficulty = 2
+isAOE = false
+isMagic = false
+statusEffect = 4
+
+[resource]
+script = ExtResource("4_data")
+enemyName = "Bonewheel Skeleton"
+cardTexture = ExtResource("2_card")
+avatarTexture = ExtResource("3_avatar")
+threatLevel = 7
+health = 1
+physicalDefense = 1
+magicalDefense = 1
+moves = Array[Object]([SubResource("Resource_move0"), SubResource("Resource_move1")])

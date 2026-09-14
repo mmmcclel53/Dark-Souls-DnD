@@ -1,0 +1,43 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=7 format=3]
+
+[ext_resource type="Script" uid="uid://vgcsex11gg6y" path="res://Scripts/Encounter/Enemy/EnemyMove.cs" id="1_move"]
+[ext_resource type="Texture2D" uid="uid://db4o4k83l22nj" path="res://Resources/Prefabs/Enemies/Giant Skeleton Soldier/Giant Skeleton Soldier.png" id="2_card"]
+[ext_resource type="Texture2D" uid="uid://cad1ov4wjm7dj" path="res://Resources/Prefabs/Enemies/Giant Skeleton Soldier/Giant Skeleton Soldier - Avatar.png" id="3_avatar"]
+[ext_resource type="Script" path="res://Scripts/Encounter/Enemy/EnemyData.cs" id="4_data"]
+
+[sub_resource type="Resource" id="Resource_move0"]
+script = ExtResource("1_move")
+isLeap = false
+isPush = true
+towardsAggro = false
+damage = 2
+direction = 1
+attackRange = 1
+dodgeDifficulty = 1
+isAOE = false
+isMagic = false
+statusEffect = 4
+
+[sub_resource type="Resource" id="Resource_move1"]
+script = ExtResource("1_move")
+isLeap = false
+isPush = true
+towardsAggro = false
+damage = 5
+direction = 0
+attackRange = 1
+dodgeDifficulty = 1
+isAOE = false
+isMagic = false
+statusEffect = 4
+
+[resource]
+script = ExtResource("4_data")
+enemyName = "Giant Skeleton Soldier"
+cardTexture = ExtResource("2_card")
+avatarTexture = ExtResource("3_avatar")
+threatLevel = 2
+health = 5
+physicalDefense = 1
+magicalDefense = 1
+moves = Array[Object]([SubResource("Resource_move0"), SubResource("Resource_move1")])

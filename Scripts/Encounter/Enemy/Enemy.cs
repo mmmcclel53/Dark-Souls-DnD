@@ -5,19 +5,20 @@ using System.Collections.Generic;
 public partial class Enemy : Node
 {
 
-    [Export] public Texture2D enemyInfoTexture;
-
+    [Export] public EnemyData data;
     [Export] public int tier = 1;
-    [Export] public int threatLevel = 1;
-    [Export] public int health = 1;
 
-    [Export] public int physicalDefense = 0;
-    [Export] public int magicalDefense = 0;
-
-    [Export(PropertyHint.ResourceType, "EnemyMove")] public Array<EnemyMove> moves;
     [Export] public Control healthNode;
     [Export] public Label healthLabel;
     [Export] public Control statusesNode;
+
+    public int threatLevel => data.threatLevel;
+    public Array<EnemyMove> moves => data.moves;
+
+    // Tier scaling is applied per instance so the shared EnemyData resource is never mutated.
+    public int maxHealth { get; private set; }
+    public int physicalDefense { get; private set; }
+    public int magicalDefense { get; private set; }
 
     public List<PathNode> path;
     private int currentHealth;
@@ -60,29 +61,33 @@ public partial class Enemy : Node
     public void ApplyDamage(int damage) {
         currentHealth = Mathf.Max(0, currentHealth - damage);
         healthLabel.Text = currentHealth.ToString();
-        healthNode.GetNode<TextureProgressBar>("%Health").Value = currentHealth / health;
+        healthNode.GetNode<TextureProgressBar>("%Health").Value = currentHealth / maxHealth;
         if (currentHealth <= 0) {
             QueueFree();
         }
     }
 
     public void OnClick() {
-        EncounterManager.enemyInfoModal.GetChild<TextureRect>(0).Texture = enemyInfoTexture;
+        EncounterManager.enemyInfoModal.GetChild<TextureRect>(0).Texture = data.cardTexture;
         EncounterManager.enemyInfoModal.Visible = true;
     }
 
 	public override void _Ready() {
         Connect("pressed", Callable.From(OnClick));
 
+        maxHealth = data.health;
+        physicalDefense = data.physicalDefense;
+        magicalDefense = data.magicalDefense;
+
         if (tier > 1) {
             CanvasItem healthNodeCanvas = GetNode<CanvasItem>("%Health");
             healthNodeCanvas.Modulate = new Color(255f,149f,10f);
 
-            health = (int)Mathf.Ceil(health * 1.5);
+            maxHealth = (int)Mathf.Ceil(maxHealth * 1.5);
             physicalDefense += tier;
             magicalDefense += tier;
         }
-        currentHealth = health;
+        currentHealth = maxHealth;
         healthLabel.Text = currentHealth.ToString();
         healthNode.GetNode<TextureProgressBar>("%Health").MaxValue = currentHealth;
     }

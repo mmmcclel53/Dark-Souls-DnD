@@ -1,5 +1,5 @@
 """
-Split a 10-column x 7-row equipment card sprite sheet into 70 individual PNGs.
+Split a 10-column x 7-row TTS deck sprite sheet into individual PNGs.
 Usage: python split_spritesheet.py <path_to_spritesheet.png> [output_dir]
 """
 
@@ -10,21 +10,18 @@ from PIL import Image
 COLS = 10
 ROWS = 7
 
-# Card names in row-major order (top-left to bottom-right, matching the sheet)
 CARD_NAMES = [
-    "Black Hand Armour", "Blood Gem", "Bloodshield", "Brigand Axe", "Claymore",
-    "Court Sorcerer Robes", "Crystal Gem", "Demon Titanite", "Drang Armour", "East-West Shield",
-    "Effigy Shield", "Ember (1)", "Ember (2)", "Ember (3)", "Exile Armour",
-    "Exile Greatsword", "Greataxe", "Great Magic Weapon", "Heal", "Heal Aid",
-    "Heavy Gem", "Kukri", "Lightning Gem", "Lothric Knight Greatsword", "Painting Guardian Armour",
-    "Paladin Armour", "Pike", "Rapier", "Red Tearstone Ring", "Reinforced Club",
-    "Shortsword", "Silver Eagle Kite Shield", "Silver Knight Straight Sword", "Sorcerer's Staff", "Soul Arrow",
-    "Soul Spear", "Soulstream", "Sunlight Shield", "Throwing Knives", "Titanite Shard (1)",
-    "Titanite Shard (2)", "Titanite Shard (3)", "Vilka's Rapier", "Worker Armour", "Xanthous Robes",
-    "Avelyn", "Drake Sword", "Fume Ultra Greatsword", "Gotthard Twinswords", "Moonlight Greatsword",
-    # Rows 6-7 appear to be empty/partial in the sheet — placeholders below
-    "", "", "", "", "", "", "", "", "", "",
-    "", "", "", "", "", "", "", "", "", "",
+    # Row 1: Black Knight + moves
+    "Black Knight", "Overhead Swing", "Heavy Slash", "Backswing", "Vicious Hack",
+    "Defensive Strike", "Wide Swing", "Massive Swing", "Hacking Slash", "Charge",
+    # Row 2: Black Knight equipment + Gravelord Nito + moves
+    "Black Knight Halberd", "Black Knight Shield", "Blue Titanite", "Gravelord Nito", "Gravelord Greatsword",
+    "Death Wave", "Miasma", "Sword Slam", "Sword Sweep", "Deathly Thrust",
+    # Row 3: Nito moves + equipment + Giant Skeleton Archer
+    "Death Grip", "Deathly Strike", "Toxicity", "Entropy", "Creeping Death",
+    "Death's Embrace", "Lunging Cleave", "Gravelord Sword", "Gravelord Sword Dance", "Giant Skeleton Archer",
+    # Row 4: More enemies
+    "Giant Skeleton Soldier", "Necromancer", "Skeleton Archer", "Skeleton Beast", "Skeleton Soldier",
 ]
 
 def slugify(name):
@@ -33,25 +30,31 @@ def slugify(name):
 def split(sheet_path, out_dir):
     img = Image.open(sheet_path)
     w, h = img.size
-    cell_w = w // COLS
-    cell_h = h // ROWS
+    cell_w = w / COLS
+    cell_h = h / ROWS
 
     os.makedirs(out_dir, exist_ok=True)
-    print(f"Sheet size: {w}x{h}  |  Cell size: {cell_w}x{cell_h}")
+    print(f"Sheet size: {w}x{h}  |  Cell size: {cell_w:.1f}x{cell_h:.1f}")
 
     idx = 0
     for row in range(ROWS):
         for col in range(COLS):
-            left   = col * cell_w
-            top    = row * cell_h
-            right  = left + cell_w
-            bottom = top  + cell_h
+            if idx >= len(CARD_NAMES):
+                break
+            name = CARD_NAMES[idx]
+            if not name:
+                idx += 1
+                continue
+
+            left   = round(col * cell_w)
+            top    = round(row * cell_h)
+            right  = round((col + 1) * cell_w)
+            bottom = round((row + 1) * cell_h)
             cell   = img.crop((left, top, right, bottom))
 
-            name = CARD_NAMES[idx] if idx < len(CARD_NAMES) and CARD_NAMES[idx] else f"card_{row}_{col}"
             filename = f"{idx+1:02d}_{slugify(name)}.png"
             cell.save(os.path.join(out_dir, filename))
-            print(f"  [{idx+1:02d}] {filename}")
+            print(f"  [{idx+1:02d}] {filename}  ({left},{top} -> {right},{bottom})")
             idx += 1
 
     print(f"\nDone — {idx} cards saved to: {out_dir}")

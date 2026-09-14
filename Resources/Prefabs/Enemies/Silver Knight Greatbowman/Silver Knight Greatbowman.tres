@@ -1,0 +1,43 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=7 format=3]
+
+[ext_resource type="Script" uid="uid://vgcsex11gg6y" path="res://Scripts/Encounter/Enemy/EnemyMove.cs" id="1_move"]
+[ext_resource type="Texture2D" uid="uid://v4p7ntav2o3j" path="res://Resources/Prefabs/Enemies/Silver Knight Greatbowman/Silver Knight Greatbowman.png" id="2_card"]
+[ext_resource type="Texture2D" uid="uid://gv56l2qf4kwh" path="res://Resources/Prefabs/Enemies/Silver Knight Greatbowman/Silver Knight Greatbowman - Avatar.png" id="3_avatar"]
+[ext_resource type="Script" path="res://Scripts/Encounter/Enemy/EnemyData.cs" id="4_data"]
+
+[sub_resource type="Resource" id="Resource_move0"]
+script = ExtResource("1_move")
+isLeap = false
+isPush = false
+towardsAggro = true
+damage = 4
+direction = 0
+attackRange = 99
+dodgeDifficulty = 1
+isAOE = true
+isMagic = false
+statusEffect = 4
+
+[sub_resource type="Resource" id="Resource_move1"]
+script = ExtResource("1_move")
+isLeap = false
+isPush = false
+towardsAggro = true
+damage = 0
+direction = -1
+attackRange = 99
+dodgeDifficulty = 1
+isAOE = false
+isMagic = false
+statusEffect = 4
+
+[resource]
+script = ExtResource("4_data")
+enemyName = "Silver Knight Greatbowman"
+cardTexture = ExtResource("2_card")
+avatarTexture = ExtResource("3_avatar")
+threatLevel = 3
+health = 1
+physicalDefense = 2
+magicalDefense = 0
+moves = Array[Object]([SubResource("Resource_move0"), SubResource("Resource_move1")])
