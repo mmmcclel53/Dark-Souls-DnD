@@ -35,7 +35,10 @@ public partial class PlayerMove : Resource {
     // or targeted effects live here. Empty for the majority of weapons.
     [Export] public Array<EquipmentEffect> bonusEffects = new();
 
-    public PlayerMove() : this(0, new Array<Dice>{}, 0, 0, false, false, false, false, EncounterManager.StatusEffect.NONE, 0,0) {}
+    // Same trap as EnemyMove: this must not set anything, or Godot's strip-on-save plus
+    // reconstruct-on-load loses it. Chaining here set repeat to 0 against a field
+    // initializer of 1, which would have made every saved attack run zero times.
+    public PlayerMove() {}
 
     public PlayerMove(int staminaCost, Array<Dice> damage, int modifier, int attackRange, bool isAOE, bool isMagic,bool isLeap, bool isPush, EncounterManager.StatusEffect statusEffect, int bonusMovement, int repeat)
     {   

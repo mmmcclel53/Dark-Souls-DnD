@@ -42,7 +42,7 @@ public partial class CharacterPortrait : Control
         }
         if (nameLabel != null) nameLabel.Text = player.name;
         if (hpLabel != null)   hpLabel.Text   = $"HP {player.GetRemainingHP()} / {player.GetMaxEndurance()}";
-        if (staminaLabel != null) staminaLabel.Text = $"STA {player.GetCurrentStamina()}";
+        if (staminaLabel != null) staminaLabel.Text = $"STA {player.GetCurrentStamina()}";   // shared bar: what is still spendable
         // TODO: status effect icons once status system lands.
     }
 }

@@ -16,7 +16,9 @@ public partial class Character : Resource
     [Export] public Armour armourDefault;
     
     [ExportGroup("Leveling")]
-    [Export] public int threatLevel;
+    // Taunt (p40): how strongly enemies favour this character when breaking a
+    // nearest-target tie. Characters have no threat level — only enemies do.
+    [Export] public int taunt;
     [Export] public int[] strengthTiers = [10, 20, 30, 40];
     [Export] public int[] dexterityTiers = [10, 20, 30, 40];
     [Export] public int[] intelligenceTiers = [10, 20, 30, 40];
@@ -78,10 +80,10 @@ public partial class Character : Resource
 
     public Character() : this("Unknown", 1, [10, 20, 30, 40], [10, 20, 30, 40], [10, 20, 30, 40], [10, 20, 30, 40]) {}
 
-    public Character(string name, int threatLevel, int[] strengthTiers, int[] dexterityTiers, int[] intelligenceTiers, int[] faithTiers)
+    public Character(string name, int taunt, int[] strengthTiers, int[] dexterityTiers, int[] intelligenceTiers, int[] faithTiers)
     {
         this.name = name;
-        this.threatLevel = threatLevel;
+        this.taunt = taunt;
         this.strengthTiers = strengthTiers;
         this.dexterityTiers = dexterityTiers;
         this.intelligenceTiers = intelligenceTiers;

@@ -19,7 +19,12 @@ public partial class EnemyMove : Resource {
     [Export] public bool isMagic;
     [Export] public EncounterManager.StatusEffect statusEffect = EncounterManager.StatusEffect.NONE;
 
-    public EnemyMove() : this(false, false, true, 1, 1, 0, 1, false, false, EncounterManager.StatusEffect.NONE) {}
+    // Must leave every field at its initializer. Godot strips any property matching the
+    // field-initializer default when it saves a .tres, then reconstructs through this
+    // constructor on load — so anything set here that differs silently overrides the
+    // stripped value. Chaining to the full constructor made a saved `direction = 0` come
+    // back as 1, turning every attack into a second move.
+    public EnemyMove() {}
 
     public EnemyMove(bool isLeap, bool isPush, bool towardsAggro, int damage, int direction, int attackRange, int dodgeDifficulty, bool isAOE, bool isMagic, EncounterManager.StatusEffect statusEffect)
     {

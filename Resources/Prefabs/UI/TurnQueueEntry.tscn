@@ -1,0 +1,107 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Encounter/TurnQueueEntry.cs" id="1_entry"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_face"]
+bg_color = Color(0.106, 0.094, 0.075, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.29, 0.251, 0.188, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rim"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.788, 0.635, 0.294, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_badge"]
+bg_color = Color(0.043, 0.039, 0.031, 0.941)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.541, 0.455, 0.204, 1)
+
+[node name="TurnQueueEntry" type="VBoxContainer" node_paths=PackedStringArray("avatar", "threatBadge", "threatLabel", "nameLabel", "activeRim", "spentSlash")]
+custom_minimum_size = Vector2(56, 0)
+theme_override_constants/separation = 3
+script = ExtResource("1_entry")
+avatar = NodePath("Face/Avatar")
+threatBadge = NodePath("Face/Threat")
+threatLabel = NodePath("Face/Threat/Label")
+nameLabel = NodePath("Name")
+activeRim = NodePath("Face/Active Rim")
+spentSlash = NodePath("Face/Spent")
+
+[node name="Face" type="Panel" parent="."]
+custom_minimum_size = Vector2(56, 56)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_face")
+
+[node name="Avatar" type="TextureRect" parent="Face"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 3.0
+offset_top = 3.0
+offset_right = -3.0
+offset_bottom = -3.0
+grow_horizontal = 2
+grow_vertical = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Spent" type="ColorRect" parent="Face"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.043, 0.039, 0.031, 0.616)
+
+[node name="Active Rim" type="Panel" parent="Face"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_rim")
+
+[node name="Threat" type="Panel" parent="Face"]
+layout_mode = 0
+offset_left = -5.0
+offset_top = -5.0
+offset_right = 16.0
+offset_bottom = 16.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_badge")
+
+[node name="Label" type="Label" parent="Face/Threat"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.788, 0.635, 0.294, 1)
+theme_override_font_sizes/font_size = 11
+text = "0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Name" type="Label" parent="."]
+custom_minimum_size = Vector2(56, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.549, 0.514, 0.451, 1)
+theme_override_font_sizes/font_size = 9
+text = "Enemy"
+horizontal_alignment = 1
+text_overrun_behavior = 3

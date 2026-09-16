@@ -1,5 +1,6 @@
-[gd_resource type="Resource" script_class="Weapon" load_steps=8 format=3 uid="uid://dtnlldxxbws78"]
+[gd_resource type="Resource" script_class="Weapon" load_steps=9 format=3 uid="uid://dtnlldxxbws78"]
 
+[ext_resource type="Script" uid="uid://belq7o1svfbh8" path="res://Scripts/Equipment/EquipmentEffect.cs" id="1_f4nsi"]
 [ext_resource type="Resource" uid="uid://beglixal73dym" path="res://Resources/Prefabs/Dice/Blue Dice.tres" id="1_fgpjm"]
 [ext_resource type="Script" uid="uid://c6wgrbh73rpq4" path="res://Scripts/Equipment/Weapon.cs" id="1_l3bfc"]
 [ext_resource type="Script" uid="uid://ck1wiiu36h1nh" path="res://Scripts/Encounter/Player/PlayerMove.cs" id="2_0uhuh"]

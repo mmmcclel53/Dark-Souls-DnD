@@ -1,15 +1,23 @@
-[gd_scene load_steps=13 format=3 uid="uid://cdmyd1komlp81"]
+[gd_scene load_steps=21 format=3 uid="uid://cdmyd1komlp81"]
 
 [ext_resource type="Theme" uid="uid://b4u8wpfygl601" path="res://Theme.tres" id="1_163b3"]
 [ext_resource type="Script" uid="uid://38e7hdut52ii" path="res://Scripts/MainMenu/Settings.cs" id="2_cws6m"]
 [ext_resource type="Script" uid="uid://c3wx2mbhefv3x" path="res://Scripts/Encounter/ActionListener.cs" id="4_hmy00"]
-[ext_resource type="PackedScene" uid="uid://c02oejv7f56cj" path="res://Resources/Prefabs/Player/Avatar.tscn" id="6_xdswp"]
-[ext_resource type="PackedScene" uid="uid://dsuwggsiw1hyr" path="res://Resources/Prefabs/Enemies/Hollow Soldier/Hollow Soldier.tscn" id="7_3kqhr"]
+[ext_resource type="PackedScene" path="res://Resources/Prefabs/Player/PlayerToken.tscn" id="6_xdswp"]
+[ext_resource type="Resource" uid="uid://cmev7rnhedr1j" path="res://Resources/Prefabs/Player/Knight/Knight.tres" id="6_knight"]
+[ext_resource type="PackedScene" path="res://Resources/Prefabs/Enemies/Enemy.tscn" id="7_3kqhr"]
+[ext_resource type="PackedScene" path="res://Resources/Prefabs/UI/TurnQueue.tscn" id="13_queue"]
+[ext_resource type="PackedScene" path="res://Resources/Prefabs/UI/EnemyInfoPanel.tscn" id="14_panel"]
+[ext_resource type="PackedScene" path="res://Resources/Prefabs/UI/DodgePrompt.tscn" id="15_dodge"]
+[ext_resource type="PackedScene" path="res://Resources/Prefabs/UI/PushPrompt.tscn" id="18_push"]
+[ext_resource type="PackedScene" path="res://Resources/Prefabs/UI/EncounterResultPanel.tscn" id="19_result"]
+[ext_resource type="PackedScene" path="res://Resources/Prefabs/UI/CharacterActionBar.tscn" id="16_bar"]
+[ext_resource type="Script" path="res://Scripts/Encounter/Player/CharacterTurn.cs" id="17_turn"]
+[ext_resource type="Resource" path="res://Resources/Prefabs/Enemies/Hollow Soldier/Hollow Soldier.tres" id="7_hollow"]
 [ext_resource type="Texture2D" uid="uid://df6n2favwrlhq" path="res://Resources/Images/Backgrounds/Tile 2.jpg" id="8_drip3"]
 [ext_resource type="Script" uid="uid://bfltixxyyql5j" path="res://Scripts/Encounter/Enemy/Pathfinding/PathGrid.cs" id="9_xtn7h"]
 [ext_resource type="Script" uid="uid://d1a4camaukfpy" path="res://Scripts/Encounter/GameNode.cs" id="10_2lue5"]
 [ext_resource type="Texture2D" uid="uid://b15uect354dvm" path="res://Resources/Images/Sprites/green_circle.png" id="11_0dxsk"]
-[ext_resource type="Texture2D" uid="uid://b22j6y4lrhfdt" path="res://Resources/Prefabs/Enemies/Hollow Soldier/Hollow Soldier.png" id="12_b53l0"]
 [ext_resource type="Script" path="res://Scripts/WorldMap/EncounterDevControls.cs" id="13_devwm"]
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_fakve"]
@@ -62,6 +70,23 @@ button_pressed = true
 text = "Show Stats"
 script = ExtResource("2_cws6m")
 
+[node name="Action Bar" parent="CanvasLayer/AspectRatioContainer/UI" instance=ExtResource("16_bar")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+size_flags_stretch_ratio = 2.6
+
+[node name="Character Turn" type="Node" parent="CanvasLayer/AspectRatioContainer/UI" node_paths=PackedStringArray("actionBar")]
+unique_name_in_owner = true
+script = ExtResource("17_turn")
+actionBar = NodePath("../Action Bar")
+
+[node name="Turn Queue" parent="CanvasLayer/AspectRatioContainer/UI" instance=ExtResource("13_queue")]
+layout_mode = 2
+size_flags_vertical = 3
+size_flags_stretch_ratio = 2.2
+
 [node name="Board" type="HBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI"]
 layout_mode = 2
 size_flags_vertical = 3
@@ -84,15 +109,21 @@ size_flags_vertical = 3
 layout_mode = 2
 expand_mode = 5
 
-[node name="Encounter" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board" node_paths=PackedStringArray("nodesParent")]
+[node name="Encounter" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board" node_paths=PackedStringArray("nodesParent", "pathGrid", "turnQueue", "characterTurn", "resultPanel")]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_stretch_ratio = 2.0
 script = ExtResource("4_hmy00")
-players = Array[PackedScene]([ExtResource("6_xdswp")])
-enemies = Array[PackedScene]([ExtResource("7_3kqhr"), ExtResource("7_3kqhr")])
+turnQueue = NodePath("../../Turn Queue")
+characterTurn = NodePath("../../Character Turn")
+resultPanel = NodePath("../../../../Encounter Result")
+playerScene = ExtResource("6_xdswp")
+demoParty = Array[Object]([ExtResource("6_knight")])
+enemyScene = ExtResource("7_3kqhr")
+enemies = Array[Object]([ExtResource("7_hollow"), ExtResource("7_hollow")])
 nodesParent = NodePath("Grid")
+pathGrid = NodePath("Grid")
 
 [node name="Map" type="TextureRect" parent="CanvasLayer/AspectRatioContainer/UI/Board/Encounter"]
 layout_mode = 1
@@ -977,21 +1008,32 @@ size_flags_vertical = 3
 layout_mode = 2
 expand_mode = 5
 
+[node name="Encounter Result" parent="CanvasLayer" instance=ExtResource("19_result")]
+unique_name_in_owner = true
+visible = false
+
+[node name="Push Prompt" parent="CanvasLayer" instance=ExtResource("18_push")]
+unique_name_in_owner = true
+visible = false
+
+[node name="Dodge Prompt" parent="CanvasLayer" instance=ExtResource("15_dodge")]
+unique_name_in_owner = true
+visible = false
+
 [node name="Enemy Info Dialog" type="AcceptDialog" parent="CanvasLayer"]
 unique_name_in_owner = true
 title = "Enemy Info"
 initial_position = 2
-size = Vector2i(250, 368)
+size = Vector2i(440, 620)
 ok_button_text = "Close"
 
-[node name="TextureRect" type="TextureRect" parent="CanvasLayer/Enemy Info Dialog"]
+[node name="Enemy Info Panel" parent="CanvasLayer/Enemy Info Dialog" instance=ExtResource("14_panel")]
+unique_name_in_owner = true
+layout_mode = 1
 offset_left = 8.0
 offset_top = 8.0
-offset_right = 242.0
-offset_bottom = 319.62
-texture = ExtResource("12_b53l0")
-expand_mode = 5
-stretch_mode = 5
+offset_right = -8.0
+offset_bottom = -8.0
 
 [node name="EncounterDevControls" type="Control" parent="CanvasLayer" node_paths=PackedStringArray("encounterTitle")]
 anchors_preset = 1

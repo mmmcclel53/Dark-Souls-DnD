@@ -1,0 +1,87 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Encounter/Combat/DodgePrompt.cs" id="1_prompt"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_scrim"]
+bg_color = Color(0.043, 0.039, 0.031, 0.706)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.106, 0.094, 0.075, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.541, 0.455, 0.204, 1)
+content_margin_left = 20.0
+content_margin_top = 16.0
+content_margin_right = 20.0
+content_margin_bottom = 16.0
+
+[node name="DodgePrompt" type="Control" node_paths=PackedStringArray("titleLabel", "detailLabel", "blockButton", "dodgeButton")]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_prompt")
+titleLabel = NodePath("Scrim/Centre/Panel/Rows/Title")
+detailLabel = NodePath("Scrim/Centre/Panel/Rows/Detail")
+blockButton = NodePath("Scrim/Centre/Panel/Rows/Buttons/Block")
+dodgeButton = NodePath("Scrim/Centre/Panel/Rows/Buttons/Dodge")
+
+[node name="Scrim" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_scrim")
+
+[node name="Centre" type="CenterContainer" parent="Scrim"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="Scrim/Centre"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="Rows" type="VBoxContainer" parent="Scrim/Centre/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Scrim/Centre/Panel/Rows"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.902, 0.871, 0.796, 1)
+theme_override_font_sizes/font_size = 17
+text = "Hollow Soldier attacks Knight"
+autowrap_mode = 3
+
+[node name="Detail" type="Label" parent="Scrim/Centre/Panel/Rows"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.549, 0.514, 0.451, 1)
+theme_override_font_sizes/font_size = 12
+text = "4 physical damage  ·  dodge difficulty 1"
+autowrap_mode = 3
+
+[node name="Buttons" type="HBoxContainer" parent="Scrim/Centre/Panel/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 10
+alignment = 2
+
+[node name="Block" type="Button" parent="Scrim/Centre/Panel/Rows/Buttons"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+text = "Block"
+
+[node name="Dodge" type="Button" parent="Scrim/Centre/Panel/Rows/Buttons"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+text = "Dodge (1 sta)"

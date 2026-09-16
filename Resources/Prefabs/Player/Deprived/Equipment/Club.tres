@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="Weapon" load_steps=7 format=3 uid="uid://8el588ed87c6"]
+[gd_resource type="Resource" script_class="Weapon" load_steps=8 format=3 uid="uid://8el588ed87c6"]
 
 [ext_resource type="Resource" uid="uid://dwwspf5u6xxwa" path="res://Resources/Prefabs/Dice/Black Dice.tres" id="1_1ng57"]
+[ext_resource type="Script" uid="uid://belq7o1svfbh8" path="res://Scripts/Equipment/EquipmentEffect.cs" id="1_migbh"]
 [ext_resource type="Script" uid="uid://c6wgrbh73rpq4" path="res://Scripts/Equipment/Weapon.cs" id="1_mp022"]
 [ext_resource type="Script" uid="uid://ck1wiiu36h1nh" path="res://Scripts/Encounter/Player/PlayerMove.cs" id="2_08crg"]
 [ext_resource type="Texture2D" uid="uid://bh5ab6ypagn5c" path="res://Resources/Prefabs/Player/Deprived/Equipment/Club.png" id="3_qn7lr"]

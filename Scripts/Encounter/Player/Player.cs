@@ -22,8 +22,9 @@ public partial class Player : Resource
     [Export] public string[] rightHandUpgradeIds = new string[0];
     [Export] public string[] armourUpgradeIds = new string[0];
 
-    [Export] public int stamina = 10;
-    [Export] public int hits = 0;
+    // Encounter-scoped and deliberately NOT exported: the bar clears on victory (p19),
+    // so it must never be written into the saved character. PlayerToken drives it.
+    public Endurance endurance { get; private set; } = new Endurance();
 
     public Player() { }
 
@@ -43,9 +44,11 @@ public partial class Player : Resource
     public Weapon GetRightHand() => GameManager.GetInstance(rightHandId) as Weapon;
     public Armour GetArmour() => GameManager.GetInstance(armourId) as Armour;
 
-    public int GetMaxEndurance() => 10;
-    public int GetRemainingHP() => GetMaxEndurance() - hits;
-    public int GetCurrentStamina() => stamina;
+    public int GetMaxEndurance() => Endurance.BOXES;
+    public int GetRemainingHP() => endurance.healthRemaining;
+
+    // Stamina and Health share the bar, so what is spendable is simply what is uncovered.
+    public int GetCurrentStamina() => endurance.free;
 
     // Character level = 1 + total stat investments: how many tiers each attribute has
     // climbed above its starting tier, summed across all four. A freshly created

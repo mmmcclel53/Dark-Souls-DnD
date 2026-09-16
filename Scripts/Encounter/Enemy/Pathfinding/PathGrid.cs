@@ -59,6 +59,17 @@ public partial class PathGrid : Control {
 	}
 	
 
+	public GameNode GameNodeAt(PathNode node) {
+		int child = (node.gridY * EncounterManager.gridSize) + node.gridX;
+		return nodesParent.GetChild<GameNode>(child);
+	}
+
+	// Only terrain blocks movement. A full node is still enterable — arriving on one pushes
+	// a model that was already there off it (p10), so it must stay pathable.
+	public bool IsBlocked(PathNode node) => !node.walkable;
+
+	public bool HasRoom(PathNode node) => !EncounterManager.IsNodeFull(GameNodeAt(node));
+
 	public PathNode NodeFromObj(Node2D obj) {
 		Node n = obj.GetParent();
 		string name = n.Name;

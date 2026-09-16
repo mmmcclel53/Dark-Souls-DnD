@@ -22,6 +22,15 @@ public partial class SaveGame : Resource
     [Export] public string worldLastBonfire = "";
     [Export] public string[] worldClearedNodes = new string[0];
 
+    // Souls (p19). The cache is the party's shared pool. On a wipe it is dropped on the
+    // node where the character died and has to be walked back to; a second death before
+    // that discards it. The drop is pinned to a world node AND a grid index inside it,
+    // because the encounter is rebuilt from scratch every time it is entered.
+    [Export] public int souls = 0;
+    [Export] public string droppedSoulsWorldNode = "";
+    [Export] public int droppedSoulsGridIndex = -1;
+    [Export] public int droppedSoulsAmount = 0;
+
     public SaveGame() { }
 
     public static string SlotPath(int slot) => $"user://savegame_{slot}.tres";

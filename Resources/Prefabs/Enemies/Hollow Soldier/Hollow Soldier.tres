@@ -1,35 +1,17 @@
-[gd_resource type="Resource" script_class="EnemyData" load_steps=7 format=3]
+[gd_resource type="Resource" script_class="EnemyData" load_steps=7 format=3 uid="uid://b46vdbaeygnrr"]
 
 [ext_resource type="Script" uid="uid://vgcsex11gg6y" path="res://Scripts/Encounter/Enemy/EnemyMove.cs" id="1_move"]
 [ext_resource type="Texture2D" uid="uid://b22j6y4lrhfdt" path="res://Resources/Prefabs/Enemies/Hollow Soldier/Hollow Soldier.png" id="2_card"]
 [ext_resource type="Texture2D" uid="uid://bes65370alahp" path="res://Resources/Prefabs/Enemies/Hollow Soldier/Hollow Soldier - Avatar.png" id="3_avatar"]
-[ext_resource type="Script" path="res://Scripts/Encounter/Enemy/EnemyData.cs" id="4_data"]
+[ext_resource type="Script" uid="uid://ddswtnf0bwh4s" path="res://Scripts/Encounter/Enemy/EnemyData.cs" id="4_data"]
 
 [sub_resource type="Resource" id="Resource_move0"]
 script = ExtResource("1_move")
-isLeap = false
-isPush = false
-towardsAggro = false
-damage = 0
 direction = 1
-attackRange = 0
-dodgeDifficulty = 1
-isAOE = false
-isMagic = false
-statusEffect = 4
 
 [sub_resource type="Resource" id="Resource_move1"]
 script = ExtResource("1_move")
-isLeap = false
-isPush = false
-towardsAggro = false
 damage = 4
-direction = 0
-attackRange = 0
-dodgeDifficulty = 1
-isAOE = false
-isMagic = false
-statusEffect = 4
 
 [resource]
 script = ExtResource("4_data")
@@ -37,7 +19,6 @@ enemyName = "Hollow Soldier"
 cardTexture = ExtResource("2_card")
 avatarTexture = ExtResource("3_avatar")
 threatLevel = 5
-health = 1
 physicalDefense = 1
 magicalDefense = 1
-moves = Array[Object]([SubResource("Resource_move0"), SubResource("Resource_move1")])
+moves = Array[ExtResource("1_move")]([SubResource("Resource_move0"), SubResource("Resource_move1")])

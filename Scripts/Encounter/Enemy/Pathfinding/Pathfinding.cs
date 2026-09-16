@@ -25,7 +25,7 @@ public static class Pathfinding {
 			}
 
 			foreach (PathNode neighbour in grid.GetNeighbours(currentNode)) {
-				if (!neighbour.walkable || closedSet.Contains(neighbour)) {
+				if (grid.IsBlocked(neighbour) || closedSet.Contains(neighbour)) {
 					continue;
 				}
 

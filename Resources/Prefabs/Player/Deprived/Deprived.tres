@@ -16,4 +16,4 @@ description = "Everything stripped away — only instinct remains. Weak to start
 leftHandDefault = ExtResource("4_5buha")
 rightHandDefault = ExtResource("5_vqg7c")
 armourDefault = ExtResource("1_6k31y")
-threatLevel = 1
+taunt = 1
