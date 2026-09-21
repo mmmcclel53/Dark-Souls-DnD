@@ -20,6 +20,10 @@ public static partial class EncounterManager {
     // A node cannot contain more than three models (p10).
     public const int MAX_MODELS_PER_NODE = 3;
 
+    // PlayerToken.tscn and Enemy.tscn both draw their art at this size. A token is scaled
+    // to half a node so three of them fit side by side, which is what FixPositioning packs.
+    public const float TOKEN_ART_SIZE = 360f;
+
     public static int gridSize = 7;
     public static List<Control> nodes = new List<Control>();
 
@@ -189,7 +193,15 @@ public static partial class EncounterManager {
         return result;
     }
 
-    // Unelegent piece of shit code
+    // Draws a token at half the node it stands on, so three fit side by side. The node is
+    // a fraction of the board, so this has to be redone whenever the board resizes.
+    public static void ScaleToken(Node2D model, float nodeSize) {
+        if (model == null || nodeSize <= 0f) return;
+        float scale = nodeSize / (TOKEN_ART_SIZE * 2f);
+        model.Scale = new Vector2(scale, scale);
+    }
+
+    // Up to three models share a node, packed into the quarters of it (p10).
     public static void FixPositioning(Control node) {
         float nodeSize = node.Size.X;
         List<Node2D> allPlayers = GetAllPlayersInNode(node);

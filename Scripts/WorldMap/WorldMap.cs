@@ -314,6 +314,8 @@ public partial class WorldMap : VBoxContainer {
 				GetTree().ChangeSceneToPacked(ResourceLoader.Load<PackedScene>("res://Scenes/Encounter.tscn"));
 				break;
 			case PendingAction.REST:
+				// Same call the Bonfire scene's own Rest button makes — resting is one
+				// action with one implementation, wherever it is triggered from.
 				WorldMapManager.RestAtBonfire();
 				GetTree().ChangeSceneToPacked(ResourceLoader.Load<PackedScene>("res://Scenes/Bonfire.tscn"));
 				break;

@@ -36,3 +36,7 @@ enabled=PackedStringArray("res://addons/SpritesheetGenerator/plugin.cfg")
 [gui]
 
 theme/custom_font="res://DS_Font.tres"
+
+[rendering]
+
+environment/defaults/default_clear_color=Color(0.055, 0.051, 0.043, 1)

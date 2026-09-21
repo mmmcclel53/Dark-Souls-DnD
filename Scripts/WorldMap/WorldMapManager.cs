@@ -90,15 +90,29 @@ public static class WorldMapManager {
 		WriteToSave();
 	}
 
-	// Resting records the checkpoint, respawns every encounter, and saves to disk.
-	public static void RestAtBonfire() {
+	// The whole rest action, and the only one: clears the party's endurance bars, records the
+	// checkpoint, respawns every non-boss encounter and saves to disk. A boss that has been
+	// beaten stays beaten — it is the point of the level, not something to re-fight for souls.
+	// Returns how many encounters came back, so the caller can say so.
+	//
+	// EnsureLoaded first, because the Bonfire scene never loads the map itself and the boss
+	// check needs it. Returns 0 when there is no map to read.
+	public static int RestAtBonfire() {
+		CampaignManager.RestParty();
+		if (!EnsureLoaded()) return 0;
+
 		LastBonfireId = CurrentNodeId;
-		clearedNodes.Clear();
+		int respawned = clearedNodes.RemoveWhere(id => !IsBoss(id));
+
 		WriteToSave();
 		var save = CampaignManager.CurrentSave;
 		if (save != null && CampaignManager.SaveSlot > 0)
 			save.SaveToSlot(CampaignManager.SaveSlot);
+		return respawned;
 	}
+
+	private static bool IsBoss(string nodeId) =>
+		MapData?.GetNode(nodeId)?.encounterType == WorldEncounterType.BOSS;
 
 	private static void WriteToSave() {
 		var save = CampaignManager.CurrentSave;

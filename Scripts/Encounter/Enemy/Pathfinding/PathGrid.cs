@@ -13,6 +13,26 @@ public partial class PathGrid : Control {
 		int mapSize = (int) Math.Sqrt(nodesParent.GetChildCount());
 		EncounterManager.gridSize = mapSize;
 		CreateGrid();
+
+		// The nodes themselves are anchored to fractions of the board, so the engine keeps
+		// them on the printed circles at any window size. The models standing on them are
+		// not, so they are re-sized here whenever the board changes.
+		// Deferred either way: the child nodes re-anchor during the same layout pass, so
+		// their new size is only readable once it has finished.
+		Resized += () => { CallDeferred(nameof(RescaleModels)); };
+		CallDeferred(nameof(RescaleModels));
+	}
+
+	// A token is drawn at half the node it stands on, and the node only knows its real size
+	// once the board has been laid out — which is after every spawn in ActionListener._Ready.
+	public void RescaleModels() {
+		foreach (Node child in nodesParent.GetChildren()) {
+			if (child is not GameNode node || node.Size.X <= 0f) continue;
+			foreach (Node2D model in EncounterManager.GetAllPlayersInNode(node)) {
+				EncounterManager.ScaleToken(model, node.Size.X);
+			}
+			EncounterManager.FixPositioning(node);
+		}
 	}
 
 	public int MaxSize {

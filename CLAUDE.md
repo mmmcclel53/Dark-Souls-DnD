@@ -58,6 +58,8 @@ Scripts/
     MainMenu.cs            — New Game / Continue / Quit
     Bonfire/
       BonfireOptions.cs    — Rest / Equipment / Ready buttons
+      BonfireRestAnimation.cs — Flare/blackout/fade-back transition the rest happens behind
+      BonfireFireLight.cs   — The living fire on the Bonfire screen: flicker, floor warmth, sparks
   Common/
     CharacterPortraitPane.cs  — Autoloaded floating party pane (Bonfire/Encounter)
     CharacterPortrait.cs      — Single portrait: avatar bg, name, HP, stamina, status strip
@@ -86,7 +88,7 @@ The physical game rules are in `Dark Souls Board Game Rules.pdf`. Key mechanics 
 - **Combat (enemy attacks)**: Fixed damage value. Player rolls defense dice to reduce. Or spend 1 stamina to attempt dodge roll vs dodge difficulty.
 - **Endurance bar** (p20): 10 boxes shared by Stamina and Health. Spending 1 stamina adds a black cube from the left; suffering 1 damage adds a red cube from the right. Uncovered boxes are the remaining capacity to do *either*. All ten covered = character dead and the party immediately defeated. Gaining stamina/health **removes** cubes and does nothing when there are none to remove. Cleared on encounter victory.
 - **Status effects** (rules p21): conditions apply to **any model — characters and enemies alike**. BLEED (2 extra damage next time the model is damaged, then remove), POISON (1 damage at end of the model's activation), FROST/Frostbite (character: +1 stamina to walk/run/dodge; enemy: Move icon values −1), STAGGER (character: +1 stamina to use weapon actions; enemy: attack damage values −1). All of this is implemented — see Conditions under Architecture Notes.
-- **Bonfire rest**: Refills estus, heroic action, luck. Resets all encounters (enemies respawn). ⚠️ The printed rule also costs 1 **spark** — sparks are **deliberately cut from this project**. Do not implement them, do not gate resting on them, and do not use p19's spark-based boss soul formula.
+- **Bonfire rest**: Refills estus, heroic action, luck. Resets all encounters (enemies respawn) — **except bosses, which stay beaten** (this project's own call; see Bonfire Rest under Architecture Notes). ⚠️ The printed rule also costs 1 **spark** — sparks are **deliberately cut from this project**. Do not implement them, do not gate resting on them, and do not use p19's spark-based boss soul formula.
 - **Souls**: Currency. Earned 2 per character per non-boss encounter win. Spent on treasure (1 soul) and leveling up stats. Implemented — see Souls under Architecture Notes. Spending is not wired to anything yet.
 
 ### Combat Values & Clarifications
@@ -142,6 +144,27 @@ Not implemented, deliberately: `repeat`/`repeatConstraint` (xN uses with free / 
 A win clears every endurance bar (p19) and awards `2 × party size` souls. **Sparks are cut from this project**, so p19's boss formula (1 soul per character per remaining spark) is unusable and boss wins currently award nothing — the panel says so. Boss rewards need a replacement rule, not a spark implementation.
 
 `EncounterResultPanel` shows the outcome and exits to the World Map on a win or the Bonfire on a wipe, matching where `WorldMapManager` has just put the party.
+
+### Bonfire Rest
+`WorldMapManager.RestAtBonfire` is the whole rest action and the only one: it clears the party's endurance bars (`CampaignManager.RestParty`), records the checkpoint, respawns every cleared encounter **except bosses**, writes the save to disk, and returns how many encounters came back so the caller can say so.
+
+A beaten boss staying beaten is **this project's call**, not a printed rule — it is the point of the level, not something to re-fight for souls. It is also why rest calls `EnsureLoaded` first: the Bonfire scene never loads the campaign map itself, and without `MapData` there is no `encounterType` to check.
+
+Endurance is encounter-scoped and only a *win* clears it (p19), so after a wipe the party arrives at the bonfire with cubes still on the bars and resting is the only thing that takes them off. That is why `BonfireOptions.OnPressedRest` rebuilds the floating portrait pane — the portraits read `Player.endurance` and would otherwise still show the wounds.
+
+Both entry points call that one method: the World Map's "Rest at Bonfire" action button and the Bonfire scene's own Rest button. Resting is idempotent, so resting twice on the way in costs nothing.
+
+The Bonfire title bar's soul count is the party pool read from `SoulCache.current` (`BonfireOptions.RefreshSouls`), not the number typed into the scene.
+
+`BonfireRestAnimation` plays the transition, styled after the games: a vignette shader closes the world in around the fire, a radial glow flares in two beats like a heartbeat (with a looping flicker tween on top), embers rise from the bottom edge (`CPUParticles2D`, additive), the screen burns out to black, and "Rested" fades onto a dark band with a warm glow pooled behind it; the band creeps up in scale the whole time it is on screen — the same slow growth the games' banners have — while the words stay still, because a Label under a slowly changing scale re-samples its glyphs every frame and shimmers. The black then lifts on the dying glow. About four seconds, every timing exported. It is deliberately **two awaitable halves** (`FadeOut` / `FadeIn`) rather than one call with a callback, so `BonfireOptions.OnPressedRest` simply does the resting between them. That is the whole point of covering the screen: bars refilling and encounters reappearing happen unseen instead of popping. `FadeOut` waits on a timer for its total length rather than on the tween finishing, because the banner's scale tween runs on through the hold and into the fade back. It lives on its own `CanvasLayer` at layer 20 — above the portrait pane (5) and the equipment modal (10) — and its root Control blocks input for the duration, with the three buttons disabled as well. Every part is null-checked, so an unwired animation just means an instant rest. Rest grabs focus on load, so Enter rests.
+
+The band and its glow are one shader (`Resources/Shaders/Banner.gdshader`) on a `ColorRect` rather than stacked gradient textures: the glow is an ellipse that falls to nothing well inside the rect, so it can never be cut off by an edge, and the band's top and bottom soften into whatever is behind. The vignette (`Resources/Shaders/Vignette.gdshader`) measures distance in half-screen-heights with an aspect correction from `SCREEN_PIXEL_SIZE`, so it stays round on a widescreen viewport; its `radius` is what the tweens drive. The embers are a `Node2D` inside a `Control`, so nothing anchors them — `PlaceEmbers` puts them along the bottom edge each time from the overlay's size.
+
+The floor art (`Resources/Images/Backgrounds/BonfireFloor.jpg`, 1920×1080) is generated, not painted: `Tools/BonfireFloor/generate.py` draws a ring-paved slate floor lit by the fire and composites the bowl cut out of `Tools/BonfireFloor/bowl_reference.jpg` (the backdrop is colour-keyed, then clipped to an ellipse plus a stroke for the sword). `ZOOM` in the generator is how far back the camera stands (0.55 now; 1.0 was the original framing where the bowl filled a third of the screen) and scales every size in the picture together — ring width, bowl, light falloff, shadow. The pit is painted right of centre so the portrait pane on the left never covers it, and the options column sits to its right. The generator prints the flames' UV, which `BonfireFireLight.fireUv` has to match. The old `Bonfire.png` board tile is no longer used by the scene but is still in the project. The scene draws the art full-bleed with `KEEP_ASPECT_COVERED`, so nothing depends on where the pit lands on screen.
+
+`BonfireFireLight` keeps the fire alive while the screen idles: an additive glow over the flames flickering on a sum of sines plus eased random jitter, a wide additive warmth over the floor on a slow pulse, and `CPUParticles2D` sparks lifting off the pit. All three hang on `fireUv`, one point in the floor art; every frame it works out where `KEEP_ASPECT_COVERED` actually drew the texture inside the `TextureRect` and places the light there, sizing the glows as fractions of the drawn height and scaling the particle node the same way, so the fire stays lit at any window size. It lives as a full-rect child of the art itself (so their local spaces coincide) and before `Options` in the tree so the buttons draw over it.
+
+⚠️ `TextureRect.expand_mode = FIT_HEIGHT_PROPORTIONAL` (5) derives a **minimum height** from the node's width. The bonfire art is 1464×1472, so it claimed a 925px minimum, the `VBoxContainer` above it inherited it, and the `AspectRatioContainer` — which cannot shrink below its child's minimum — ended up 987px tall in a 648px viewport, centred, with the title bar 169px off the top of the screen. Background art wants `IGNORE_SIZE` (1) plus a stretch mode; a proportional expand mode on a full-bleed image will push the rest of the scene off-screen. Both `AspectRatioContainer`s now also use `stretch_mode = 2` (FIT) so they can never exceed the viewport.
 
 ### Souls
 `SoulCache` is the party's shared pool, stored on `SaveGame` so it survives the trip back to the bonfire. Every call no-ops without a save, so the encounter still runs standalone.
@@ -200,7 +223,21 @@ The push **destination** is auto-picked (first adjacent node with room, falling 
 ⚠️ An earlier pass had this wrong, treating full nodes as impassable. That is what made enemies deadlock around a cornered character. Do not reintroduce occupancy into `IsBlocked`.
 
 ### Node-to-World Mapping
-Characters and enemies are children of `GameNode` (Control) nodes. `EncounterManager.MovePlayer` reparents a unit from one `GameNode` to another and calls `FixPositioning` to manually place up to 3 occupants. The grid is a 7×7 set of `MarginContainer` nodes, each with a `TextureButton` child for click handling.
+Characters and enemies are children of `GameNode` (Control) nodes. `EncounterManager.MovePlayer` reparents a unit from one `GameNode` to another and calls `FixPositioning` to manually place up to 3 occupants. The grid is a 7×7 set of `Control` nodes, each with a `TextureButton` child for click handling.
+
+### Board Geometry
+The 7×7 grid is a square lattice **turned 45°**: grid `(x, y)` sits `(x + y) - 6` steps right and `(y - x)` steps down from the centre of the map art. Only the diamond `|u| ≤ 3, |v| ≤ 3` — 25 cells — lands on the board; the 24 corner cells fall outside it and are flagged `isDisabled` and hidden. That diamond matches the 25 circles printed on `Tile 2.jpg` one for one, including their colour: the four **purple** circles are the `isDisabled` terrain cells and the four **red** circles are the `isEnemySpawn` cells.
+
+Measured against the art (which the scene draws `flip_h`), a lattice step is **0.12162** of the board square and the lattice centre is **(0.49396, 0.49601)**. Each `GameNode` is anchored to those fractions with a box one step wide, so the engine keeps the grid on the printed circles at any window size; the highlight `TextureButton` inside is inset to 14% so the marker reads smaller than the cell, and needs `ignore_texture_size` or the 36px sprite sets a floor on how small a node can get.
+
+`Board Frame` (an `AspectRatioContainer` with ratio 1) is what makes those fractions safe — without a square board the lattice would shear. The models on the nodes are **not** anchored, so `PathGrid.RescaleModels` re-scales them (via `EncounterManager.ScaleToken`, half a node each) and re-packs them on every resize.
+
+⚠️ The grid was originally hand-placed in pixel offsets against a differently-sized board, which is why nothing sat on a circle. Do not go back to fixed offsets — anything authored in pixels breaks the moment the window is not the size it was authored at.
+
+### Encounter Layout
+`Encounter.tscn` stacks Title Panel → Turn Queue → Board → Action Bar in one `VBoxContainer`. Only the Board expands; the other three size to content (the Action Bar has a `custom_minimum_size` height covering a full weapon list). That is deliberate: `CharacterActionBar` stays in the layout between activations and shows an idle line via `ShowIdle` rather than hiding, because a bar appearing and disappearing resized the board — and every token on it — twice a round.
+
+`CharacterPortraitPane` is an autoload floating over the whole window, so it has no idea what scene is up. `ActionListener.PlacePortraitPane` tells it where this scene's HUD ends (`SetTopMargin`); the Board's left gutter is what reserves room for it. `EncounterDevControls` adds its Win/Die buttons to the title bar's `HBoxContainer` for the same reason — an anchored overlay landed on top of the Show Stats toggle.
 
 ### Pathfinding
 A* is implemented in `Pathfinding.cs` using `Heap<PathNode>` for the open set. `PathGrid` (a Node in the scene) initializes the walkability grid from `GameNode.isDisabled` flags. Known issue: `openSet.UpdateItem` is commented out, which can produce suboptimal paths when a node's cost improves mid-search.
@@ -236,7 +273,8 @@ Scenes are swapped by instantiating the next scene, adding it to root, then free
 - Characters are not placed on the Bonfire tile on a wipe; the result panel just returns to the Bonfire scene
 - The push **destination** is auto-picked; p21 gives the players that choice
 - Save/load is scaffolded but non-functional
-- Bonfire "Rest" button does nothing
+- Estus, heroic action and luck do not exist yet, so resting only clears the endurance bars — the other three things p19 says a rest refills have nothing to refill
+- `WorldMapManager.ReportPartyDeath` still respawns **every** encounter including bosses, where resting spares them
 
 ### Enemy data (`Resources/Prefabs/Enemies/*/<Name>.tres`)
 

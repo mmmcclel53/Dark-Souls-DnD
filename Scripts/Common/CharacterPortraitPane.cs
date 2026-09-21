@@ -11,6 +11,9 @@ public partial class CharacterPortraitPane : CanvasLayer
 
     private const string PORTRAIT_SCENE = "res://Resources/Prefabs/Player/CharacterPortrait.tscn";
 
+    private const int DEFAULT_TOP_MARGIN = 80;
+
+    private MarginContainer margin;
     private VBoxContainer container;
     private PackedScene portraitScene;
     private int selectedIndex = -1;
@@ -21,10 +24,10 @@ public partial class CharacterPortraitPane : CanvasLayer
 
         portraitScene = ResourceLoader.Load<PackedScene>(PORTRAIT_SCENE);
 
-        var margin = new MarginContainer();
+        margin = new MarginContainer();
         margin.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.LeftWide);
         margin.AddThemeConstantOverride("margin_left", 16);
-        margin.AddThemeConstantOverride("margin_top", 80);
+        margin.AddThemeConstantOverride("margin_top", DEFAULT_TOP_MARGIN);
         margin.AddThemeConstantOverride("margin_bottom", 80);
         margin.AddThemeConstantOverride("margin_right", 8);
         margin.MouseFilter = Control.MouseFilterEnum.Ignore;
@@ -38,14 +41,36 @@ public partial class CharacterPortraitPane : CanvasLayer
         margin.AddChild(container);
     }
 
+    // Back to the default clearance: a scene that needs more says so after showing the
+    // pane, and the one after it must not inherit that.
     public new void Show() {
         Visible = true;
+        SetTopMargin(DEFAULT_TOP_MARGIN);
         Refresh();
     }
 
     public new void Hide() {
         Visible = false;
         selectedIndex = -1;
+        SetTopMargin(DEFAULT_TOP_MARGIN);
+    }
+
+    // The pane floats over whatever scene is up, so the scene has to say how much HUD it
+    // has to clear — the encounter stacks a title bar and a turn queue above the board.
+    public void SetTopMargin(int pixels) {
+        margin?.AddThemeConstantOverride("margin_top", pixels);
+    }
+
+    // Endurance lives on Player, so anything that moves a bar has to say so or the pane
+    // keeps showing what the character had when the scene loaded.
+    public void RefreshFor(Player player) {
+        if (container == null || player == null) return;
+        foreach (Node child in container.GetChildren()) {
+            if (child is CharacterPortrait portrait && portrait.GetPlayer() == player) {
+                portrait.Refresh();
+                return;
+            }
+        }
     }
 
     public void Refresh() {

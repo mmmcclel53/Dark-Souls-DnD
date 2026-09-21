@@ -1,29 +1,175 @@
-[gd_scene load_steps=8 format=3 uid="uid://d4klkh4uctk1c"]
+[gd_scene load_steps=31 format=3 uid="uid://d4klkh4uctk1c"]
 
 [ext_resource type="Theme" uid="uid://b4u8wpfygl601" path="res://Theme.tres" id="1_theme"]
 [ext_resource type="Texture2D" uid="uid://c1qqm6jq11jti" path="res://Resources/Images/Sprites/Soul.png" id="2_soul"]
-[ext_resource type="Texture2D" uid="uid://clgbl7l3wjhxb" path="res://Resources/Images/Backgrounds/Bonfire.png" id="3_bonfire"]
 [ext_resource type="Script" path="res://Scripts/MainMenu/Bonfire/BonfireOptions.cs" id="4_options"]
 [ext_resource type="FontVariation" uid="uid://sv82bym31oaq" path="res://DS_Font.tres" id="5_font"]
+[ext_resource type="Script" path="res://Scripts/MainMenu/Bonfire/BonfireRestAnimation.cs" id="6_restanim"]
+[ext_resource type="Shader" path="res://Resources/Shaders/Vignette.gdshader" id="7_vignette"]
+[ext_resource type="Shader" path="res://Resources/Shaders/Banner.gdshader" id="11_banner"]
+[ext_resource type="FontFile" uid="uid://litl23n3u3sl" path="res://OptimusPrinceps.ttf" id="8_princeps"]
+[ext_resource type="Texture2D" path="res://Resources/Images/Backgrounds/BonfireFloor.jpg" id="9_floor"]
+[ext_resource type="Script" path="res://Scripts/MainMenu/Bonfire/BonfireFireLight.cs" id="10_firelight"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_vignette"]
+shader = ExtResource("7_vignette")
+shader_parameter/radius = 1.7
+shader_parameter/softness = 0.75
+shader_parameter/colour = Color(0.02, 0.012, 0.006, 1)
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_add"]
+blend_mode = 1
+
+[sub_resource type="Gradient" id="Gradient_glow"]
+offsets = PackedFloat32Array(0, 0.12, 0.34, 0.62, 1)
+colors = PackedColorArray(1, 0.94, 0.78, 1, 1, 0.78, 0.42, 0.95, 1, 0.5, 0.14, 0.75, 0.62, 0.16, 0.02, 0.32, 0.15, 0.03, 0, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_glow"]
+gradient = SubResource("Gradient_glow")
+width = 512
+height = 512
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[sub_resource type="Gradient" id="Gradient_ember_dot"]
+offsets = PackedFloat32Array(0, 0.25, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0.55, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_ember"]
+gradient = SubResource("Gradient_ember_dot")
+width = 32
+height = 32
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[sub_resource type="Gradient" id="Gradient_ember_life"]
+offsets = PackedFloat32Array(0, 0.08, 0.4, 0.75, 1)
+colors = PackedColorArray(1, 0.95, 0.75, 0, 1, 0.85, 0.45, 1, 1, 0.45, 0.1, 0.9, 0.6, 0.12, 0.02, 0.5, 0.2, 0.02, 0, 0)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_banner"]
+shader = ExtResource("11_banner")
+shader_parameter/band_colour = Color(0.03, 0.02, 0.012, 0.92)
+shader_parameter/glow_colour = Color(1, 0.6, 0.22, 1)
+shader_parameter/band_core = 0.55
+shader_parameter/glow_strength = 0.5
+shader_parameter/glow_width = 0.36
+shader_parameter/glow_height = 0.85
+
+[sub_resource type="Gradient" id="Gradient_fire"]
+offsets = PackedFloat32Array(0, 0.18, 0.45, 1)
+colors = PackedColorArray(1, 0.9, 0.62, 1, 1, 0.66, 0.26, 0.8, 0.9, 0.36, 0.08, 0.35, 0.4, 0.1, 0, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_fire"]
+gradient = SubResource("Gradient_fire")
+width = 256
+height = 256
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[sub_resource type="Gradient" id="Gradient_warmth"]
+offsets = PackedFloat32Array(0, 0.3, 0.7, 1)
+colors = PackedColorArray(1, 0.6, 0.25, 0.7, 0.95, 0.45, 0.14, 0.35, 0.6, 0.2, 0.04, 0.1, 0.2, 0.05, 0, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_warmth"]
+gradient = SubResource("Gradient_warmth")
+width = 512
+height = 512
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[sub_resource type="Gradient" id="Gradient_spark_life"]
+offsets = PackedFloat32Array(0, 0.1, 0.5, 0.85, 1)
+colors = PackedColorArray(1, 0.95, 0.8, 0, 1, 0.88, 0.5, 1, 1, 0.5, 0.12, 0.9, 0.7, 0.15, 0.02, 0.5, 0.2, 0.02, 0, 0)
+
+[sub_resource type="FontVariation" id="FontVariation_banner"]
+base_font = ExtResource("8_princeps")
+spacing_glyph = 5
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_title"]
 bg_color = Color(0.12549, 0.12549, 0.12549, 1)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn"]
-bg_color = Color(0.12549, 0.12549, 0.12549, 1)
-border_color = Color(0.5, 0.5, 0.5, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_feedback"]
+bg_color = Color(0.043, 0.039, 0.031, 0.85)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
-content_margin_left = 14.0
-content_margin_top = 6.0
-content_margin_right = 14.0
-content_margin_bottom = 6.0
+content_margin_left = 10.0
+content_margin_top = 4.0
+content_margin_right = 10.0
+content_margin_bottom = 4.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn"]
+bg_color = Color(0.045, 0.035, 0.028, 0.78)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.46, 0.37, 0.21, 0.9)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 22.0
+content_margin_top = 9.0
+content_margin_right = 22.0
+content_margin_bottom = 9.0
+shadow_color = Color(0, 0, 0, 0.45)
+shadow_size = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_hover"]
+bg_color = Color(0.11, 0.075, 0.04, 0.88)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.86, 0.68, 0.34, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 22.0
+content_margin_top = 9.0
+content_margin_right = 22.0
+content_margin_bottom = 9.0
+shadow_color = Color(0.9, 0.5, 0.15, 0.25)
+shadow_size = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_pressed"]
+bg_color = Color(0.16, 0.10, 0.045, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 0.85, 0.5, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 22.0
+content_margin_top = 9.0
+content_margin_right = 22.0
+content_margin_bottom = 9.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_disabled"]
+bg_color = Color(0.03, 0.025, 0.02, 0.6)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.3, 0.26, 0.18, 0.6)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 22.0
+content_margin_top = 9.0
+content_margin_right = 22.0
+content_margin_bottom = 9.0
 
 [node name="Game" type="Node"]
 
@@ -37,6 +183,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 ratio = 1.78
+stretch_mode = 2
 
 [node name="UI" type="VBoxContainer" parent="CanvasLayer/AspectRatioContainer"]
 layout_mode = 2
@@ -48,81 +195,313 @@ theme = ExtResource("1_theme")
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_title")
 
-[node name="HBox" type="HBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI/TitleBar"]
+[node name="Margin" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI/TitleBar"]
 layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 4
 
-[node name="Title" type="Label" parent="CanvasLayer/AspectRatioContainer/UI/TitleBar/HBox"]
+[node name="HBox" type="HBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI/TitleBar/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="CanvasLayer/AspectRatioContainer/UI/TitleBar/Margin/HBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 24
 text = "Bonfire"
+vertical_alignment = 1
 
-[node name="Souls Icon" type="TextureRect" parent="CanvasLayer/AspectRatioContainer/UI/TitleBar/HBox"]
+[node name="Souls Icon" type="TextureRect" parent="CanvasLayer/AspectRatioContainer/UI/TitleBar/Margin/HBox"]
+custom_minimum_size = Vector2(22, 22)
 layout_mode = 2
+size_flags_vertical = 4
 texture = ExtResource("2_soul")
-expand_mode = 2
+expand_mode = 1
+stretch_mode = 5
 
-[node name="Souls Amount" type="Label" parent="CanvasLayer/AspectRatioContainer/UI/TitleBar/HBox"]
+[node name="Souls Amount" type="Label" parent="CanvasLayer/AspectRatioContainer/UI/TitleBar/Margin/HBox"]
 layout_mode = 2
-text = "53"
+size_flags_vertical = 1
+theme_override_colors/font_color = Color(0.788, 0.635, 0.294, 1)
+theme_override_font_sizes/font_size = 18
+text = "0"
+vertical_alignment = 1
 
 [node name="Board" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI"]
 layout_mode = 2
 size_flags_vertical = 3
 size_flags_stretch_ratio = 15.0
-theme_override_constants/margin_left = 200
-theme_override_constants/margin_right = 32
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_bottom = 16
+theme_override_constants/margin_left = 0
+theme_override_constants/margin_right = 0
+theme_override_constants/margin_top = 0
+theme_override_constants/margin_bottom = 0
 
 [node name="Bonfire" type="TextureRect" parent="CanvasLayer/AspectRatioContainer/UI/Board"]
 layout_mode = 2
-texture = ExtResource("3_bonfire")
-expand_mode = 5
+texture = ExtResource("9_floor")
+expand_mode = 1
 stretch_mode = 5
 
-[node name="Options" type="VBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire" node_paths=PackedStringArray("restButton", "equipmentButton", "readyButton")]
+[node name="Fire Light" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire" node_paths=PackedStringArray("art", "glow", "warmth", "sparks")]
 layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.36
-anchor_top = 0.30
-anchor_right = 0.64
-anchor_bottom = 0.66
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 12
+mouse_filter = 2
+script = ExtResource("10_firelight")
+art = NodePath("..")
+glow = NodePath("Glow")
+warmth = NodePath("Warmth")
+sparks = NodePath("Sparks")
+
+[node name="Warmth" type="TextureRect" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/Fire Light"]
+modulate = Color(1, 1, 1, 0.28)
+material = SubResource("CanvasItemMaterial_add")
+layout_mode = 0
+mouse_filter = 2
+texture = SubResource("GradientTexture2D_warmth")
+expand_mode = 1
+stretch_mode = 1
+
+[node name="Glow" type="TextureRect" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/Fire Light"]
+modulate = Color(1, 1, 1, 0.6)
+material = SubResource("CanvasItemMaterial_add")
+layout_mode = 0
+mouse_filter = 2
+texture = SubResource("GradientTexture2D_fire")
+expand_mode = 1
+stretch_mode = 1
+
+[node name="Sparks" type="CPUParticles2D" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/Fire Light"]
+material = SubResource("CanvasItemMaterial_add")
+amount = 48
+lifetime = 2.0
+preprocess = 2.0
+randomness = 0.7
+lifetime_randomness = 0.5
+texture = SubResource("GradientTexture2D_ember")
+emission_shape = 1
+emission_sphere_radius = 16.0
+direction = Vector2(0, -1)
+spread = 38.0
+gravity = Vector2(0, -30)
+initial_velocity_min = 25.0
+initial_velocity_max = 120.0
+damping_min = 6.0
+damping_max = 24.0
+scale_amount_min = 0.07
+scale_amount_max = 0.2
+color_ramp = SubResource("Gradient_spark_life")
+hue_variation_min = -0.03
+hue_variation_max = 0.03
+
+[node name="Options" type="VBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire" node_paths=PackedStringArray("restButton", "equipmentButton", "readyButton", "restFeedback", "soulsLabel", "restAnimation")]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.74
+anchor_top = 0.28
+anchor_right = 0.96
+anchor_bottom = 0.72
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 14
 alignment = 1
 script = ExtResource("4_options")
 restButton = NodePath("Rest")
+restFeedback = NodePath("Rest Feedback")
+soulsLabel = NodePath("../../../TitleBar/Margin/HBox/Souls Amount")
+restAnimation = NodePath("../../../../../../Rest Animation/Overlay")
 equipmentButton = NodePath("Equipment")
 readyButton = NodePath("Ready")
 
 [node name="Rest" type="Button" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/Options"]
-custom_minimum_size = Vector2(140, 40)
+custom_minimum_size = Vector2(230, 48)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_fonts/font = ExtResource("5_font")
-theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.86, 0.78, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.66, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.66, 1)
+theme_override_colors/font_pressed_color = Color(1, 0.95, 0.8, 1)
+theme_override_colors/font_hover_pressed_color = Color(1, 0.95, 0.8, 1)
+theme_override_colors/font_disabled_color = Color(0.6, 0.55, 0.45, 0.6)
+theme_override_fonts/font = SubResource("FontVariation_banner")
+theme_override_font_sizes/font_size = 22
 theme_override_styles/normal = SubResource("StyleBoxFlat_btn")
-theme_override_styles/hover = SubResource("StyleBoxFlat_btn")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_pressed")
+theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_btn_pressed")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
 text = "Rest"
 
 [node name="Equipment" type="Button" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/Options"]
-custom_minimum_size = Vector2(140, 40)
+custom_minimum_size = Vector2(230, 48)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_fonts/font = ExtResource("5_font")
-theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.86, 0.78, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.66, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.66, 1)
+theme_override_colors/font_pressed_color = Color(1, 0.95, 0.8, 1)
+theme_override_colors/font_hover_pressed_color = Color(1, 0.95, 0.8, 1)
+theme_override_colors/font_disabled_color = Color(0.6, 0.55, 0.45, 0.6)
+theme_override_fonts/font = SubResource("FontVariation_banner")
+theme_override_font_sizes/font_size = 22
 theme_override_styles/normal = SubResource("StyleBoxFlat_btn")
-theme_override_styles/hover = SubResource("StyleBoxFlat_btn")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_pressed")
+theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_btn_pressed")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
 text = "Equipment"
 
 [node name="Ready" type="Button" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/Options"]
-custom_minimum_size = Vector2(140, 40)
+custom_minimum_size = Vector2(230, 48)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_fonts/font = ExtResource("5_font")
-theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.86, 0.78, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.66, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.66, 1)
+theme_override_colors/font_pressed_color = Color(1, 0.95, 0.8, 1)
+theme_override_colors/font_hover_pressed_color = Color(1, 0.95, 0.8, 1)
+theme_override_colors/font_disabled_color = Color(0.6, 0.55, 0.45, 0.6)
+theme_override_fonts/font = SubResource("FontVariation_banner")
+theme_override_font_sizes/font_size = 22
 theme_override_styles/normal = SubResource("StyleBoxFlat_btn")
-theme_override_styles/hover = SubResource("StyleBoxFlat_btn")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_pressed")
+theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_btn_pressed")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
 text = "Ready!"
+
+[node name="Rest Feedback" type="Label" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/Options"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_colors/font_color = Color(0.788, 0.635, 0.294, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_feedback")
+horizontal_alignment = 1
+
+[node name="Rest Animation" type="CanvasLayer" parent="."]
+layer = 20
+
+[node name="Overlay" type="Control" parent="Rest Animation" node_paths=PackedStringArray("vignette", "glow", "embers", "fade", "banner", "band", "message")]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("6_restanim")
+vignette = NodePath("Vignette")
+glow = NodePath("Glow")
+embers = NodePath("Embers")
+fade = NodePath("Fade")
+banner = NodePath("Banner")
+band = NodePath("Banner/Band")
+message = NodePath("Banner/Message")
+
+[node name="Vignette" type="ColorRect" parent="Rest Animation/Overlay"]
+material = SubResource("ShaderMaterial_vignette")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Glow" type="TextureRect" parent="Rest Animation/Overlay"]
+modulate = Color(1, 1, 1, 0)
+material = SubResource("CanvasItemMaterial_add")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = SubResource("GradientTexture2D_glow")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Fade" type="ColorRect" parent="Rest Animation/Overlay"]
+modulate = Color(1, 1, 1, 0)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.02, 0.014, 0.01, 1)
+
+[node name="Embers" type="CPUParticles2D" parent="Rest Animation/Overlay"]
+material = SubResource("CanvasItemMaterial_add")
+emitting = false
+amount = 110
+lifetime = 3.2
+preprocess = 1.6
+randomness = 0.6
+lifetime_randomness = 0.45
+texture = SubResource("GradientTexture2D_ember")
+emission_shape = 3
+emission_rect_extents = Vector2(600, 10)
+direction = Vector2(0, -1)
+spread = 22.0
+gravity = Vector2(0, -35)
+initial_velocity_min = 60.0
+initial_velocity_max = 170.0
+damping_min = 4.0
+damping_max = 18.0
+scale_amount_min = 0.12
+scale_amount_max = 0.32
+color_ramp = SubResource("Gradient_ember_life")
+hue_variation_min = -0.03
+hue_variation_max = 0.03
+
+[node name="Banner" type="Control" parent="Rest Animation/Overlay"]
+modulate = Color(1, 1, 1, 0)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Band" type="ColorRect" parent="Rest Animation/Overlay/Banner"]
+material = SubResource("ShaderMaterial_banner")
+layout_mode = 1
+anchors_preset = -1
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_top = -120.0
+offset_bottom = 120.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Message" type="Label" parent="Rest Animation/Overlay/Banner"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.92, 0.82, 0.58, 1)
+theme_override_colors/font_shadow_color = Color(0.35, 0.12, 0, 0.55)
+theme_override_constants/shadow_offset_x = 0
+theme_override_constants/shadow_offset_y = 0
+theme_override_constants/shadow_outline_size = 6
+theme_override_fonts/font = SubResource("FontVariation_banner")
+theme_override_font_sizes/font_size = 64
+text = "Rested"
+horizontal_alignment = 1
+vertical_alignment = 1

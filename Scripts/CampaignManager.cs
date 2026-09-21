@@ -23,6 +23,14 @@ public static class CampaignManager {
         return true;
     }
 
+    // Resting at a bonfire clears every endurance bar. p20's ten boxes are HP and Stamina
+    // together, so clearing them is both — and nothing else puts them back after a wipe,
+    // since only a *win* clears the bars at the end of an encounter (p19).
+    public static void RestParty() {
+        if (Players == null) return;
+        foreach (Player player in Players) player?.endurance?.Clear();
+    }
+
     public static void Clear() {
         Players = new Player[0];
         SaveSlot = -1;

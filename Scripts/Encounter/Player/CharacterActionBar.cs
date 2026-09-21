@@ -24,12 +24,25 @@ public partial class CharacterActionBar : Control
 		}
 	}
 
+	// The bar keeps its place in the layout between activations rather than disappearing,
+	// so the board does not resize — and every token on it jump — twice a round.
+	public void ShowIdle(string status) {
+		if (nameLabel != null) nameLabel.Text = "";
+		if (staminaLabel != null) staminaLabel.Text = "";
+		if (statusLabel != null) statusLabel.Text = status;
+		if (endActivationButton != null) endActivationButton.Disabled = true;
+		if (weaponRows != null) {
+			foreach (Node child in weaponRows.GetChildren()) child.QueueFree();
+		}
+	}
+
 	public void Refresh(PlayerToken token) {
 		if (token == null) return;
 
 		if (nameLabel != null) nameLabel.Text = token.player.name;
 		if (staminaLabel != null) staminaLabel.Text = $"{token.endurance.free} left";
 		if (statusLabel != null) statusLabel.Text = MovementStatus(token);
+		if (endActivationButton != null) endActivationButton.Disabled = false;
 
 		BuildWeaponRows(token);
 	}

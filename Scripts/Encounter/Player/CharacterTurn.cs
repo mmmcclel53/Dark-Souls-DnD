@@ -31,17 +31,14 @@ public partial class CharacterTurn : Node
 		if (actionBar != null) {
 			actionBar.AttackChosen += OnAttackChosen;
 			actionBar.EndActivationPressed += () => EmitSignal(SignalName.ActivationEnded);
-			actionBar.Visible = false;
+			actionBar.ShowIdle("Waiting for the enemies to activate");
 		}
 	}
 
 	public void Begin(PlayerToken token) {
 		active = token;
 		Disarm();
-		if (actionBar != null) {
-			actionBar.Visible = true;
-			actionBar.Refresh(token);
-		}
+		if (actionBar != null) actionBar.Refresh(token);
 		ShowMoveOptions();
 	}
 
@@ -49,7 +46,7 @@ public partial class CharacterTurn : Node
 		Disarm();
 		ClearHighlights();
 		active = null;
-		if (actionBar != null) actionBar.Visible = false;
+		if (actionBar != null) actionBar.ShowIdle("Waiting for the enemies to activate");
 	}
 
 	// ----- Movement -----

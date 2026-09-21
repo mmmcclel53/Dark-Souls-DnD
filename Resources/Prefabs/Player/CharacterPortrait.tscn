@@ -15,12 +15,14 @@ corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_topfade"]
-bg_color = Color(0, 0, 0, 0.55)
+bg_color = Color(0, 0, 0, 0.78)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_botfade"]
-bg_color = Color(0, 0, 0, 0.6)
+bg_color = Color(0, 0, 0, 0.82)
+content_margin_top = 2.0
+content_margin_bottom = 4.0
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
@@ -30,8 +32,8 @@ anchors_preset = 0
 script = ExtResource("1_script")
 avatarButton = NodePath("Avatar")
 nameLabel = NodePath("TopFade/Name")
-hpLabel = NodePath("BottomFade/HP")
-staminaLabel = NodePath("BottomFade/Stamina")
+hpLabel = NodePath("BottomFade/Lines/HP")
+staminaLabel = NodePath("BottomFade/Lines/Stamina")
 selectionBorder = NodePath("SelectionBorder")
 statusEffectsContainer = NodePath("StatusEffects")
 
@@ -58,27 +60,29 @@ horizontal_alignment = 1
 vertical_alignment = 1
 clip_text = true
 
-[node name="BottomFade" type="VBoxContainer" parent="."]
+[node name="BottomFade" type="PanelContainer" parent="."]
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -36.0
 grow_horizontal = 2
 grow_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_botfade")
 
-[node name="HP" type="Label" parent="BottomFade"]
+[node name="Lines" type="VBoxContainer" parent="BottomFade"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="HP" type="Label" parent="BottomFade/Lines"]
 layout_mode = 2
 text = "HP 10 / 10"
 horizontal_alignment = 1
-theme_override_styles/normal = SubResource("StyleBoxFlat_botfade")
 
-[node name="Stamina" type="Label" parent="BottomFade"]
+[node name="Stamina" type="Label" parent="BottomFade/Lines"]
 layout_mode = 2
 text = "STA 10"
 horizontal_alignment = 1
-theme_override_styles/normal = SubResource("StyleBoxFlat_botfade")
 
 [node name="StatusEffects" type="VBoxContainer" parent="."]
 layout_mode = 1

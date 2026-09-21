@@ -7,8 +7,6 @@ using System.Linq;
 
 public partial class ActionListener : Node
 {
-	private const float MAGIC_SIZE = 360 * 2;
-
 	// Characters share one scene the same way enemies do; the Player resource assigned at
 	// spawn is what makes it a Knight rather than a Herald.
 	[Export] public PackedScene playerScene;
@@ -31,6 +29,7 @@ public partial class ActionListener : Node
 	private int playersSpawned = 0;
 	private Player[] fallbackParty;
 	private List<GameNode> entrances = new List<GameNode>();
+	private CharacterPortraitPane portraitPane;
 
 	
 	// Wired once for every node. Which clicks matter is decided by CharacterTurn, so the
@@ -71,6 +70,19 @@ public partial class ActionListener : Node
 	    if (characterTurn != null) characterTurn.ActivationEnded += EndCharacterActivation;
 	    WireNodeClicks();
 
+	    portraitPane = GetNodeOrNull<CharacterPortraitPane>("/root/CharacterPortraitPane");
+	    portraitPane?.Show();
+	    if (turnQueue != null) turnQueue.Resized += () => { CallDeferred(nameof(PlacePortraitPane)); };
+	    CallDeferred(nameof(PlacePortraitPane));
+	}
+
+	// The pane is an autoload floating over the whole window with no idea what scene is up,
+	// so it has to be told where this one's HUD ends or it sits on top of the turn queue.
+	public void PlacePortraitPane() {
+	    if (portraitPane == null || turnQueue == null) return;
+
+	    float hudBottom = turnQueue.GetGlobalRect().End.Y;
+	    if (hudBottom > 0f) portraitPane.SetTopMargin((int)hudBottom + 12);
 	}
 
 	public void SpawnEnemies() {
@@ -100,8 +112,7 @@ public partial class ActionListener : Node
 			spawned.data = enemyData;
 			spawned.ActivationFinished += OnEnemyActivationFinished;
 
-			float nodeSize = node.Size.X;
-			enemy.Scale = new Vector2(nodeSize / MAGIC_SIZE, nodeSize / MAGIC_SIZE);
+			EncounterManager.ScaleToken(enemy, node.Size.X);
 			EncounterManager.MovePlayer(enemy, node, null);
 	        EncounterManager.enemies.Add(enemy);
 	    }
@@ -138,8 +149,7 @@ public partial class ActionListener : Node
 		// Assigned before the node enters the tree, since _Ready builds the token from it.
 		player.GetChild<PlayerToken>(0).player = party[playersSpawned];
 
-		float nodeSize = entrance.Size.X;
-		player.Scale = new Vector2(nodeSize / MAGIC_SIZE, nodeSize / MAGIC_SIZE);
+		EncounterManager.ScaleToken(player, entrance.Size.X);
 		EncounterManager.MovePlayer(player, entrance, null);
 	    EncounterManager.players.Add(player);
 	    playersSpawned++;
@@ -247,6 +257,7 @@ public partial class ActionListener : Node
 	        return;
 	    }
 	    token.BeginActivation();
+	    portraitPane?.SetSelectedIndex(EncounterManager.activeCharacterIndex);
 	    characterTurn?.Begin(token);
 	}
 
@@ -295,6 +306,7 @@ public partial class ActionListener : Node
 	// encounter id that both branches need.
 	private void EndEncounter() {
 	    characterTurn?.End();
+	    portraitPane?.SetSelectedIndex(-1);
 	    bool won = EncounterManager.phase == EncounterManager.Action.ENCOUNTER_WON;
 
 	    foreach (Node2D playerObj in EncounterManager.players) {

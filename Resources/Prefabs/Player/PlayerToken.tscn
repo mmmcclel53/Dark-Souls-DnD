@@ -14,6 +14,32 @@ border_width_top = 6
 border_width_right = 6
 border_width_bottom = 6
 border_color = Color(0.788, 0.635, 0.294, 1)
+corner_radius_top_left = 180
+corner_radius_top_right = 180
+corner_radius_bottom_right = 180
+corner_radius_bottom_left = 180
+corner_detail = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_disc"]
+bg_color = Color(0.067, 0.059, 0.047, 1)
+corner_radius_top_left = 180
+corner_radius_top_right = 180
+corner_radius_bottom_right = 180
+corner_radius_bottom_left = 180
+corner_detail = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_disc_rim"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 7
+border_width_top = 7
+border_width_right = 7
+border_width_bottom = 7
+border_color = Color(0.549, 0.471, 0.31, 1)
+corner_radius_top_left = 180
+corner_radius_top_right = 180
+corner_radius_bottom_right = 180
+corner_radius_bottom_left = 180
+corner_detail = 12
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar"]
 bg_color = Color(0.043, 0.039, 0.031, 0.902)
@@ -29,13 +55,13 @@ content_margin_bottom = 3.0
 
 [node name="Player" type="Node2D" groups=["Player"]]
 
-[node name="Player Button" type="TextureButton" parent="." node_paths=PackedStringArray("activeRim", "aggroMarker", "enduranceBoxes", "enduranceLabel", "enduranceNode", "statusesNode", "conditionIcons")]
+[node name="Player Button" type="TextureButton" parent="." node_paths=PackedStringArray("avatar", "activeRim", "aggroMarker", "enduranceBoxes", "enduranceLabel", "enduranceNode", "statusesNode", "conditionIcons")]
 unique_name_in_owner = true
 offset_right = 360.0
 offset_bottom = 360.0
 ignore_texture_size = true
-stretch_mode = 5
 script = ExtResource("1_token")
+avatar = NodePath("Token/Avatar")
 activeRim = NodePath("Active Rim")
 aggroMarker = NodePath("Aggro")
 enduranceBoxes = NodePath("Endurance/Boxes")
@@ -43,6 +69,38 @@ enduranceLabel = NodePath("Endurance/Label")
 enduranceNode = NodePath("Endurance")
 statusesNode = NodePath("Status Effects")
 conditionIcons = [NodePath("Status Effects/Bleed"), NodePath("Status Effects/Poison"), NodePath("Status Effects/Frost"), NodePath("Status Effects/Stagger")]
+
+[node name="Token" type="Panel" parent="Player Button"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+clip_children = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_disc")
+
+[node name="Avatar" type="TextureRect" parent="Player Button/Token"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Rim" type="Panel" parent="Player Button"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_disc_rim")
 
 [node name="Active Rim" type="Panel" parent="Player Button"]
 visible = false
@@ -61,7 +119,8 @@ anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -46.0
+offset_top = 2.0
+offset_bottom = 48.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2

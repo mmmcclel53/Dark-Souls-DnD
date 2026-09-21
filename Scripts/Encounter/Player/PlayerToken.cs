@@ -10,6 +10,7 @@ public partial class PlayerToken : TextureButton
 
 	[Export] public Player player;
 
+	[Export] public TextureRect avatar;
 	[Export] public Control activeRim;
 	[Export] public Control aggroMarker;
 	[Export] public Container enduranceBoxes;
@@ -47,7 +48,9 @@ public partial class PlayerToken : TextureButton
 
 	public override void _Ready() {
 		Pressed += OnClick;
-		TextureNormal = player.character?.avatar ?? player.character?.image;
+		// The art is clipped to a disc by the Token panel, so it goes on the TextureRect
+		// inside it rather than on the button.
+		if (avatar != null) avatar.Texture = player.character?.avatar ?? player.character?.image;
 
 		RefreshEndurance();
 		RefreshConditions();
@@ -187,6 +190,10 @@ public partial class PlayerToken : TextureButton
 	}
 
 	private void RefreshEndurance() {
+		// The floating party pane reads the same Endurance object, so it only stays honest
+		// if it is told every time a cube goes on or comes off.
+		GetNodeOrNull<CharacterPortraitPane>("/root/CharacterPortraitPane")?.RefreshFor(player);
+
 		if (enduranceLabel != null) {
 			enduranceLabel.Text = endurance.free.ToString();
 		}

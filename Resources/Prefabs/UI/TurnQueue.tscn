@@ -48,8 +48,7 @@ vertical_alignment = 1
 
 [node name="Scroll" type="ScrollContainer" parent="Margin/Rows"]
 layout_mode = 2
-size_flags_vertical = 3
-horizontal_scroll_mode = 2
+horizontal_scroll_mode = 1
 vertical_scroll_mode = 0
 
 [node name="Entries" type="HBoxContainer" parent="Margin/Rows/Scroll"]
