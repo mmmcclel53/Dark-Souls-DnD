@@ -5,7 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-public partial class ActionListener : Node
+public partial class ActionListener : Control
 {
 	// Characters share one scene the same way enemies do; the Player resource assigned at
 	// spawn is what makes it a Knight rather than a Herald.
@@ -32,8 +32,9 @@ public partial class ActionListener : Node
 	private CharacterPortraitPane portraitPane;
 
 	
-	// Wired once for every node. Which clicks matter is decided by CharacterTurn, so the
-	// entrance picker's own handlers stay separate.
+	// Wired once for every node, and the only click handler nodes have: the phase decides
+	// what a click means. Entrances used to add their own handler per pick and never remove
+	// it, so any later click on an entrance node tried to spawn past the end of the party.
 	private void WireNodeClicks() {
 	    foreach (Node child in nodesParent.GetChildren()) {
 	        if (child is not GameNode gameNode) continue;
@@ -45,29 +46,41 @@ public partial class ActionListener : Node
 	}
 
 	private void OnNodeClicked(GameNode node) {
+	    // A dodge's free step happens inside the enemy phase, so it is asked before the phase.
+	    if (characterTurn != null && characterTurn.isDodgeStepping) {
+	        characterTurn.OnDodgeStepNodeClicked(node);
+	        return;
+	    }
+	    if (EncounterManager.phase == EncounterManager.Action.PICK_ENTRANCE) {
+	        if (entrances.Contains(node)) SpawnPlayer(node);
+	        return;
+	    }
 	    if (EncounterManager.phase != EncounterManager.Action.CHARACTER_TURN) return;
 	    characterTurn?.OnNodeClicked(node);
 	}
 
 	public void ToggleAllNodesOff() {
 		foreach (Node node in nodesParent.GetChildren()) {
-			Control button = (Control)node.GetChild(0);
-			button.Modulate = new Color(0,0,0,0);
+			if (node is GameNode gameNode) gameNode.ClearHighlight();
 		}
 	}
 
 	public override void _Ready() {
 		EncounterManager.Reset();
 		EncounterManager.pathGrid = pathGrid;
-		EncounterManager.enemyInfoModal = GetNode<AcceptDialog>("%Enemy Info Dialog");
-		EncounterManager.enemyInfoPanel = GetNode<EnemyInfoPanel>("%Enemy Info Panel");
+		// CharacterTurn registers itself in its own _Ready, which runs before this one and
+		// so gets wiped by Reset; without this every enemy click saw no armed attack.
+		EncounterManager.characterTurn = characterTurn;
 		EncounterManager.dodgePrompt = GetNode<DodgePrompt>("%Dodge Prompt");
 		EncounterManager.pushPrompt = GetNode<PushPrompt>("%Push Prompt");
 
 		ToggleAllNodesOff();
 	    SpawnEnemies();
 
-	    if (characterTurn != null) characterTurn.ActivationEnded += EndCharacterActivation;
+	    if (characterTurn != null) {
+	        characterTurn.ActivationEnded += EndCharacterActivation;
+	        characterTurn.AttackResolved += OnAttackResolved;
+	    }
 	    WireNodeClicks();
 
 	    portraitPane = GetNodeOrNull<CharacterPortraitPane>("/root/CharacterPortraitPane");
@@ -139,12 +152,11 @@ public partial class ActionListener : Node
 
 	    foreach (GameNode entrance in entrances) {
 			entrance.ToggleButton(true);
-			BaseButton button = (BaseButton)entrance.GetChild(0);
-			button.Pressed += () => { SpawnPlayer(entrance); };
 	    }
 	}
 	public void SpawnPlayer(Control entrance) {
 	    Player[] party = GetParty();
+	    if (playersSpawned >= party.Length) return;
 		Node2D player = (Node2D)playerScene.Instantiate();
 		// Assigned before the node enters the tree, since _Ready builds the token from it.
 		player.GetChild<PlayerToken>(0).player = party[playersSpawned];
@@ -279,6 +291,13 @@ public partial class ActionListener : Node
 	    EncounterManager.action = EncounterManager.Action.ENEMY_MOVE;
 	}
 
+	// The last enemy dying ends the encounter there and then, not at End Activation.
+	private void OnAttackResolved() {
+	    if (EncounterManager.phase != EncounterManager.Action.CHARACTER_TURN) return;
+	    EncounterManager.PruneDeadEnemies();
+	    CheckEncounterOver();
+	}
+
 	private PlayerToken ActiveCharacter() {
 	    if (EncounterManager.players.Count == 0) return null;
 	    int i = Mathf.Clamp(EncounterManager.activeCharacterIndex, 0, EncounterManager.players.Count - 1);
@@ -318,49 +337,40 @@ public partial class ActionListener : Node
 
 	    WorldNodeData node = WorldMapManager.GetPendingEncounterNode();
 	    string worldNodeId = WorldMapManager.PendingEncounterNodeId;
-	    List<string> lines = new List<string>();
 
 	    if (won) {
-	        AwardVictory(node, lines);
+	        int? earned = AwardVictory(node);
 	        WorldMapManager.ReportEncounterWon();
+	        resultPanel?.ShowVictory(earned, SoulCache.current);
 	    } else {
-	        SettleDefeat(worldNodeId, lines);
+	        int dropped = SettleDefeat(worldNodeId);
 	        WorldMapManager.ReportPartyDeath();
+	        resultPanel?.ShowDefeat(dropped, SoulCache.current);
 	    }
-
-	    lines.Add($"Soul cache: {SoulCache.current}");
-	    resultPanel?.ShowResult(won, lines);
 	}
 
-	private void AwardVictory(WorldNodeData node, List<string> lines) {
+	// Returns the souls paid, or null when the win pays nothing yet.
+	private int? AwardVictory(WorldNodeData node) {
 	    // p19: every black and red cube comes off the endurance bars on a win.
 	    foreach (Node2D playerObj in EncounterManager.players) {
 	        EncounterManager.GetPlayerToken(playerObj)?.RestoreEndurance();
 	    }
-	    lines.Add("Endurance bars cleared.");
 
 	    // A boss win pays 1 soul per character per remaining bonfire spark (p19), and
-	    // sparks do not exist yet — so pay nothing rather than bake in a wrong number.
-	    if (node != null && node.encounterType == WorldEncounterType.BOSS) {
-	        lines.Add("Boss rewards need the spark system; no souls awarded.");
-	        return;
-	    }
+	    // sparks are cut — so pay nothing rather than bake in a wrong number.
+	    if (node != null && node.encounterType == WorldEncounterType.BOSS) return null;
 
 	    int earned = EncounterManager.players.Count * SoulCache.SOULS_PER_CHARACTER;
 	    SoulCache.Award(earned);
-	    lines.Add($"{earned} souls earned.");
+	    return earned;
 	}
 
-	private void SettleDefeat(string worldNodeId, List<string> lines) {
+	// Returns how many souls were dropped where the character fell. An older pile still
+	// lying somewhere is discarded by DropOnDeath (p19).
+	private int SettleDefeat(string worldNodeId) {
 	    int carried = SoulCache.current;
-	    int lost = SoulCache.droppedAmount;
-
 	    SoulCache.DropOnDeath(worldNodeId, EncounterManager.deathGridIndex);
-
-	    if (lost > 0) lines.Add($"{lost} souls left from an earlier death were lost.");
-	    lines.Add(carried > 0
-	        ? $"{carried} souls dropped where you fell — walk back to reclaim them."
-	        : "No souls were being carried.");
+	    return carried;
 	}
 
 	public override void _Process(double delta) {

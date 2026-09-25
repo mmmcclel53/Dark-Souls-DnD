@@ -20,12 +20,19 @@ Scripts/
     EncounterManager.cs    — Static global state (players, enemies, nodes, action enum)
     TurnQueue.cs           — Threat-ordered activation strip above the board
     TurnQueueEntry.cs      — Single face in that strip
+    BoardCamera.cs         — Zoom/pan for the board: wheel, drag, R / Reset View
+    TokenHighlight.cs      — Pulsing ring laid over a board token (attacker red, defender gold)
     GameNode.cs            — Individual grid tile; flags for entrance/enemy-spawn/disabled
+    HUD/
+      EquipmentCross.cs    — The DS-style equipment cross floating left of the action bar
+      EquipmentSlot.cs     — One slot of it: fixed crop of the printed card, glow, spent veil
+      CircleAvatar.cs      — Face in a gold ring with damage rising as a red fill (shader)
+      RollReveal.cs        — Centre-screen modal: dice tumble, land, then the arithmetic; click to continue
     Player/
       Player.cs            — Campaign-persistent character (stats, equipment, level)
       PlayerToken.cs       — Character on the board; endurance, conditions, aggro, activation state
       CharacterTurn.cs     — Owns one activation: stepping, arming an attack, picking targets
-      CharacterActionBar.cs— Weapon/option buttons + End Activation for the active character
+      CharacterActionBar.cs— The bottom HUD: cross, avatar, endurance, defence dice, tokens, card-style attack rows, Block/Dodge reaction, End Turn
       Endurance.cs         — The 10-box shared stamina/health bar (pure rules logic)
       Character.cs         — Character class template (tiers, starting gear, avatar)
       PlayerMove.cs        — Single weapon action (cost, dice, range, flags)
@@ -36,8 +43,7 @@ Scripts/
       EnemyMovement.cs     — Turns a Move icon into a node list (towards/away, distance, push)
       EnemyData.cs         — Per-enemy data card as a Resource (stats + moves + art)
       EnemyMove.cs         — Enemy action definition (direction, damage, flags)
-      EnemyInfoPanel.cs    — Click-through inspect panel rendered from EnemyData
-      EnemyBehaviourRow.cs — One behaviour icon written out as text
+      EnemyCardViewer.cs   — Full-size printed card over everything, opened from the activation bar
       Pathfinding/
         Pathfinding.cs     — A* algorithm (static)
         PathGrid.cs        — Grid wrapper used by pathfinding
@@ -45,7 +51,8 @@ Scripts/
         Heap.cs            — Min-heap for A* open set
     Combat/
       CombatResolver.cs    — Dice + arithmetic for one attack (no turn order, no UI)
-      DodgePrompt.cs       — Block-or-Dodge modal that suspends an enemy's activation
+      CombatPresenter.cs   — Rolls each die, shows the roll in RollReveal, then applies the outcome
+      DodgePrompt.cs       — Rings attacker/defender and awaits the action bar's Block/Dodge answer
       PushPrompt.cs        — Picks which model is shoved off an over-full node
   Equipment/
     Equipment.cs           — Interface: name, image, type, rarity, stat reqs
@@ -63,6 +70,10 @@ Scripts/
   Common/
     CharacterPortraitPane.cs  — Autoloaded floating party pane (Bonfire/Encounter)
     CharacterPortrait.cs      — Single portrait: avatar bg, name, HP, stamina, status strip
+    TickBar.cs                — Ten-tick endurance / enemy health row, with ghost previews
+    DiceChip.cs               — A die type and count as a coloured chip
+    CubeRow.cs                — A row of black (stamina) or red (damage) cubes
+    RollDie.cs                — One tumbling die in the roll reveal
     EquipmentModal.cs         — Autoloaded modal: Summary | Equipment | Inventory
     CharacterSummaryPanel.cs  — Modal column: stats from currently-equipped gear
     CharacterEquipmentPanel.cs — Modal column: slot + upgrade buttons, no StaminaHealth
@@ -125,16 +136,22 @@ States: `INACTIVE`, `PICK_ENTRANCE`, `ENEMY_MOVE`, `CHARACTER_TURN`, `ENCOUNTER_
 
 `_Process` reads `action`, **clears it to `INACTIVE` before dispatching**, then acts. That ordering matters: an activation with nothing to do finishes synchronously and queues the next step from inside the handler, and clearing afterwards would stamp `INACTIVE` back over it and hang the loop.
 
-Rules p19: every enemy activates in threat order, then exactly one character. Enemy movement resolves over several frames inside `Enemy._Process`, so the loop is driven by the `Enemy.ActivationFinished` signal rather than running straight through. `Enemy.ProcessNextMove` skips any behaviour it cannot execute rather than leaving `path` null, so an activation always terminates and the signal always arrives. The character phase then waits on the HUD's End Activation button (`TurnQueue.EndActivationPressed`).
+Rules p19: every enemy activates in threat order, then exactly one character. Enemy movement resolves over several frames inside `Enemy._Process`, so the loop is driven by the `Enemy.ActivationFinished` signal rather than running straight through. `Enemy.ProcessNextMove` skips any behaviour it cannot execute rather than leaving `path` null, so an activation always terminates and the signal always arrives. The character phase then waits on the action bar's End Turn button (`CharacterActionBar.EndActivationPressed`).
 
 ### Character Activation
-`CharacterTurn` owns everything the player does during their activation; `ActionListener` still owns turn order and just hands over via `Begin`/`End`. `CharacterActionBar` renders one row per hand-slot weapon with a button per attack option, rebuilt on every change rather than diffed — a stale button would let a player take an illegal turn.
+`CharacterTurn` owns everything the player does during their activation; `ActionListener` still owns turn order and just hands over via `Begin`/`End`. `CharacterActionBar` is the bottom HUD, shaped after the Dark Souls games' with BG3's readouts (Matt's brief, Sept 2026): the **equipment cross** floats off its left end over the board (backup on top, armour under it edge to edge, hands either side of the seam — `EquipmentCross`, DS1 geometry from one exported slot size), then the character's face in a ring (`CircleAvatar`), name, ten-tick endurance bar, Block/Resist dice chips, the Estus/Heroic/Luck tokens (display only until those systems exist), the **raised weapon's attack options as the rows of its printed card** (`[cost]` bracket, black stamina cubes, dice chips, flag icons), the party's souls, and a round **End Turn**. Clicking a hand slot raises that weapon; the first usable one is raised automatically. Hovering a row ghosts its stamina cost onto the endurance bar (`TickBar.SetGhost`). Rows are rebuilt on every change rather than diffed — a stale button would let a player take an illegal turn. The bar has three states and never leaves the layout (idle / activation / reaction, plus the dodge step), and its weapon column has a fixed minimum height so switching state never resizes the board.
+
+Slot art is a **fixed crop of the printed card** (`EquipmentSlot.weaponRegion` / `armourRegion`, card fractions; every weapon card shares one layout and every armour card another), so no card is ever sliced into its own resource; `wholeCard` shows the entire card instead. A two-hander occupies one hand slot and greys the other.
 
 Movement is **one node per click** (p22): the first step of an activation is the free Walk, each later one a Run at 1 stamina, and Frostbite adds 1 to every step including the walk. Legal neighbours are highlighted; `EncounterManager.CanEnter` keeps the node cap honest.
 
 p22's "move before *or* after attacking, never both" is enforced by latching `PlayerToken.movementLocked = hasMoved` on the **first** attack. Move-then-attack locks movement for the rest of the activation; attack-then-move leaves it open, and continuing to move after that is still one contiguous block. Each hand-slot weapon may attack once (`usedWeapons`).
 
-Targeting: an option-specific `attackRange` replaces the weapon's standard range (p23); Shaft (`isNotZeroRange`) excludes range 0; the Node icon (`isAOE`) resolves one roll against every enemy on the chosen node. Clicking an enemy while an attack is armed targets it instead of opening the inspect panel.
+Targeting: an option-specific `attackRange` replaces the weapon's standard range (p23); Shaft (`isNotZeroRange`) excludes range 0; the Node icon (`isAOE`) resolves one roll against every enemy on the chosen node. While a single-target attack is armed, every enemy it can reach gets a pulsing red `TokenHighlight` ring and clicking that enemy's token attacks it; clicking a lit node also works when exactly one reachable enemy stands there. An AOE attack lights nodes only, and clicking either the node or any enemy on it hits the whole node. Outside targeting, a token click is passed to its node (`GameNode.Press`), so moving onto an occupied node still works.
+
+⚠️ `EncounterManager.Reset()` clears `characterTurn`, and `ActionListener._Ready` (which calls it) runs *after* `CharacterTurn._Ready` registers itself — so `ActionListener` re-registers it straight after `Reset`. Without that, every enemy click saw no armed attack, which is why picking a target never worked.
+
+Attack buttons show their dice as `DiceChip`s — a rounded square in the die's colour with the count inside — instead of "1B 1U".
 
 Not implemented, deliberately: `repeat`/`repeatConstraint` (xN uses with free / one-enemy / one-node constraints) and `bonusMovement` (Shift — free nodes that don't consume walk/run). Both need their own interaction; the action bar's tooltip marks them "(not implemented)" so they aren't mistaken for working.
 
@@ -143,7 +160,9 @@ Not implemented, deliberately: `repeat`/`repeatConstraint` (xN uses with free / 
 
 A win clears every endurance bar (p19) and awards `2 × party size` souls. **Sparks are cut from this project**, so p19's boss formula (1 soul per character per remaining spark) is unusable and boss wins currently award nothing — the panel says so. Boss rewards need a replacement rule, not a spark implementation.
 
-`EncounterResultPanel` shows the outcome and exits to the World Map on a win or the Bonfire on a wipe, matching where `WorldMapManager` has just put the party.
+The win is checked the moment the last enemy dies: `CharacterTurn` emits `AttackResolved` after every attack and `ActionListener.OnAttackResolved` runs `CheckEncounterOver` there, not at End Activation. It relies on `EncounterManager.GetEnemy` treating an enemy queued for deletion as already gone.
+
+`EncounterResultPanel` shows the outcome and exits to the World Map on a win or the Bonfire on a wipe, matching where `WorldMapManager` has just put the party. It takes numbers, not text (`ShowVictory(earned, total)` / `ShowDefeat(dropped, total)`): a centred title, the change as "+X" / "−X" with the soul icon, "Total: X" with the icon, on a translucent panel that fades in. Keep it that way — no explanatory sentences (Matt's standing preference: no obvious or superfluous UI text).
 
 ### Bonfire Rest
 `WorldMapManager.RestAtBonfire` is the whole rest action and the only one: it clears the party's endurance bars (`CampaignManager.RestParty`), records the checkpoint, respawns every cleared encounter **except bosses**, writes the save to disk, and returns how many encounters came back so the caller can say so.
@@ -185,16 +204,17 @@ Equipment immunities are honoured for characters only (`PlayerToken.ApplyConditi
 `GameNode.statusEffect` makes a node a hazard: `EncounterManager.ApplyNodeHazard` applies it to anything that steps on. **This is not a rule from the book** — the book's node-level hazard is the Trap token (p18), which damages characters and ignores enemies. Treat hazard nodes as this project's own idea.
 
 ### Enemy Behaviour Execution
-`Enemy.ProcessNextMove` walks the behaviour list left to right (p24). A behaviour is movement when `isLeap || direction != 0` and an attack otherwise — the same split `EnemyInfoPanel` uses for its wording. `EnemyMovement.Plan` turns a Move icon into a node list: the icon's number is a **node count**, not "go to the target", so Move 2 takes two steps and stops. Negative `direction` retreats greedily, stopping early when no neighbour is farther (the corner case the rules call out). Frost trims the count by 1.
+`Enemy.ProcessNextMove` walks the behaviour list left to right (p24). A behaviour is movement when `isLeap || direction != 0` and an attack otherwise. `EnemyMovement.Plan` turns a Move icon into a node list: the icon's number is a **node count**, not "go to the target", so Move 2 takes two steps and stops. Negative `direction` retreats greedily, stopping early when no neighbour is farther (the corner case the rules call out). Frost trims the count by 1.
 
 Attacks resolve in place: out of range misses entirely and has no effect (p25), the Node icon hits every character sharing the target node, and pushes shove characters off each node the enemy enters, dealing the movement attack's damage first. Targeting follows the skull/ring icon, and ties on "nearest" go to the aggro holder, then to the higher `Character.taunt` (p24).
 
-Attacks are `async` because each one opens `DodgePrompt` and waits: the enemy's whole activation suspends until the defender picks Block or Dodge. `Enemy.ResolveArrival` exists for the same reason — arriving on a node can open that prompt, so it clears `path` before awaiting to stop `_Process` re-entering mid-await.
+Attacks are `async` because each one asks `DodgePrompt` and waits: the enemy's whole activation suspends until the defender picks Block or Dodge, then again on the roll reveal, and on a successful dodge again on the defender's free step.
+
+The Block-or-Dodge question lives **in the action bar**, not over the board: `DodgePrompt.Ask` only rings the two tokens (`TokenHighlight`, red attacker / gold defender), gives the attacker's activation-bar entry a red rim (`TurnQueueEntry.SetAttacking`) and awaits `CharacterActionBar.AskReaction`. The bar swaps to the defender, lights the armour slot, shows the attacker's face with the attack icon carrying its real strength (`CombatResolver.AttackStrength`, so Stagger shows), the damage as red cubes and any condition icon, and turns the rows into **Block** (icon, the gear that rolls, its dice chips, the damage range that can still get through) over **Dodge** (the dodge dice pool, the difficulty, the stamina cube, the chance). Dodge is greyed when the pool cannot reach the difficulty or the stamina cannot be paid — paying to fail is not a choice. Hovering either ghosts its consequence onto the endurance bar: expected damage pulsing hard, worst case softly beyond it. The icons in `Resources/Images/Sprites/Combat/` are the rulebook's own vector icons (p25), rendered white so the scene tints them. `Enemy.ResolveArrival` exists for the same reason — arriving on a node can open that prompt, so it clears `path` before awaiting to stop `_Process` re-entering mid-await.
+
+A successful dodge grants the free one-node step of p22: `Enemy.Strike` awaits `CharacterTurn.OfferDodgeStep`, which lights the adjacent nodes and puts the defender on the bar with the End button relabelled **End Dodge**; a node click takes the step (through `MovePlayer`, hazards and the push prompt as usual) and either that or the button ends it. `ActionListener.OnNodeClicked` routes clicks to it before checking the phase, because it happens inside the enemy phase.
 
 ⚠️ **Never give a `Resource` subclass a parameterless constructor that sets anything.** Godot strips every property matching the *field-initializer* default when saving a `.tres`, then reconstructs through the parameterless constructor on load. `EnemyMove` chained to its full constructor (`towardsAggro=true, damage=1, direction=1`), so a saved `direction = 0` was stripped and came back as `1` — silently turning every enemy attack into a second move. `PlayerMove` had the same trap with `repeat`. Both are now `{}` and defaults live only in field initializers.
-
-### Enemy Inspect Panel
-Clicking a token fills `EnemyInfoPanel` (inside the `%Enemy Info Dialog` AcceptDialog) rather than showing a flat scan of the card. Everything comes from `EnemyData` except current health and tier-adjusted Block/Resist, which the printed card cannot show. The scan lives on a second tab and stays the authority when a transcribed value looks wrong. `EnemyInfoPanel` owns all the card-to-prose formatting; `EnemyMove` stays pure data. A behaviour counts as movement when `isLeap || direction != 0`, and as an attack otherwise — that split is what decides the wording and which chips appear.
 
 ### Combat Resolution
 `CombatResolver` is deliberately free of turn order, targeting and UI — the turn loop decides who swings at whom and pays the Stamina, then calls in. Rolling and resolving are separate methods because the Node icon rolls **once** and compares that single total against every enemy on the node (p23), so the roll has to exist without being spent.
@@ -203,15 +223,40 @@ Character attacks roll pips + `modifier` and subtract the enemy's Block or Resis
 
 Dodging (p25) uses `DodgeDice`, which extends `Dice` with faces `0,0,0,1,1,1` — three blanks and three icons, so each die is a coin flip and a roll *sums* to the number of icons. Summing rather than flagging is what makes a dodge difficulty of 2 or more work. `dodgeAbility` on armour and weapons is the size of that pool. A dodge replaces the Block/Resist roll entirely and is all or nothing: succeed and the character is not hit at all (no damage, no push, no condition); fail and they take the **full** damage with no defence roll. `DiceUtility.DICE_TYPE` gained a `DODGE` member, appended so existing BLACK/BLUE/ORANGE ordinals in `.tres` files still hold.
 
+### Roll Reveal
+Nothing lands before the player has seen the dice. `CombatPresenter` is the layer between the turn loop and `CombatResolver`: it rolls each die by hand (so the faces exist), builds a `RollReveal.View` — the actor (weapon art, or the Block/Resist/Dodge icon), the dice, the modifier and total, and a line per model affected (portrait, the Block/strength/difficulty badge, the damage as red cubes or the dodge icon on a success) — awaits `RollReveal.Present`, and only then calls `CombatResolver.Apply`. `CharacterTurn.PickTarget` / `ResolveAgainstNode` and `Enemy.Strike` all go through it; `CharacterTurn` disarms and clears the highlights *before* awaiting so nothing on the board answers a click during the reveal, and `FinishAttack` re-checks that the activation still exists afterwards.
+
+`RollReveal` is a `CanvasLayer` at 12 (above the portrait pane, below the card viewer) with a scrim that blocks the board: the dice (`RollDie`) cycle random faces for `tumbleSeconds`, land one after another left to right with a scale pop, then the total and the lines appear and **Continue** (focused, so Enter works) hands control back. It registers itself in `EncounterManager.rollReveal` on ready; it sits after the board in `Encounter.tscn`, so the registration lands after `ActionListener`'s `Reset` rather than being wiped by it. With no reveal in the scene the presenter skips straight to applying.
+
 ### Player Model
 `Player` is the campaign-persistent Resource (stats, equipment ids, level) and `PlayerToken : TextureButton` is the character on the board, exactly mirroring the `EnemyData` / `Enemy` split. `ActionListener` spawns one shared `PlayerToken.tscn` per party member and assigns the `Player` before parenting it.
 
-Encounter state lives on `Player.endurance`, which is deliberately **not** `[Export]`ed — the bar clears on victory (p19), so it must never be written into the saved character. It is a plain `Endurance` object rather than a Resource so it stays out of serialisation entirely. `Player` is per-character (one per party member from `CampaignManager.Players`), so mutable runtime state on it is safe in a way it would not be on a shared template like `EnemyData`.
+Encounter state lives on `Player.endurance` and `Player.conditions`, both deliberately **not** `[Export]`ed — the bar clears on victory (p19), so it must never be written into the saved character. It is a plain `Endurance` object rather than a Resource so it stays out of serialisation entirely. `Player` is per-character (one per party member from `CampaignManager.Players`), so mutable runtime state on it is safe in a way it would not be on a shared template like `EnemyData`.
 
 The party comes from `CampaignManager.Players`; when that is empty the encounter falls back to `ActionListener.demoParty` (a list of `Character` resources) so the scene can be run standalone.
 
 ### Encounter HUD
-`TurnQueue` (instanced in `Encounter.tscn` between the title bar and the board) is a pure mirror — it renders activation order from `EncounterManager.enemies`, which `ActionListener` has already sorted by threat descending. It rebuilds when the enemy count changes and repaints when phase, round or active index changes — it never drives the turn loop, only reflects it. The trailing separator and Party entry encode the rule that one character activates after every enemy. End Activation lives on `CharacterActionBar`, not here, so the queue stays free of controls.
+**Board tokens carry no chrome.** `Enemy.tscn` and `PlayerToken.tscn` are an avatar and nothing else — a token is roughly half a grid cell, and three can share a node, so there is no room to read anything there. Every readout moved to the two bars, and the tokens keep only the state:
+`Enemy.isActivating` / `PlayerToken.isActivating` are flags the bars read, not rims they draw.
+
+`TurnQueue` is the **Enemy Activation** bar: the round count in the top-left corner and one `TurnQueueEntry` per enemy in threat order, centred. It has no title and no background — the board runs under it when zoomed. There is no Party entry — every enemy acts between every character activation, so the party's place in the order is fixed and drawing it says nothing.
+
+Each entry carries what the token used to: a 3:4 portrait cropped from the card art (`EnemyData.GetPortrait`, region `portraitRegion` in card fractions — nudge it per enemy when the art is off-centre), a **diamond** threat badge (rotated 45° with the label counter-rotated, matching the printed card's corner), an **ember rim at tier 2+**, a **segmented** health bar sized to that enemy's Health — one tick per point, so a 1-health enemy shows one tick and a Sentinel shows ten — condition icons, and a damage veil. Spent enemies dim and grey.
+
+`TurnQueue` is still a pure mirror of the turn loop, but the entries **poll** their enemy: health and conditions change from attacks, pushes and poison ticking at end of activation, and a missed push-refresh would leave a dead enemy looking healthy.
+
+End Turn lives on `CharacterActionBar`, not here, so the bar stays free of controls. Clicking a face opens `EnemyCardViewer` (a `CanvasLayer` at 15 inside `TurnQueue.tscn`, above the portrait pane) with the full printed card; any click or Escape closes it. There is no written-out inspect dialog any more; the card is the only enemy readout.
+
+### Party Pane
+The pane is now a small BG3-style strip (60×80 portraits, 68×90 when active): the active character's full readout lives on the action bar, so the strip only says who is in the party, how hurt they are and whose turn it is. `BoardCamera`'s insets in `Encounter.tscn` shrank with it.
+
+`CharacterPortrait` is where a character's endurance, conditions and turn are read. Name **above** the art and the bars **below** it, so nothing sits on top of the portrait. The active character's art grows from `restingSize` to `activeSize` and a white arrow points at it from the right.
+
+Damage is a translucent red layer that climbs the art from the bottom in proportion to `damageTaken` (the same treatment on `TurnQueueEntry` for enemies), so how hurt someone is reads without counting ticks.
+
+⚠️ The endurance readout is **one** ten-tick bar, not a health bar plus a stamina bar. There is only one bar in the rules (p20): black ticks fill from the left as stamina is spent, red from the right as damage lands, and the uncovered middle is the capacity to do either. Two bars would imply two pools and hide exactly the tension the rule exists to create.
+
+The pane has a `Player`, never a `PlayerToken`, which is why `Player.conditions` sits beside `Player.endurance` and why `CharacterPortrait` asks `EncounterManager.characterTurn?.active` whose turn it is. Portraits **poll** rather than being pushed at, for the same reason the activation bar entries do.
 
 ### Node Occupancy
 A node holds at most `EncounterManager.MAX_MODELS_PER_NODE` (3) models — but a full node is **enterable**, not blocked. p10: "If there are already three models on a node and another model moves onto that node, the players must push one of the three models already on the node." So `PathGrid.IsBlocked` is terrain only and full nodes stay pathable; `PathGrid.HasRoom` is the separate occupancy question.
@@ -223,21 +268,27 @@ The push **destination** is auto-picked (first adjacent node with room, falling 
 ⚠️ An earlier pass had this wrong, treating full nodes as impassable. That is what made enemies deadlock around a cornered character. Do not reintroduce occupancy into `IsBlocked`.
 
 ### Node-to-World Mapping
-Characters and enemies are children of `GameNode` (Control) nodes. `EncounterManager.MovePlayer` reparents a unit from one `GameNode` to another and calls `FixPositioning` to manually place up to 3 occupants. The grid is a 7×7 set of `Control` nodes, each with a `TextureButton` child for click handling.
+Characters and enemies are children of `GameNode` (Control) nodes. `EncounterManager.MovePlayer` reparents a unit from one `GameNode` to another and calls `FixPositioning` to manually place up to 3 occupants. The grid is a 7×7 set of `Control` nodes, each with a `TextureButton` child named `Button` for click handling. `GameNode.ClickTarget` finds it **by name** — the models are children of the same node, so any positional lookup breaks as soon as something stands there. The button stays *under* the models (first child) so a model can be clicked; the node's only click handler is `ActionListener.OnNodeClicked`, which also handles entrance picking by phase (entrances used to add a handler per pick and never remove it, so clicking an entrance later spawned past the end of the party).
 
 ### Board Geometry
 The 7×7 grid is a square lattice **turned 45°**: grid `(x, y)` sits `(x + y) - 6` steps right and `(y - x)` steps down from the centre of the map art. Only the diamond `|u| ≤ 3, |v| ≤ 3` — 25 cells — lands on the board; the 24 corner cells fall outside it and are flagged `isDisabled` and hidden. That diamond matches the 25 circles printed on `Tile 2.jpg` one for one, including their colour: the four **purple** circles are the `isDisabled` terrain cells and the four **red** circles are the `isEnemySpawn` cells.
 
 Measured against the art (which the scene draws `flip_h`), a lattice step is **0.12162** of the board square and the lattice centre is **(0.49396, 0.49601)**. Each `GameNode` is anchored to those fractions with a box one step wide, so the engine keeps the grid on the printed circles at any window size; the highlight `TextureButton` inside is inset to 14% so the marker reads smaller than the cell, and needs `ignore_texture_size` or the 36px sprite sets a floor on how small a node can get.
 
-`Board Frame` (an `AspectRatioContainer` with ratio 1) is what makes those fractions safe — without a square board the lattice would shear. The models on the nodes are **not** anchored, so `PathGrid.RescaleModels` re-scales them (via `EncounterManager.ScaleToken`, half a node each) and re-packs them on every resize.
+The square board `BoardCamera` fits is what makes those fractions safe — without a square board the lattice would shear. The models on the nodes are **not** anchored, so `PathGrid.RescaleModels` re-scales them (via `EncounterManager.ScaleToken`, half a node each) and re-packs them on every resize.
+
+**Zoom and pan** live on `Board View` (`BoardCamera`), a clipping `Control` covering the whole Stage under the title bar, with the `Encounter` node inside it. At rest the board is a square fitted into the *safe rect* — the space between the Turn Queue, the Action Bar and the two side insets — so no HUD covers it. `BoardCamera` sets the board's `Size`, `Scale` and `Position` itself (the `Encounter` node is not anchored), which leaves the grid's fractions, `RescaleModels` and clicks unaffected. Zoom runs 1×–3× about the cursor and the board then runs under the HUD like the world map; the pan is clamped so some of the board always stays under the centre of the safe rect. Left-drag pans only when it starts off a button, so node and token clicks keep working; right/middle-drag pan from anywhere; `R` or the title bar's Reset View resets. Anything that moves a model in global space must go through the node's transform (`node.GetGlobalTransform() * localPoint`) — adding a local offset to a `GlobalPosition` is wrong once the board is scaled, which is what `Enemy._Process`'s walk used to do. `ActionListener` extends `Control` (it sits on one) so it can be the camera's target.
 
 ⚠️ The grid was originally hand-placed in pixel offsets against a differently-sized board, which is why nothing sat on a circle. Do not go back to fixed offsets — anything authored in pixels breaks the moment the window is not the size it was authored at.
 
 ### Encounter Layout
-`Encounter.tscn` stacks Title Panel → Turn Queue → Board → Action Bar in one `VBoxContainer`. Only the Board expands; the other three size to content (the Action Bar has a `custom_minimum_size` height covering a full weapon list). That is deliberate: `CharacterActionBar` stays in the layout between activations and shows an idle line via `ShowIdle` rather than hiding, because a bar appearing and disappearing resized the board — and every token on it — twice a round.
+`Encounter.tscn` is Title Panel over a `Stage` that fills the rest. The Stage holds two full-rect layers: `Board View` (the board, see zoom and pan under Board Geometry) and on top of it `HUD`, a `VBoxContainer` of Turn Queue → spacer → Action Bar. The Turn Queue and Action Bar have **transparent** backgrounds (label outlines come from a small `Theme` on each), so the zoomed board shows underneath them; only the title bar stays opaque.
 
-`CharacterPortraitPane` is an autoload floating over the whole window, so it has no idea what scene is up. `ActionListener.PlacePortraitPane` tells it where this scene's HUD ends (`SetTopMargin`); the Board's left gutter is what reserves room for it. `EncounterDevControls` adds its Win/Die buttons to the title bar's `HBoxContainer` for the same reason — an anchored overlay landed on top of the Show Stats toggle.
+Everything in the HUD that is only layout has `mouse_filter = IGNORE` — including the rows `CharacterActionBar` builds at runtime and the anchor the equipment cross hangs from — so wheel and drag in the empty parts of the HUD reach the board. The action bar's translucent panel is the one exception: it looks like a panel, so it stops input. Anything new added elsewhere needs IGNORE, or it silently blocks zoom and pan over its area.
+
+The Action Bar is an `HBoxContainer`: a `Cross Anchor` (IGNORE, sized to the cross, which hangs off its bottom-left and stands taller than the bar, over the board's bottom-left corner — deliberately, the way the games' HUD does) and then the translucent `Panel` holding avatar, character block, weapon column, souls and End Turn. It stays in the layout between activations, dimmed via `ShowIdle` rather than hidden, because its height is part of what `BoardCamera` fits the board around — a bar appearing and disappearing would resize the board, and every token on it, twice a round. The weapon column's 124px minimum height is what keeps the reaction state the same height as an activation.
+
+`CharacterPortraitPane` is an autoload floating over the whole window, so it has no idea what scene is up. `ActionListener.PlacePortraitPane` tells it where this scene's HUD ends (`SetTopMargin`); `BoardCamera.leftInset` is what keeps the fitted board clear of it (`rightInset` matches it so the board stays centred). `EncounterDevControls` adds its Win/Die buttons to the title bar's `HBoxContainer` for the same reason — an anchored overlay landed on top of the Show Stats toggle.
 
 ### Pathfinding
 A* is implemented in `Pathfinding.cs` using `Heap<PathNode>` for the open set. `PathGrid` (a Node in the scene) initializes the walkability grid from `GameNode.isDisabled` flags. Known issue: `openSet.UpdateItem` is commented out, which can produce suboptimal paths when a node's cost improves mid-search.
@@ -272,8 +323,11 @@ Scenes are swapped by instantiating the next scene, adding it to root, then free
 - The First Activation token (p19) is unimplemented; `activeCharacterIndex` always starts at 0 rather than rotating between encounters
 - Characters are not placed on the Bonfire tile on a wipe; the result panel just returns to the Bonfire scene
 - The push **destination** is auto-picked; p21 gives the players that choice
+- The aggro token is no longer drawn on the board — the active character is marked in the party pane instead, and aggro always follows activation
+- Enemy tokens are bare avatars while character tokens are clipped discs with a rim; they do not match visually
 - Save/load is scaffolded but non-functional
-- Estus, heroic action and luck do not exist yet, so resting only clears the endurance bars — the other three things p19 says a rest refills have nothing to refill
+- Estus, heroic action and luck do not exist yet, so resting only clears the endurance bars — the other three things p19 says a rest refills have nothing to refill. The action bar shows their tokens (always ready, inert) so the slot is there when they land; Luck's reroll of one die belongs on the roll reveal
+- The dodge step and the roll reveal were verified by build and code review only, not yet by playing through them
 - `WorldMapManager.ReportPartyDeath` still respawns **every** encounter including bosses, where resting spares them
 
 ### Enemy data (`Resources/Prefabs/Enemies/*/<Name>.tres`)
@@ -295,10 +349,6 @@ from the resource. Adding an enemy to an encounter means adding a resource, neve
 Godot rewrites these `.tres` files the first time it loads one, stripping every property that equals its C#
 default and retyping the `moves` array. That is lossless *because* `EnemyMove.statusEffect` is initialised to
 `NONE`, so a stripped value reloads as `NONE` rather than `BLEED = 0`. Keep that initialiser.
-
-Tokens drop their condition column and tier pips below `Enemy.compactWidthPx` (64px rendered), keeping only the
-threat badge and health bar. The threshold is exported because a token is scaled to the grid cell, so its real
-on-screen size depends on resolution — tune it against the running game, not the design size.
 
 Tier is still a per-instance export defaulting to 1; nothing selects it per encounter yet. That needs an
 encounter definition resource pairing an `EnemyData` with a tier and a count.

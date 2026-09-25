@@ -1,23 +1,45 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://Scripts/Encounter/EncounterResultPanel.cs" id="1_result"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_scrim"]
-bg_color = Color(0.043, 0.039, 0.031, 0.706)
+[ext_resource type="Texture2D" uid="uid://c1qqm6jq11jti" path="res://Resources/Images/Sprites/Soul.png" id="2_soul"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
-bg_color = Color(0.106, 0.094, 0.075, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
+bg_color = Color(0.051, 0.047, 0.039, 0.78)
+border_width_top = 1
+border_width_bottom = 1
+border_color = Color(0.788, 0.635, 0.294, 0.7)
+content_margin_left = 48.0
+content_margin_top = 28.0
+content_margin_right = 48.0
+content_margin_bottom = 28.0
+shadow_color = Color(0, 0, 0, 0.45)
+shadow_size = 24
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button"]
+bg_color = Color(0.106, 0.094, 0.075, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
 border_color = Color(0.541, 0.455, 0.204, 1)
 content_margin_left = 20.0
-content_margin_top = 16.0
+content_margin_top = 6.0
 content_margin_right = 20.0
-content_margin_bottom = 16.0
+content_margin_bottom = 6.0
 
-[node name="EncounterResultPanel" type="Control" node_paths=PackedStringArray("titleLabel", "detailLabel", "continueButton")]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_hover"]
+bg_color = Color(0.165, 0.141, 0.098, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.91, 0.82, 0.58, 1)
+content_margin_left = 20.0
+content_margin_top = 6.0
+content_margin_right = 20.0
+content_margin_bottom = 6.0
+
+[node name="EncounterResultPanel" type="Control" node_paths=PackedStringArray("titleLabel", "changeRow", "changeSign", "changeLabel", "totalLabel", "continueButton")]
 visible = false
 layout_mode = 3
 anchors_preset = 15
@@ -27,17 +49,20 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_result")
 titleLabel = NodePath("Scrim/Centre/Panel/Rows/Title")
-detailLabel = NodePath("Scrim/Centre/Panel/Rows/Detail")
+changeRow = NodePath("Scrim/Centre/Panel/Rows/Change")
+changeSign = NodePath("Scrim/Centre/Panel/Rows/Change/Amount/Sign")
+changeLabel = NodePath("Scrim/Centre/Panel/Rows/Change/Amount/Value")
+totalLabel = NodePath("Scrim/Centre/Panel/Rows/Total/Value")
 continueButton = NodePath("Scrim/Centre/Panel/Rows/Continue")
 
-[node name="Scrim" type="Panel" parent="."]
+[node name="Scrim" type="ColorRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_scrim")
+color = Color(0, 0, 0, 0.35)
 
 [node name="Centre" type="CenterContainer" parent="Scrim"]
 layout_mode = 1
@@ -46,31 +71,98 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 
 [node name="Panel" type="PanelContainer" parent="Scrim/Centre"]
-custom_minimum_size = Vector2(380, 0)
+custom_minimum_size = Vector2(440, 0)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
 [node name="Rows" type="VBoxContainer" parent="Scrim/Centre/Panel"]
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 14
+alignment = 1
 
 [node name="Title" type="Label" parent="Scrim/Centre/Panel/Rows"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.902, 0.871, 0.796, 1)
-theme_override_font_sizes/font_size = 19
+theme_override_colors/font_color = Color(0.91, 0.82, 0.58, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 36
 text = "Encounter Won"
-autowrap_mode = 3
+horizontal_alignment = 1
 
-[node name="Detail" type="Label" parent="Scrim/Centre/Panel/Rows"]
+[node name="Divider" type="ColorRect" parent="Scrim/Centre/Panel/Rows"]
+custom_minimum_size = Vector2(260, 1)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.549, 0.514, 0.451, 1)
-theme_override_font_sizes/font_size = 13
-text = "2 souls earned"
-autowrap_mode = 3
+size_flags_horizontal = 4
+mouse_filter = 2
+color = Color(0.788, 0.635, 0.294, 0.55)
+
+[node name="Change" type="HBoxContainer" parent="Scrim/Centre/Panel/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="Amount" type="HBoxContainer" parent="Scrim/Centre/Panel/Rows/Change"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Sign" type="Label" parent="Scrim/Centre/Panel/Rows/Change/Amount"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(0.949, 0.925, 0.878, 1)
+theme_override_font_sizes/font_size = 14
+text = "+"
+vertical_alignment = 1
+
+[node name="Value" type="Label" parent="Scrim/Centre/Panel/Rows/Change/Amount"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.949, 0.925, 0.878, 1)
+theme_override_font_sizes/font_size = 28
+text = "4"
+vertical_alignment = 1
+
+[node name="Soul" type="TextureRect" parent="Scrim/Centre/Panel/Rows/Change"]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("2_soul")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Total" type="HBoxContainer" parent="Scrim/Centre/Panel/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="Value" type="Label" parent="Scrim/Centre/Panel/Rows/Total"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.702, 0.667, 0.596, 1)
+theme_override_font_sizes/font_size = 16
+text = "Total: 4"
+vertical_alignment = 1
+
+[node name="Soul" type="TextureRect" parent="Scrim/Centre/Panel/Rows/Total"]
+custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("2_soul")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Spacer" type="Control" parent="Scrim/Centre/Panel/Rows"]
+custom_minimum_size = Vector2(0, 4)
+layout_mode = 2
+mouse_filter = 2
 
 [node name="Continue" type="Button" parent="Scrim/Centre/Panel/Rows"]
+custom_minimum_size = Vector2(220, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
 text = "To the World Map"

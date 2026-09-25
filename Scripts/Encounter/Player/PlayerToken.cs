@@ -11,26 +11,10 @@ public partial class PlayerToken : TextureButton
 	[Export] public Player player;
 
 	[Export] public TextureRect avatar;
-	[Export] public Control activeRim;
-	[Export] public Control aggroMarker;
-	[Export] public Container enduranceBoxes;
-	[Export] public Label enduranceLabel;
-	[Export] public Control enduranceNode;
-	[Export] public Control statusesNode;
-
-	// Ordered to match EncounterManager.StatusEffect: BLEED, POISON, FROST, STAGGER.
-	[Export] public Array<TextureRect> conditionIcons;
-
-	[Export] public Color spentColour = new Color(0.10f, 0.09f, 0.07f);
-	[Export] public Color damageColour = new Color(0.64f, 0.17f, 0.13f);
-	[Export] public Color freeColour = new Color(0.33f, 0.30f, 0.24f);
-
-	[Export] public float compactWidthPx = 64f;
-
 	public Endurance endurance => player.endurance;
 	public bool hasAggro => EncounterManager.aggroHolder == this;
 
-	private readonly HashSet<EncounterManager.StatusEffect> conditions = new HashSet<EncounterManager.StatusEffect>();
+	private HashSet<EncounterManager.StatusEffect> conditions => player.conditions;
 
 	// Activation state, all reset by BeginActivation.
 	public bool hasWalked { get; private set; }
@@ -43,17 +27,12 @@ public partial class PlayerToken : TextureButton
 
 	private readonly HashSet<Weapon> usedWeapons = new HashSet<Weapon>();
 
-	private bool isCompact;
-	private float lastRenderedWidth = -1f;
-
 	public override void _Ready() {
 		Pressed += OnClick;
 		// The art is clipped to a disc by the Token panel, so it goes on the TextureRect
 		// inside it rather than on the button.
 		if (avatar != null) avatar.Texture = player.character?.avatar ?? player.character?.image;
 
-		RefreshEndurance();
-		RefreshConditions();
 		RefreshAggro();
 		SetActivating(false);
 	}
@@ -70,7 +49,6 @@ public partial class PlayerToken : TextureButton
 		usedWeapons.Clear();
 
 		SetActivating(true);
-		RefreshEndurance();
 	}
 
 	// The first node is a free Walk, every later one is a Run at 1 stamina. Frostbite adds 1
@@ -113,7 +91,6 @@ public partial class PlayerToken : TextureButton
 
 	public bool SpendStamina(int stamina) {
 		if (!endurance.SpendStamina(stamina)) return false;
-		RefreshEndurance();
 		CheckDeath();
 		return true;
 	}
@@ -124,42 +101,38 @@ public partial class PlayerToken : TextureButton
 		// Bleed adds 2 to the damage suffered, then comes off (p21).
 		if (conditions.Remove(EncounterManager.StatusEffect.BLEED)) {
 			damage += 2;
-			RefreshConditions();
 		}
 		endurance.TakeDamage(damage);
-		RefreshEndurance();
 		CheckDeath();
 	}
 
 	// p19: a win removes every black and red cube from the bar.
 	public void RestoreEndurance() {
 		endurance.Clear();
-		RefreshEndurance();
 	}
 
 	public void Heal(int health) {
 		endurance.GainHealth(health);
-		RefreshEndurance();
 	}
+
+	// No chrome on the board any more; the portrait pane reads this to size and arrow the
+	// active character.
+	public bool isActivating { get; private set; }
 
 	public void SetActivating(bool activating) {
-		if (activeRim != null) activeRim.Visible = activating;
+		isActivating = activating;
 	}
 
-	public void RefreshAggro() {
-		if (aggroMarker != null) aggroMarker.Visible = hasAggro;
-	}
+	public void RefreshAggro() {}
 
 	public void ApplyCondition(EncounterManager.StatusEffect condition) {
 		if (condition == EncounterManager.StatusEffect.NONE) return;
 		if (player.GetImmunities().Contains(condition)) return;
 		conditions.Add(condition);
-		RefreshConditions();
 	}
 
 	public void RemoveCondition(EncounterManager.StatusEffect condition) {
 		conditions.Remove(condition);
-		RefreshConditions();
 	}
 
 	public bool HasCondition(EncounterManager.StatusEffect condition) => conditions.Contains(condition);
@@ -169,7 +142,6 @@ public partial class PlayerToken : TextureButton
 	// p21: every remaining condition comes off when the encounter ends, bleed included.
 	public void ClearAllConditions() {
 		conditions.Clear();
-		RefreshConditions();
 	}
 
 	public void ClearVolatileConditions() {
@@ -177,7 +149,6 @@ public partial class PlayerToken : TextureButton
 		conditions.Remove(EncounterManager.StatusEffect.POISON);
 		conditions.Remove(EncounterManager.StatusEffect.FROST);
 		conditions.Remove(EncounterManager.StatusEffect.STAGGER);
-		RefreshConditions();
 	}
 
 	// Rules p20: all ten boxes covered kills the character, and p19 makes that an
@@ -189,49 +160,9 @@ public partial class PlayerToken : TextureButton
 		EncounterManager.deathGridIndex = EncounterManager.GridIndexOf((Node2D)GetParent());
 	}
 
-	private void RefreshEndurance() {
-		// The floating party pane reads the same Endurance object, so it only stays honest
-		// if it is told every time a cube goes on or comes off.
-		GetNodeOrNull<CharacterPortraitPane>("/root/CharacterPortraitPane")?.RefreshFor(player);
-
-		if (enduranceLabel != null) {
-			enduranceLabel.Text = endurance.free.ToString();
-		}
-		if (enduranceBoxes == null) return;
-
-		int box = 0;
-		foreach (Node child in enduranceBoxes.GetChildren()) {
-			if (child is not ColorRect rect) continue;
-			// Black fills from the left, red from the right, exactly like the cubes.
-			bool spent = box < endurance.staminaSpent;
-			bool wounded = box >= Endurance.BOXES - endurance.damageTaken;
-			rect.Color = spent ? spentColour : (wounded ? damageColour : freeColour);
-			box++;
-		}
-	}
-
-	private void RefreshConditions() {
-		if (conditionIcons == null) return;
-		for (int i = 0; i < conditionIcons.Count; i++) {
-			if (conditionIcons[i] != null) {
-				conditionIcons[i].Visible = conditions.Contains((EncounterManager.StatusEffect)i);
-			}
-		}
-	}
-
 	public void OnClick() {
 		EncounterManager.selectedPlayer = this;
+		(GetParent()?.GetParent() as GameNode)?.Press();
 	}
 
-	public override void _Process(double delta) {
-		float renderedWidth = Size.X * GetGlobalTransformWithCanvas().Scale.X;
-		if (Mathf.Abs(renderedWidth - lastRenderedWidth) > 0.5f) {
-			lastRenderedWidth = renderedWidth;
-			isCompact = renderedWidth < compactWidthPx;
-		}
-
-		bool showDetail = EncounterManager.showEnemyInfo;
-		if (enduranceNode != null) enduranceNode.Visible = showDetail;
-		if (statusesNode != null) statusesNode.Visible = showDetail && !isCompact;
-	}
 }

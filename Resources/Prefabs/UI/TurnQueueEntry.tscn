@@ -1,6 +1,11 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://Scripts/Encounter/TurnQueueEntry.cs" id="1_entry"]
+[ext_resource type="Script" path="res://Scripts/Common/TickBar.cs" id="2_tick"]
+[ext_resource type="Texture2D" uid="uid://dic7ui5chf8kn" path="res://Resources/Images/Sprites/Statuses/Bleed.png" id="3_bleed"]
+[ext_resource type="Texture2D" uid="uid://cr2267o6mybvu" path="res://Resources/Images/Sprites/Statuses/Poison.png" id="4_poison"]
+[ext_resource type="Texture2D" uid="uid://m4jhjvt73263" path="res://Resources/Images/Sprites/Statuses/Frost.png" id="5_frost"]
+[ext_resource type="Texture2D" uid="uid://f3eqeucwqox8" path="res://Resources/Images/Sprites/Statuses/Stagger.png" id="6_stagger"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_face"]
 bg_color = Color(0.106, 0.094, 0.075, 1)
@@ -10,7 +15,7 @@ border_width_right = 1
 border_width_bottom = 1
 border_color = Color(0.29, 0.251, 0.188, 1)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rim"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_active"]
 bg_color = Color(0, 0, 0, 0)
 border_width_left = 2
 border_width_top = 2
@@ -18,7 +23,23 @@ border_width_right = 2
 border_width_bottom = 2
 border_color = Color(0.788, 0.635, 0.294, 1)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_badge"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tier"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.851, 0.4, 0.169, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_attack"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.851, 0.18, 0.122, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_threat"]
 bg_color = Color(0.043, 0.039, 0.031, 0.941)
 border_width_left = 1
 border_width_top = 1
@@ -26,37 +47,71 @@ border_width_right = 1
 border_width_bottom = 1
 border_color = Color(0.541, 0.455, 0.204, 1)
 
-[node name="TurnQueueEntry" type="VBoxContainer" node_paths=PackedStringArray("avatar", "threatBadge", "threatLabel", "nameLabel", "activeRim", "spentSlash")]
-custom_minimum_size = Vector2(56, 0)
+[node name="TurnQueueEntry" type="VBoxContainer" node_paths=PackedStringArray("face", "avatar", "damageOverlay", "threatBadge", "threatLabel", "nameLabel", "activeRim", "attackRim", "tierRim", "spentVeil", "health", "healthLabel", "conditions", "conditionIcons")]
+custom_minimum_size = Vector2(60, 0)
+mouse_filter = 2
 theme_override_constants/separation = 3
 script = ExtResource("1_entry")
-avatar = NodePath("Face/Avatar")
-threatBadge = NodePath("Face/Threat")
-threatLabel = NodePath("Face/Threat/Label")
+face = NodePath("Frame/Face")
+avatar = NodePath("Frame/Face/Avatar")
+damageOverlay = NodePath("Frame/Face/Damage")
+threatBadge = NodePath("Frame/Threat")
+threatLabel = NodePath("Frame/Threat/Label")
 nameLabel = NodePath("Name")
-activeRim = NodePath("Face/Active Rim")
-spentSlash = NodePath("Face/Spent")
+activeRim = NodePath("Frame/Face/Active Rim")
+attackRim = NodePath("Frame/Face/Attack Rim")
+tierRim = NodePath("Frame/Face/Tier Rim")
+spentVeil = NodePath("Frame/Face/Spent")
+health = NodePath("Health/Ticks")
+healthLabel = NodePath("Health/Value")
+conditions = NodePath("Conditions")
+conditionIcons = [NodePath("Conditions/Bleed"), NodePath("Conditions/Poison"), NodePath("Conditions/Frost"), NodePath("Conditions/Stagger")]
 
-[node name="Face" type="Panel" parent="."]
-custom_minimum_size = Vector2(56, 56)
+[node name="Frame" type="Control" parent="."]
+custom_minimum_size = Vector2(60, 80)
 layout_mode = 2
+mouse_filter = 2
+
+[node name="Face" type="Panel" parent="Frame"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+tooltip_text = "Click to view the card"
+clip_children = 2
+mouse_default_cursor_shape = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_face")
 
-[node name="Avatar" type="TextureRect" parent="Face"]
+[node name="Avatar" type="TextureRect" parent="Frame/Face"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 3.0
-offset_top = 3.0
-offset_right = -3.0
-offset_bottom = -3.0
+offset_left = 2.0
+offset_top = 2.0
+offset_right = -2.0
+offset_bottom = -2.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 expand_mode = 1
-stretch_mode = 5
+stretch_mode = 6
 
-[node name="Spent" type="ColorRect" parent="Face"]
+[node name="Damage" type="ColorRect" parent="Frame/Face"]
+visible = false
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+color = Color(0.639, 0.11, 0.09, 0.545)
+
+[node name="Spent" type="ColorRect" parent="Frame/Face"]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -64,9 +119,10 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.043, 0.039, 0.031, 0.616)
+mouse_filter = 2
+color = Color(0.043, 0.039, 0.031, 0.588)
 
-[node name="Active Rim" type="Panel" parent="Face"]
+[node name="Tier Rim" type="Panel" parent="Frame/Face"]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -74,17 +130,51 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_rim")
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_tier")
 
-[node name="Threat" type="Panel" parent="Face"]
+[node name="Active Rim" type="Panel" parent="Frame/Face"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_active")
+
+[node name="Attack Rim" type="Panel" parent="Frame/Face"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_attack")
+
+[node name="Threat" type="Control" parent="Frame"]
 layout_mode = 0
-offset_left = -5.0
-offset_top = -5.0
-offset_right = 16.0
-offset_bottom = 16.0
-theme_override_styles/panel = SubResource("StyleBoxFlat_badge")
+offset_left = -12.0
+offset_top = -12.0
+offset_right = 12.0
+offset_bottom = 12.0
+mouse_filter = 2
 
-[node name="Label" type="Label" parent="Face/Threat"]
+[node name="Diamond" type="Panel" parent="Frame/Threat"]
+layout_mode = 0
+offset_left = 3.5
+offset_top = 3.5
+offset_right = 20.5
+offset_bottom = 20.5
+rotation = 0.785398
+pivot_offset = Vector2(8.5, 8.5)
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_threat")
+
+[node name="Label" type="Label" parent="Frame/Threat"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -97,8 +187,84 @@ text = "0"
 horizontal_alignment = 1
 vertical_alignment = 1
 
+[node name="Health" type="Control" parent="."]
+custom_minimum_size = Vector2(0, 13)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Ticks" type="HBoxContainer" parent="Health"]
+layout_mode = 1
+mouse_filter = 2
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 2
+script = ExtResource("2_tick")
+tickHeight = 13
+
+[node name="Value" type="Label" parent="Health"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.949, 0.925, 0.878, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 10
+text = "1/1"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Conditions" type="HBoxContainer" parent="."]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="Bleed" type="TextureRect" parent="Conditions"]
+visible = false
+custom_minimum_size = Vector2(13, 13)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("3_bleed")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Poison" type="TextureRect" parent="Conditions"]
+visible = false
+custom_minimum_size = Vector2(13, 13)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("4_poison")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Frost" type="TextureRect" parent="Conditions"]
+visible = false
+custom_minimum_size = Vector2(13, 13)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("5_frost")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Stagger" type="TextureRect" parent="Conditions"]
+visible = false
+custom_minimum_size = Vector2(13, 13)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("6_stagger")
+expand_mode = 1
+stretch_mode = 5
+
 [node name="Name" type="Label" parent="."]
-custom_minimum_size = Vector2(56, 0)
+custom_minimum_size = Vector2(60, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.549, 0.514, 0.451, 1)
 theme_override_font_sizes/font_size = 9

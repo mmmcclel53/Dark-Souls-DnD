@@ -12,18 +12,27 @@ public partial class CharacterTurn : Node
 {
 
 	[Signal] public delegate void ActivationEndedEventHandler();
+	[Signal] public delegate void AttackResolvedEventHandler();
+	[Signal] public delegate void DodgeStepEndedEventHandler();
 
 	[Export] public CharacterActionBar actionBar;
 
 	[Export] public Color moveColour = new Color(0.79f, 0.64f, 0.29f, 0.45f);
 	[Export] public Color targetColour = new Color(0.64f, 0.17f, 0.13f, 0.55f);
+	[Export] public Color targetRingColour = new Color(0.85f, 0.18f, 0.12f);
 
 	public PlayerToken active { get; private set; }
 	public bool isTargeting => armedMove != null;
+	public PlayerMove armed => armedMove;
 
 	private Weapon armedWeapon;
 	private PlayerMove armedMove;
 	private readonly List<GameNode> highlighted = new List<GameNode>();
+	private readonly List<TokenHighlight> targetRings = new List<TokenHighlight>();
+
+	// The character taking the free step a successful dodge grants (p22), while it lasts.
+	private PlayerToken dodger;
+	public bool isDodgeStepping => dodger != null;
 
 	public override void _Ready() {
 		EncounterManager.characterTurn = this;
@@ -31,7 +40,8 @@ public partial class CharacterTurn : Node
 		if (actionBar != null) {
 			actionBar.AttackChosen += OnAttackChosen;
 			actionBar.EndActivationPressed += () => EmitSignal(SignalName.ActivationEnded);
-			actionBar.ShowIdle("Waiting for the enemies to activate");
+			actionBar.DodgeStepEnded += () => EmitSignal(SignalName.DodgeStepEnded);
+			actionBar.ShowIdle();
 		}
 	}
 
@@ -46,7 +56,42 @@ public partial class CharacterTurn : Node
 		Disarm();
 		ClearHighlights();
 		active = null;
-		if (actionBar != null) actionBar.ShowIdle("Waiting for the enemies to activate");
+		if (actionBar != null) actionBar.ShowIdle();
+	}
+
+	// ----- The dodge step (p22) -----
+
+	// A character who dodged may move one node. Runs inside the enemy's activation, which
+	// waits on it: the adjacent nodes light, the bar offers End Dodge, and either a node
+	// click or that button finishes it. The stamina was paid with the dodge itself.
+	public async Task OfferDodgeStep(PlayerToken token) {
+		if (token == null || !GodotObject.IsInstanceValid(token)) return;
+
+		dodger = token;
+		ClearHighlights();
+		foreach (GameNode node in AdjacentNodes(token)) {
+			node.Highlight(moveColour);
+			highlighted.Add(node);
+		}
+		actionBar?.ShowDodgeStep(token);
+
+		await ToSignal(this, SignalName.DodgeStepEnded);
+
+		ClearHighlights();
+		dodger = null;
+		actionBar?.ShowIdle();
+	}
+
+	public async void OnDodgeStepNodeClicked(GameNode node) {
+		if (dodger == null || !highlighted.Contains(node)) return;
+
+		Node2D self = (Node2D)dodger.GetParent();
+		ClearHighlights();
+		if (EncounterManager.MovePlayer(self, node, (Control)self.GetParent())) {
+			EncounterManager.ApplyNodeHazard(node, self);
+			await EncounterManager.ResolveOverflow(node, self);
+		}
+		EmitSignal(SignalName.DodgeStepEnded);
 	}
 
 	// ----- Movement -----
@@ -67,6 +112,7 @@ public partial class CharacterTurn : Node
 
 		if (isTargeting) {
 			if (armedMove.isAOE) ResolveAgainstNode(node);
+			else PickOnlyTargetOn(node);
 			return;
 		}
 		if (!highlighted.Contains(node)) return;
@@ -126,34 +172,57 @@ public partial class CharacterTurn : Node
 		return !(armedMove.isNotZeroRange && distance == 0);
 	}
 
+	// Nodes light up for every armed attack; a single-target attack also rings each enemy
+	// it can reach, since that is what gets clicked. The Node icon picks a node, not a model.
 	private void ShowTargets() {
 		ClearHighlights();
 
-		foreach (Node2D enemyObj in EncounterManager.enemies) {
-			Enemy enemy = EncounterManager.GetEnemy(enemyObj);
-			if (enemy == null || !InRange(enemy)) continue;
-			if (enemyObj.GetParent() is not GameNode node || highlighted.Contains(node)) continue;
+		foreach (Enemy enemy in EnemiesInRange()) {
+			if (!armedMove.isAOE) targetRings.Add(TokenHighlight.Attach(enemy, targetRingColour));
 
+			if (enemy.GetParent().GetParent() is not GameNode node || highlighted.Contains(node)) continue;
 			node.Highlight(targetColour);
 			highlighted.Add(node);
 		}
 	}
 
-	public void PickTarget(Enemy enemy) {
+	private List<Enemy> EnemiesInRange(GameNode onNode = null) {
+		List<Enemy> enemies = new List<Enemy>();
+		foreach (Node2D enemyObj in EncounterManager.enemies) {
+			Enemy enemy = EncounterManager.GetEnemy(enemyObj);
+			if (enemy == null || !InRange(enemy)) continue;
+			if (onNode != null && enemyObj.GetParent() != onNode) continue;
+			enemies.Add(enemy);
+		}
+		return enemies;
+	}
+
+	// Clicking a lit node rather than a model is unambiguous when only one enemy there can
+	// be hit; with more than one, the player has to pick the model.
+	private void PickOnlyTargetOn(GameNode node) {
+		if (!highlighted.Contains(node)) return;
+		List<Enemy> candidates = EnemiesInRange(node);
+		if (candidates.Count == 1) PickTarget(candidates[0]);
+	}
+
+	// Async because the roll is shown before it lands: the attack is disarmed and the
+	// highlights cleared first, so nothing on the board answers a click during the reveal.
+	public async void PickTarget(Enemy enemy) {
 		if (!isTargeting || active == null || enemy == null || !InRange(enemy)) return;
 
 		if (armedMove.isAOE) {
-			if (enemy.GetParent() is GameNode node) ResolveAgainstNode(node);
+			if (enemy.GetParent()?.GetParent() is GameNode node) ResolveAgainstNode(node);
 			return;
 		}
 
 		if (!PayFor(armedMove)) return;
-		CombatResolver.CharacterAttacks(armedMove, enemy);
-		FinishAttack();
+		(Weapon weapon, PlayerMove move) = TakeArmed();
+		await CombatPresenter.CharacterAttacks(move, weapon, enemy);
+		FinishAttack(weapon);
 	}
 
 	// The Node icon rolls once and compares that total against every enemy there (p23).
-	private void ResolveAgainstNode(GameNode node) {
+	private async void ResolveAgainstNode(GameNode node) {
 		if (!highlighted.Contains(node)) return;
 
 		List<Enemy> targets = new List<Enemy>();
@@ -164,8 +233,9 @@ public partial class CharacterTurn : Node
 		if (targets.Count == 0) return;
 
 		if (!PayFor(armedMove)) return;
-		CombatResolver.CharacterAttacksNode(armedMove, targets);
-		FinishAttack();
+		(Weapon weapon, PlayerMove move) = TakeArmed();
+		await CombatPresenter.CharacterAttacksNode(move, weapon, targets);
+		FinishAttack(weapon);
 	}
 
 	private bool PayFor(PlayerMove move) {
@@ -173,11 +243,23 @@ public partial class CharacterTurn : Node
 		return active.CanSpend(cost) && active.SpendStamina(cost);
 	}
 
-	private void FinishAttack() {
-		active.RecordAttack(armedWeapon);
+	private (Weapon, PlayerMove) TakeArmed() {
+		(Weapon weapon, PlayerMove move) = (armedWeapon, armedMove);
 		Disarm();
+		ClearHighlights();
+		return (weapon, move);
+	}
+
+	private void FinishAttack(Weapon weapon) {
+		// The activation may have been torn down while the roll was on screen.
+		if (active == null || !GodotObject.IsInstanceValid(active)) return;
+
+		active.RecordAttack(weapon);
 		EncounterManager.PruneDeadEnemies();
 		Refresh();
+
+		// Last, because a win ends the activation and tears this turn down.
+		EmitSignal(SignalName.AttackResolved);
 	}
 
 	// ----- Shared -----
@@ -192,5 +274,8 @@ public partial class CharacterTurn : Node
 			if (GodotObject.IsInstanceValid(node)) node.ClearHighlight();
 		}
 		highlighted.Clear();
+
+		foreach (TokenHighlight ring in targetRings) TokenHighlight.Detach(ring);
+		targetRings.Clear();
 	}
 }

@@ -1,0 +1,44 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Encounter/HUD/EquipmentCross.cs" id="1_cross"]
+[ext_resource type="PackedScene" path="res://Resources/Prefabs/UI/EquipmentSlot.tscn" id="2_slot"]
+
+[node name="EquipmentCross" type="Control" node_paths=PackedStringArray("backup", "left", "right", "armour")]
+custom_minimum_size = Vector2(268, 216)
+layout_mode = 3
+anchors_preset = 0
+offset_right = 268.0
+offset_bottom = 216.0
+mouse_filter = 2
+script = ExtResource("1_cross")
+backup = NodePath("Backup")
+left = NodePath("Left")
+right = NodePath("Right")
+armour = NodePath("Armour")
+
+[node name="Backup" parent="." instance=ExtResource("2_slot")]
+layout_mode = 0
+offset_left = 92.0
+offset_right = 176.0
+offset_bottom = 108.0
+showSwapArrows = true
+
+[node name="Armour" parent="." instance=ExtResource("2_slot")]
+layout_mode = 0
+offset_left = 92.0
+offset_top = 108.0
+offset_right = 176.0
+offset_bottom = 216.0
+
+[node name="Left" parent="." instance=ExtResource("2_slot")]
+layout_mode = 0
+offset_top = 54.0
+offset_right = 84.0
+offset_bottom = 162.0
+
+[node name="Right" parent="." instance=ExtResource("2_slot")]
+layout_mode = 0
+offset_left = 184.0
+offset_top = 54.0
+offset_right = 268.0
+offset_bottom = 162.0

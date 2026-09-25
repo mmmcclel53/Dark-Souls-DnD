@@ -1,66 +1,63 @@
-[gd_scene load_steps=5 format=3 uid="uid://chrportr0001"]
+[gd_scene load_steps=8 format=3 uid="uid://chrportr0001"]
 
 [ext_resource type="Script" path="res://Scripts/Common/CharacterPortrait.cs" id="1_script"]
+[ext_resource type="Script" path="res://Scripts/Common/TickBar.cs" id="2_tick"]
+[ext_resource type="Texture2D" uid="uid://dic7ui5chf8kn" path="res://Resources/Images/Sprites/Statuses/Bleed.png" id="3_bleed"]
+[ext_resource type="Texture2D" uid="uid://cr2267o6mybvu" path="res://Resources/Images/Sprites/Statuses/Poison.png" id="4_poison"]
+[ext_resource type="Texture2D" uid="uid://m4jhjvt73263" path="res://Resources/Images/Sprites/Statuses/Frost.png" id="5_frost"]
+[ext_resource type="Texture2D" uid="uid://f3eqeucwqox8" path="res://Resources/Images/Sprites/Statuses/Stagger.png" id="6_stagger"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sel"]
 bg_color = Color(0, 0, 0, 0)
-border_color = Color(0.4, 0.75, 1, 1)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
+border_color = Color(0.4, 0.75, 1, 1)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_topfade"]
-bg_color = Color(0, 0, 0, 0.78)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_botfade"]
-bg_color = Color(0, 0, 0, 0.82)
-content_margin_top = 2.0
-content_margin_bottom = 4.0
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-
-[node name="CharacterPortrait" type="Control" node_paths=PackedStringArray("avatarButton", "nameLabel", "hpLabel", "staminaLabel", "selectionBorder", "statusEffectsContainer")]
-custom_minimum_size = Vector2(128, 160)
-anchors_preset = 0
+[node name="CharacterPortrait" type="VBoxContainer" node_paths=PackedStringArray("avatarButton", "artFrame", "damageOverlay", "nameLabel", "endurance", "selectionBorder", "statusEffectsContainer", "activeArrow", "conditionIcons")]
+theme_override_constants/separation = 3
 script = ExtResource("1_script")
-avatarButton = NodePath("Avatar")
-nameLabel = NodePath("TopFade/Name")
-hpLabel = NodePath("BottomFade/Lines/HP")
-staminaLabel = NodePath("BottomFade/Lines/Stamina")
-selectionBorder = NodePath("SelectionBorder")
-statusEffectsContainer = NodePath("StatusEffects")
+avatarButton = NodePath("Art/Avatar")
+artFrame = NodePath("Art")
+damageOverlay = NodePath("Art/Damage")
+nameLabel = NodePath("Name")
+endurance = NodePath("Endurance")
+selectionBorder = NodePath("Art/SelectionBorder")
+statusEffectsContainer = NodePath("Conditions")
+activeArrow = NodePath("Art/Arrow")
+conditionIcons = [NodePath("Conditions/Bleed"), NodePath("Conditions/Poison"), NodePath("Conditions/Frost"), NodePath("Conditions/Stagger")]
 
-[node name="Avatar" type="TextureButton" parent="."]
+[node name="Name" type="Label" parent="."]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.902, 0.871, 0.796, 1)
+theme_override_font_sizes/font_size = 11
+text = "Name"
+horizontal_alignment = 1
+clip_text = true
+
+[node name="Art" type="Control" parent="."]
+custom_minimum_size = Vector2(60, 80)
+layout_mode = 2
+size_flags_horizontal = 4
+clip_children = 2
+
+[node name="Avatar" type="TextureButton" parent="Art"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-ignore_texture_size = true
-stretch_mode = 6
-
-[node name="TopFade" type="PanelContainer" parent="."]
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_bottom = 28.0
 grow_horizontal = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_topfade")
+grow_vertical = 2
+ignore_texture_size = true
+stretch_mode = 5
 
-[node name="Name" type="Label" parent="TopFade"]
-layout_mode = 2
-text = "Name"
-horizontal_alignment = 1
-vertical_alignment = 1
-clip_text = true
-
-[node name="BottomFade" type="PanelContainer" parent="."]
+[node name="Damage" type="ColorRect" parent="Art"]
+visible = false
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
@@ -68,41 +65,82 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 0
-theme_override_styles/panel = SubResource("StyleBoxFlat_botfade")
+mouse_filter = 2
+color = Color(0.639, 0.11, 0.09, 0.51)
 
-[node name="Lines" type="VBoxContainer" parent="BottomFade"]
-layout_mode = 2
-theme_override_constants/separation = 0
+[node name="SelectionBorder" type="Panel" parent="Art"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_sel")
 
-[node name="HP" type="Label" parent="BottomFade/Lines"]
-layout_mode = 2
-text = "HP 10 / 10"
-horizontal_alignment = 1
-
-[node name="Stamina" type="Label" parent="BottomFade/Lines"]
-layout_mode = 2
-text = "STA 10"
-horizontal_alignment = 1
-
-[node name="StatusEffects" type="VBoxContainer" parent="."]
+[node name="Arrow" type="Label" parent="Art"]
+visible = false
 layout_mode = 1
 anchors_preset = 6
 anchor_left = 1.0
 anchor_top = 0.5
 anchor_right = 1.0
 anchor_bottom = 0.5
-offset_left = -8.0
-offset_top = -40.0
-offset_right = 16.0
-offset_bottom = 40.0
+offset_left = -16.0
+offset_top = -12.0
+offset_bottom = 12.0
 grow_horizontal = 0
 grow_vertical = 2
-
-[node name="SelectionBorder" type="Panel" parent="."]
-visible = false
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_sel")
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 5
+theme_override_font_sizes/font_size = 18
+text = "◀"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Endurance" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 2
+script = ExtResource("2_tick")
+tickHeight = 5
+
+[node name="Conditions" type="HBoxContainer" parent="."]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="Bleed" type="TextureRect" parent="Conditions"]
+visible = false
+custom_minimum_size = Vector2(12, 12)
+layout_mode = 2
+texture = ExtResource("3_bleed")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Poison" type="TextureRect" parent="Conditions"]
+visible = false
+custom_minimum_size = Vector2(12, 12)
+layout_mode = 2
+texture = ExtResource("4_poison")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Frost" type="TextureRect" parent="Conditions"]
+visible = false
+custom_minimum_size = Vector2(12, 12)
+layout_mode = 2
+texture = ExtResource("5_frost")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Stagger" type="TextureRect" parent="Conditions"]
+visible = false
+custom_minimum_size = Vector2(12, 12)
+layout_mode = 2
+texture = ExtResource("6_stagger")
+expand_mode = 1
+stretch_mode = 5

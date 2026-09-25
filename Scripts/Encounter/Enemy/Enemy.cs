@@ -11,21 +11,6 @@ public partial class Enemy : TextureButton
 	[Export] public EnemyData data;
 	[Export] public int tier = 1;
 
-	[Export] public Control activeRim;
-	[Export] public Label threatLabel;
-	[Export] public Container tierPips;
-	[Export] public Control healthNode;
-	[Export] public TextureProgressBar healthBar;
-	[Export] public Label healthLabel;
-	[Export] public Control statusesNode;
-
-	// Ordered to match EncounterManager.StatusEffect: BLEED, POISON, FROST, STAGGER.
-	[Export] public Array<TextureRect> conditionIcons;
-
-	// Below this rendered width the token drops everything but the threat badge and the
-	// health bar. Three models share a node, so a token is often half a grid cell wide.
-	[Export] public float compactWidthPx = 64f;
-
 	public int threatLevel => data.threatLevel;
 	public Array<EnemyMove> moves => data.moves;
 
@@ -37,9 +22,6 @@ public partial class Enemy : TextureButton
 	public List<PathNode> path;
 	public int currentHealth { get; private set; }
 	public int currentPathIndex = 0;
-
-	private bool isCompact;
-	private float lastRenderedWidth = -1f;
 
 	private readonly HashSet<EncounterManager.StatusEffect> conditions = new HashSet<EncounterManager.StatusEffect>();
 
@@ -164,9 +146,13 @@ public partial class Enemy : TextureButton
 		}
 
 		if (dodge && token.SpendStamina(dodgeCost)) {
-			CombatResolver.EnemyAttacksDodging(this, move, token);
+			CombatResolver.AttackOutcome outcome = await CombatPresenter.EnemyAttacksDodging(this, move, token);
+			// A successful dodge lets the character move one node (p22); this waits on it.
+			if (!outcome.hit && EncounterManager.characterTurn != null) {
+				await EncounterManager.characterTurn.OfferDodgeStep(token);
+			}
 		} else {
-			CombatResolver.EnemyAttacks(this, move, token);
+			await CombatPresenter.EnemyAttacks(this, move, token);
 		}
 	}
 
@@ -198,30 +184,29 @@ public partial class Enemy : TextureButton
 		// Bleed adds 2 to the damage suffered, then comes off (p21).
 		if (conditions.Remove(EncounterManager.StatusEffect.BLEED)) {
 			damage += 2;
-			RefreshConditions();
-		}
+			}
 
 		currentHealth = Mathf.Max(0, currentHealth - damage);
-		RefreshHealth();
 		if (currentHealth <= 0) {
 			QueueFree();
 		}
 	}
 
-	// Gold rim on the model that is currently activating, matching the turn queue.
+	// The board token carries no chrome, so activation is just a flag the Enemy Activation
+	// bar reads to mark which face is acting.
+	public bool isActivating { get; private set; }
+
 	public void SetActivating(bool activating) {
-		if (activeRim != null) activeRim.Visible = activating;
+		isActivating = activating;
 	}
 
 	public void ApplyCondition(EncounterManager.StatusEffect condition) {
 		if (condition == EncounterManager.StatusEffect.NONE) return;
 		conditions.Add(condition);
-		RefreshConditions();
 	}
 
 	public void RemoveCondition(EncounterManager.StatusEffect condition) {
 		conditions.Remove(condition);
-		RefreshConditions();
 	}
 
 	public bool HasCondition(EncounterManager.StatusEffect condition) => conditions.Contains(condition);
@@ -231,7 +216,6 @@ public partial class Enemy : TextureButton
 	// p21: every remaining condition comes off when the encounter ends, bleed included.
 	public void ClearAllConditions() {
 		conditions.Clear();
-		RefreshConditions();
 	}
 
 	public void ClearVolatileConditions() {
@@ -239,21 +223,6 @@ public partial class Enemy : TextureButton
 		conditions.Remove(EncounterManager.StatusEffect.POISON);
 		conditions.Remove(EncounterManager.StatusEffect.FROST);
 		conditions.Remove(EncounterManager.StatusEffect.STAGGER);
-		RefreshConditions();
-	}
-
-	private void RefreshHealth() {
-		if (healthBar != null) healthBar.Value = currentHealth;
-		if (healthLabel != null) healthLabel.Text = currentHealth.ToString();
-	}
-
-	private void RefreshConditions() {
-		if (conditionIcons == null) return;
-		for (int i = 0; i < conditionIcons.Count; i++) {
-			if (conditionIcons[i] != null) {
-				conditionIcons[i].Visible = conditions.Contains((EncounterManager.StatusEffect)i);
-			}
-		}
 	}
 
 	public override void _Ready() {
@@ -272,49 +241,20 @@ public partial class Enemy : TextureButton
 		}
 		currentHealth = maxHealth;
 
-		if (threatLabel != null) threatLabel.Text = data.threatLevel.ToString();
-		if (healthBar != null) healthBar.MaxValue = maxHealth;
-		RefreshHealth();
-		RefreshConditions();
 		SetActivating(false);
 
-		// One pip per tier above base. RefreshDetailLevel owns whether the row shows at all.
-		if (tierPips != null) {
-			int pip = 0;
-			foreach (Node child in tierPips.GetChildren()) {
-				if (child is CanvasItem pipItem) pipItem.Visible = pip < tier;
-				pip++;
-			}
-		}
 	}
 
+	// While an attack is armed a click picks this enemy; otherwise it is a click on its node.
 	public void OnClick() {
 		if (EncounterManager.characterTurn != null && EncounterManager.characterTurn.isTargeting) {
 			EncounterManager.characterTurn.PickTarget(this);
 			return;
 		}
-		EncounterManager.enemyInfoPanel.ShowEnemy(this);
-		EncounterManager.enemyInfoModal.Visible = true;
-	}
-
-	// The token is scaled to the grid cell, so what matters is how wide it actually lands
-	// on screen, not its 360-unit design size.
-	private void RefreshDetailLevel() {
-		float renderedWidth = Size.X * GetGlobalTransformWithCanvas().Scale.X;
-		if (Mathf.Abs(renderedWidth - lastRenderedWidth) > 0.5f) {
-			lastRenderedWidth = renderedWidth;
-			isCompact = renderedWidth < compactWidthPx;
-		}
-
-		bool showDetail = EncounterManager.showEnemyInfo;
-		healthNode.Visible = showDetail;
-		statusesNode.Visible = showDetail && !isCompact;
-		if (tierPips != null) tierPips.Visible = tier > 1 && !isCompact;
+		(GetParent()?.GetParent() as GameNode)?.Press();
 	}
 
 	public override void _Process(double delta) {
-		RefreshDetailLevel();
-
 		if (path != null && path.Count > 0) {
 			Node2D self = (Node2D)GetParent();
 			Control parent = (Control)self.GetParent();
@@ -328,7 +268,9 @@ public partial class Enemy : TextureButton
 			PathNode pathNode = path[currentPathIndex];
 			int child = (pathNode.gridY*EncounterManager.gridSize) + pathNode.gridX;
 			GameNode node = EncounterManager.pathGrid.GetChild<GameNode>(child);
-			Vector2 targetPos = node.GlobalPosition + centeredPos;
+			// centeredPos is in the node's own space; the board can be zoomed, so it has to
+			// go through the node's transform rather than be added to a global position.
+			Vector2 targetPos = node.GetGlobalTransform() * centeredPos;
 
 			if (self.GlobalPosition.DistanceTo(targetPos) > 1f) {
 				Vector2 moveDir = (targetPos - self.GlobalPosition).Normalized();

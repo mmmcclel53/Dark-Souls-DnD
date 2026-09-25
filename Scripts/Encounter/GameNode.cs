@@ -8,20 +8,28 @@ public partial class GameNode : Control
 	
 	[Export] public EncounterManager.StatusEffect statusEffect = EncounterManager.StatusEffect.NONE;
 
+	// Looked up by name, never by position: models standing on the node are parented under
+	// it too, so "the last child" stops being the button as soon as anything moves on.
+	public Control ClickTarget => GetNode<Control>("Button");
+
 	// Movement targets and attack targets need to read differently, so the colour is the
 	// caller's choice; ToggleButton stays as the plain on/off the entrance picker uses.
 	public void Highlight(Color colour) {
-		GetChild<Control>(-1).Modulate = colour;
+		ClickTarget.Modulate = colour;
 	}
 
 	public void ClearHighlight() {
-		GetChild<Control>(-1).Modulate = new Color(0,0,0,0);
+		ClickTarget.Modulate = new Color(0,0,0,0);
 	}
 
-	public Control ClickTarget => GetChild<Control>(-1);
+	// Models sit above the button so they can be clicked; a model click that is not
+	// picking a target lands here instead, so moving onto an occupied node still works.
+	public void Press() {
+		if (ClickTarget is BaseButton button) button.EmitSignal(BaseButton.SignalName.Pressed);
+	}
 
 	public void ToggleButton(bool isActive) {
-		Control button = GetChild<Control>(-1);
+		Control button = ClickTarget;
 		if (isActive) {
 			button.Modulate = new Color(1,1,1,0.5f);
 		} else {

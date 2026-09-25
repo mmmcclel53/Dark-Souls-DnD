@@ -1,24 +1,6 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://Scripts/Encounter/Player/PlayerToken.cs" id="1_token"]
-[ext_resource type="Texture2D" uid="uid://dijaibonnj1sb" path="res://Resources/Images/Sprites/Statuses/Aggro Token.png" id="2_aggro"]
-[ext_resource type="Texture2D" uid="uid://dic7ui5chf8kn" path="res://Resources/Images/Sprites/Statuses/Bleed.png" id="3_bleed"]
-[ext_resource type="Texture2D" uid="uid://cr2267o6mybvu" path="res://Resources/Images/Sprites/Statuses/Poison.png" id="4_poison"]
-[ext_resource type="Texture2D" uid="uid://m4jhjvt73263" path="res://Resources/Images/Sprites/Statuses/Frost.png" id="5_frost"]
-[ext_resource type="Texture2D" uid="uid://f3eqeucwqox8" path="res://Resources/Images/Sprites/Statuses/Stagger.png" id="6_stagger"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rim"]
-bg_color = Color(0, 0, 0, 0)
-border_width_left = 6
-border_width_top = 6
-border_width_right = 6
-border_width_bottom = 6
-border_color = Color(0.788, 0.635, 0.294, 1)
-corner_radius_top_left = 180
-corner_radius_top_right = 180
-corner_radius_bottom_right = 180
-corner_radius_bottom_left = 180
-corner_detail = 12
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_disc"]
 bg_color = Color(0.067, 0.059, 0.047, 1)
@@ -41,34 +23,15 @@ corner_radius_bottom_right = 180
 corner_radius_bottom_left = 180
 corner_detail = 12
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar"]
-bg_color = Color(0.043, 0.039, 0.031, 0.902)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.29, 0.251, 0.188, 1)
-content_margin_left = 3.0
-content_margin_top = 3.0
-content_margin_right = 3.0
-content_margin_bottom = 3.0
-
 [node name="Player" type="Node2D" groups=["Player"]]
 
-[node name="Player Button" type="TextureButton" parent="." node_paths=PackedStringArray("avatar", "activeRim", "aggroMarker", "enduranceBoxes", "enduranceLabel", "enduranceNode", "statusesNode", "conditionIcons")]
+[node name="Player Button" type="TextureButton" parent="." node_paths=PackedStringArray("avatar")]
 unique_name_in_owner = true
 offset_right = 360.0
 offset_bottom = 360.0
 ignore_texture_size = true
 script = ExtResource("1_token")
 avatar = NodePath("Token/Avatar")
-activeRim = NodePath("Active Rim")
-aggroMarker = NodePath("Aggro")
-enduranceBoxes = NodePath("Endurance/Boxes")
-enduranceLabel = NodePath("Endurance/Label")
-enduranceNode = NodePath("Endurance")
-statusesNode = NodePath("Status Effects")
-conditionIcons = [NodePath("Status Effects/Bleed"), NodePath("Status Effects/Poison"), NodePath("Status Effects/Frost"), NodePath("Status Effects/Stagger")]
 
 [node name="Token" type="Panel" parent="Player Button"]
 layout_mode = 1
@@ -101,167 +64,3 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_disc_rim")
-
-[node name="Active Rim" type="Panel" parent="Player Button"]
-visible = false
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_rim")
-
-[node name="Endurance" type="PanelContainer" parent="Player Button"]
-layout_mode = 1
-anchors_preset = 12
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = 2.0
-offset_bottom = 48.0
-grow_horizontal = 2
-grow_vertical = 0
-mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_bar")
-
-[node name="Boxes" type="HBoxContainer" parent="Player Button/Endurance"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 2
-
-[node name="Box1" type="ColorRect" parent="Player Button/Endurance/Boxes"]
-custom_minimum_size = Vector2(0, 30)
-layout_mode = 2
-size_flags_horizontal = 3
-color = Color(0.329, 0.302, 0.239, 1)
-
-[node name="Box2" type="ColorRect" parent="Player Button/Endurance/Boxes"]
-custom_minimum_size = Vector2(0, 30)
-layout_mode = 2
-size_flags_horizontal = 3
-color = Color(0.329, 0.302, 0.239, 1)
-
-[node name="Box3" type="ColorRect" parent="Player Button/Endurance/Boxes"]
-custom_minimum_size = Vector2(0, 30)
-layout_mode = 2
-size_flags_horizontal = 3
-color = Color(0.329, 0.302, 0.239, 1)
-
-[node name="Box4" type="ColorRect" parent="Player Button/Endurance/Boxes"]
-custom_minimum_size = Vector2(0, 30)
-layout_mode = 2
-size_flags_horizontal = 3
-color = Color(0.329, 0.302, 0.239, 1)
-
-[node name="Box5" type="ColorRect" parent="Player Button/Endurance/Boxes"]
-custom_minimum_size = Vector2(0, 30)
-layout_mode = 2
-size_flags_horizontal = 3
-color = Color(0.329, 0.302, 0.239, 1)
-
-[node name="Box6" type="ColorRect" parent="Player Button/Endurance/Boxes"]
-custom_minimum_size = Vector2(0, 30)
-layout_mode = 2
-size_flags_horizontal = 3
-color = Color(0.329, 0.302, 0.239, 1)
-
-[node name="Box7" type="ColorRect" parent="Player Button/Endurance/Boxes"]
-custom_minimum_size = Vector2(0, 30)
-layout_mode = 2
-size_flags_horizontal = 3
-color = Color(0.329, 0.302, 0.239, 1)
-
-[node name="Box8" type="ColorRect" parent="Player Button/Endurance/Boxes"]
-custom_minimum_size = Vector2(0, 30)
-layout_mode = 2
-size_flags_horizontal = 3
-color = Color(0.329, 0.302, 0.239, 1)
-
-[node name="Box9" type="ColorRect" parent="Player Button/Endurance/Boxes"]
-custom_minimum_size = Vector2(0, 30)
-layout_mode = 2
-size_flags_horizontal = 3
-color = Color(0.329, 0.302, 0.239, 1)
-
-[node name="Box10" type="ColorRect" parent="Player Button/Endurance/Boxes"]
-custom_minimum_size = Vector2(0, 30)
-layout_mode = 2
-size_flags_horizontal = 3
-color = Color(0.329, 0.302, 0.239, 1)
-
-[node name="Label" type="Label" parent="Player Button/Endurance"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.902, 0.871, 0.796, 1)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 8
-theme_override_font_sizes/font_size = 30
-text = "10"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="Aggro" type="TextureRect" parent="Player Button"]
-visible = false
-layout_mode = 1
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -84.0
-offset_top = -12.0
-offset_right = 12.0
-offset_bottom = 84.0
-grow_horizontal = 0
-mouse_filter = 2
-texture = ExtResource("2_aggro")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="Status Effects" type="VBoxContainer" parent="Player Button"]
-layout_mode = 1
-anchors_preset = 9
-anchor_bottom = 1.0
-offset_left = 6.0
-offset_top = -8.0
-offset_right = 78.0
-offset_bottom = -46.0
-grow_vertical = 2
-mouse_filter = 2
-theme_override_constants/separation = 4
-alignment = 1
-
-[node name="Bleed" type="TextureRect" parent="Player Button/Status Effects"]
-visible = false
-custom_minimum_size = Vector2(72, 72)
-layout_mode = 2
-mouse_filter = 2
-texture = ExtResource("3_bleed")
-expand_mode = 4
-stretch_mode = 5
-
-[node name="Poison" type="TextureRect" parent="Player Button/Status Effects"]
-visible = false
-custom_minimum_size = Vector2(72, 72)
-layout_mode = 2
-mouse_filter = 2
-texture = ExtResource("4_poison")
-expand_mode = 4
-stretch_mode = 5
-
-[node name="Frost" type="TextureRect" parent="Player Button/Status Effects"]
-visible = false
-custom_minimum_size = Vector2(72, 72)
-layout_mode = 2
-mouse_filter = 2
-texture = ExtResource("5_frost")
-expand_mode = 4
-stretch_mode = 5
-
-[node name="Stagger" type="TextureRect" parent="Player Button/Status Effects"]
-visible = false
-custom_minimum_size = Vector2(72, 72)
-layout_mode = 2
-mouse_filter = 2
-texture = ExtResource("6_stagger")
-expand_mode = 4
-stretch_mode = 5

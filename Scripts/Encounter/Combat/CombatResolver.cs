@@ -77,7 +77,7 @@ public static class CombatResolver
 	}
 
 	// Stagger on the attacker knocks 1 off its attack damage values (p21).
-	private static int AttackStrength(EnemyMove move, Enemy attacker) {
+	public static int AttackStrength(EnemyMove move, Enemy attacker) {
 		int strength = move.damage;
 		if (attacker != null && attacker.HasCondition(EncounterManager.StatusEffect.STAGGER)) {
 			strength = Mathf.Max(0, strength - 1);

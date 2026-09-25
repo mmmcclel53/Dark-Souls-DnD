@@ -1,18 +1,20 @@
 using Godot;
 using System.Collections.Generic;
 
-// Enemies activate in threat order, high to low, then one character activates.
-// The queue is the only place that ordering is visible before it happens.
+// The Enemy Activation bar: every enemy in threat order, high to low.
+//
+// No Party entry — all the enemies act between every character activation, so the party's
+// place in the order is fixed and showing it says nothing. The board tokens carry no chrome,
+// so this is also where an enemy's threat, tier, health and conditions are read.
 public partial class TurnQueue : Control
 {
 
 	[Export] public PackedScene entryScene;
 	[Export] public Container entriesContainer;
-	[Export] public Label phaseLabel;
 	[Export] public Label roundLabel;
+	[Export] public EnemyCardViewer cardViewer;
 
 	private readonly List<TurnQueueEntry> enemyEntries = new List<TurnQueueEntry>();
-	private TurnQueueEntry partyEntry;
 
 	private int builtForCount = -1;
 	private int shownIndex = -1;
@@ -32,10 +34,10 @@ public partial class TurnQueue : Control
 
 	private void Build() {
 		foreach (Node child in entriesContainer.GetChildren()) {
+			entriesContainer.RemoveChild(child);
 			child.QueueFree();
 		}
 		enemyEntries.Clear();
-		partyEntry = null;
 
 		foreach (Node2D enemyObj in EncounterManager.enemies) {
 			Enemy enemy = GetEnemy(enemyObj);
@@ -43,15 +45,10 @@ public partial class TurnQueue : Control
 
 			TurnQueueEntry entry = entryScene.Instantiate<TurnQueueEntry>();
 			entriesContainer.AddChild(entry);
-			entry.Fill(enemy.data.avatarTexture, enemy.data.enemyName, enemy.threatLevel);
+			entry.Bind(enemy);
+			entry.CardRequested += () => cardViewer?.ShowCard(enemy.data);
 			enemyEntries.Add(entry);
 		}
-
-		entriesContainer.AddChild(new VSeparator());
-
-		partyEntry = entryScene.Instantiate<TurnQueueEntry>();
-		entriesContainer.AddChild(partyEntry);
-		partyEntry.Fill(null, "Party", -1);
 
 		builtForCount = EncounterManager.enemies.Count;
 		shownIndex = -1;
@@ -66,24 +63,19 @@ public partial class TurnQueue : Control
 			bool spent = enemyPhase && i < EncounterManager.activeEnemyIndex;
 			enemyEntries[i].SetState(activating, spent);
 		}
-		bool characterPhase = EncounterManager.phase == EncounterManager.Action.CHARACTER_TURN;
-		if (partyEntry != null) partyEntry.SetState(characterPhase, false);
 
-		if (phaseLabel != null) {
-			phaseLabel.Text = EncounterManager.phase switch {
-				EncounterManager.Action.PICK_ENTRANCE => "Choose Entrance",
-				EncounterManager.Action.ENEMY_MOVE => "Enemy Activation",
-				EncounterManager.Action.CHARACTER_TURN => "Character Activation",
-				EncounterManager.Action.ENCOUNTER_WON => "Encounter Won",
-				EncounterManager.Action.ENCOUNTER_LOST => "Party Defeated",
-				_ => "",
-			};
-		}
 		if (roundLabel != null) roundLabel.Text = $"Round {EncounterManager.round}";
 
 		shownIndex = EncounterManager.activeEnemyIndex;
 		shownRound = EncounterManager.round;
 		shownPhase = EncounterManager.phase;
+	}
+
+	public TurnQueueEntry EntryFor(Enemy enemy) {
+		foreach (TurnQueueEntry entry in enemyEntries) {
+			if (entry.boundEnemy == enemy) return entry;
+		}
+		return null;
 	}
 
 	// EncounterManager.enemies still holds the wrapper Node2D of a dead enemy, so the

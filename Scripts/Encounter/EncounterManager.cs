@@ -46,11 +46,11 @@ public static partial class EncounterManager {
     public static bool isEnemyMoving = false;
 
     public static PathGrid pathGrid;
-    public static AcceptDialog enemyInfoModal;
-    public static EnemyInfoPanel enemyInfoPanel;
     public static DodgePrompt dodgePrompt;
     public static CharacterTurn characterTurn;
     public static PushPrompt pushPrompt;
+    // Registers itself on ready; it sits after the board in the scene so Reset cannot wipe it.
+    public static RollReveal rollReveal;
 
     // Settings
     public static bool showEnemyInfo = true;
@@ -69,6 +69,7 @@ public static partial class EncounterManager {
         aggroHolder = null;
         characterTurn = null;
         pushPrompt = null;
+        rollReveal = null;
         selectedPlayer = null;
         partyDefeated = false;
         deathGridIndex = -1;
@@ -104,9 +105,13 @@ public static partial class EncounterManager {
         return recovered;
     }
 
+    // A killed enemy is only queued for deletion and stays valid until the frame ends, so
+    // it counts as gone from the moment it is queued — otherwise the last kill of an
+    // activation would not end the encounter until some later phase check.
     public static Enemy GetEnemy(Node2D enemyObj) {
         if (!GodotObject.IsInstanceValid(enemyObj) || enemyObj.GetChildCount() == 0) return null;
-        return enemyObj.GetChild(0) as Enemy;
+        Enemy enemy = enemyObj.GetChild(0) as Enemy;
+        return enemy == null || enemy.IsQueuedForDeletion() ? null : enemy;
     }
 
     // Enemy.ApplyDamage frees the Enemy but leaves its wrapper Node2D behind, so the list
@@ -225,9 +230,8 @@ public static partial class EncounterManager {
             FixPositioning(oldNode);
         }
 
-        Node btn = newNode.GetChild(-1);
+        // The node's button stays first, under the models, so a model can be clicked.
         newNode.AddChild(obj);
-        newNode.MoveChild(btn, -1);
         FixPositioning(newNode);
         return true;
     }

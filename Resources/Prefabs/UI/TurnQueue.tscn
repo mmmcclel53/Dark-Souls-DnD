@@ -1,57 +1,123 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://Scripts/Encounter/TurnQueue.cs" id="1_queue"]
 [ext_resource type="PackedScene" path="res://Resources/Prefabs/UI/TurnQueueEntry.tscn" id="2_entry"]
+[ext_resource type="Script" path="res://Scripts/Encounter/Enemy/EnemyCardViewer.cs" id="3_viewer"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar"]
-bg_color = Color(0.071, 0.063, 0.047, 1)
-border_width_bottom = 1
-border_color = Color(0.18, 0.157, 0.125, 1)
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_bar"]
 
-[node name="TurnQueue" type="PanelContainer" node_paths=PackedStringArray("entriesContainer", "phaseLabel", "roundLabel")]
-theme_override_styles/panel = SubResource("StyleBoxFlat_bar")
+[sub_resource type="Theme" id="Theme_hud"]
+Label/colors/font_outline_color = Color(0, 0, 0, 1)
+Label/constants/outline_size = 4
+
+[node name="TurnQueue" type="PanelContainer" node_paths=PackedStringArray("entriesContainer", "roundLabel", "cardViewer")]
+mouse_filter = 2
+theme = SubResource("Theme_hud")
+theme_override_styles/panel = SubResource("StyleBoxEmpty_bar")
 script = ExtResource("1_queue")
 entryScene = ExtResource("2_entry")
-entriesContainer = NodePath("Margin/Rows/Scroll/Entries")
-phaseLabel = NodePath("Margin/Rows/Bar/Phase")
-roundLabel = NodePath("Margin/Rows/Bar/Round")
+entriesContainer = NodePath("Margin/Row/Scroll/Pad/Centre/Entries")
+roundLabel = NodePath("Margin/Row/Round")
+cardViewer = NodePath("Card Viewer")
 
 [node name="Margin" type="MarginContainer" parent="."]
 layout_mode = 2
+mouse_filter = 2
 theme_override_constants/margin_left = 12
-theme_override_constants/margin_top = 6
+theme_override_constants/margin_top = 2
 theme_override_constants/margin_right = 12
-theme_override_constants/margin_bottom = 6
+theme_override_constants/margin_bottom = 2
 
-[node name="Rows" type="VBoxContainer" parent="Margin"]
+[node name="Row" type="HBoxContainer" parent="Margin"]
 layout_mode = 2
-theme_override_constants/separation = 4
+mouse_filter = 2
+theme_override_constants/separation = 0
 
-[node name="Bar" type="HBoxContainer" parent="Margin/Rows"]
+[node name="Round" type="Label" parent="Margin/Row"]
+custom_minimum_size = Vector2(110, 0)
 layout_mode = 2
+size_flags_vertical = 0
+theme_override_colors/font_color = Color(0.788, 0.635, 0.294, 1)
+theme_override_font_sizes/font_size = 18
+text = "Round 1"
 
-[node name="Phase" type="Label" parent="Margin/Rows/Bar"]
+[node name="Scroll" type="ScrollContainer" parent="Margin/Row"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.788, 0.635, 0.294, 1)
-theme_override_font_sizes/font_size = 12
-text = "Enemy Activation"
-vertical_alignment = 1
-
-[node name="Round" type="Label" parent="Margin/Rows/Bar"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.369, 0.341, 0.294, 1)
-theme_override_font_sizes/font_size = 12
-text = "Round 1"
-horizontal_alignment = 2
-vertical_alignment = 1
-
-[node name="Scroll" type="ScrollContainer" parent="Margin/Rows"]
-layout_mode = 2
-horizontal_scroll_mode = 1
+mouse_filter = 2
+horizontal_scroll_mode = 3
 vertical_scroll_mode = 0
 
-[node name="Entries" type="HBoxContainer" parent="Margin/Rows/Scroll"]
+[node name="Pad" type="MarginContainer" parent="Margin/Row/Scroll"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 7
+mouse_filter = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+
+[node name="Centre" type="CenterContainer" parent="Margin/Row/Scroll/Pad"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="Entries" type="HBoxContainer" parent="Margin/Row/Scroll/Pad/Centre"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 22
+
+[node name="Balance" type="Control" parent="Margin/Row"]
+custom_minimum_size = Vector2(110, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Card Viewer" type="CanvasLayer" parent="." node_paths=PackedStringArray("overlay", "cardImage")]
+layer = 15
+script = ExtResource("3_viewer")
+overlay = NodePath("Overlay")
+cardImage = NodePath("Overlay/Centre/Column/Card")
+
+[node name="Overlay" type="Control" parent="Card Viewer"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Dim" type="ColorRect" parent="Card Viewer/Overlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.027, 0.024, 0.02, 0.863)
+
+[node name="Centre" type="CenterContainer" parent="Card Viewer/Overlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Column" type="VBoxContainer" parent="Card Viewer/Overlay/Centre"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="Card" type="TextureRect" parent="Card Viewer/Overlay/Centre/Column"]
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Hint" type="Label" parent="Card Viewer/Overlay/Centre/Column"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.549, 0.514, 0.451, 1)
+theme_override_font_sizes/font_size = 11
+text = "Click anywhere to close"
+horizontal_alignment = 1

@@ -1,64 +1,240 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=26 format=3]
 
 [ext_resource type="Script" path="res://Scripts/Encounter/Player/CharacterActionBar.cs" id="1_bar"]
+[ext_resource type="PackedScene" path="res://Resources/Prefabs/UI/EquipmentCross.tscn" id="2_cross"]
+[ext_resource type="Script" path="res://Scripts/Encounter/HUD/CircleAvatar.cs" id="3_avatar"]
+[ext_resource type="Shader" path="res://Resources/Shaders/CircleAvatar.gdshader" id="4_shader"]
+[ext_resource type="Script" path="res://Scripts/Common/TickBar.cs" id="5_tick"]
+[ext_resource type="Texture2D" path="res://Resources/Images/Sprites/Combat/PhysicalAttack.png" id="6_phys"]
+[ext_resource type="Texture2D" path="res://Resources/Images/Sprites/Combat/MagicAttack.png" id="7_magic"]
+[ext_resource type="Texture2D" path="res://Resources/Images/Sprites/Combat/Block.png" id="8_block"]
+[ext_resource type="Texture2D" path="res://Resources/Images/Sprites/Combat/Resist.png" id="9_resist"]
+[ext_resource type="Texture2D" path="res://Resources/Images/Sprites/Combat/Dodge.png" id="10_dodge"]
+[ext_resource type="Texture2D" uid="uid://dic7ui5chf8kn" path="res://Resources/Images/Sprites/Statuses/Bleed.png" id="11_bleed"]
+[ext_resource type="Texture2D" uid="uid://cr2267o6mybvu" path="res://Resources/Images/Sprites/Statuses/Poison.png" id="12_poison"]
+[ext_resource type="Texture2D" uid="uid://m4jhjvt73263" path="res://Resources/Images/Sprites/Statuses/Frost.png" id="13_frost"]
+[ext_resource type="Texture2D" uid="uid://f3eqeucwqox8" path="res://Resources/Images/Sprites/Statuses/Stagger.png" id="14_stagger"]
+[ext_resource type="Texture2D" path="res://Resources/Images/Sprites/Character/Estus.png" id="15_estus"]
+[ext_resource type="Texture2D" path="res://Resources/Images/Sprites/Character/Heroic.png" id="16_heroic"]
+[ext_resource type="Texture2D" path="res://Resources/Images/Sprites/Character/Luck.png" id="17_luck"]
+[ext_resource type="Texture2D" path="res://Resources/Images/Sprites/Soul.png" id="18_soul"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar"]
-bg_color = Color(0.071, 0.063, 0.047, 1)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.09, 0.082, 0.067, 0.88)
 border_width_top = 1
+border_color = Color(0.47, 0.38, 0.2, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel_reaction"]
+bg_color = Color(0.09, 0.082, 0.067, 0.88)
+border_width_top = 2
+border_color = Color(0.851, 0.18, 0.122, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_end"]
+bg_color = Color(0.12, 0.1, 0.075, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.788, 0.635, 0.294, 1)
+corner_radius_top_left = 44
+corner_radius_top_right = 44
+corner_radius_bottom_right = 44
+corner_radius_bottom_left = 44
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_end_hover"]
+bg_color = Color(0.17, 0.14, 0.1, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.95, 0.8, 0.45, 1)
+corner_radius_top_left = 44
+corner_radius_top_right = 44
+corner_radius_bottom_right = 44
+corner_radius_bottom_left = 44
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_end_disabled"]
+bg_color = Color(0.08, 0.07, 0.055, 0.9)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
 border_color = Color(0.29, 0.251, 0.188, 1)
+corner_radius_top_left = 44
+corner_radius_top_right = 44
+corner_radius_bottom_right = 44
+corner_radius_bottom_left = 44
 
-[node name="CharacterActionBar" type="PanelContainer" node_paths=PackedStringArray("nameLabel", "staminaLabel", "statusLabel", "weaponRows", "endActivationButton")]
-theme_override_styles/panel = SubResource("StyleBoxFlat_bar")
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_focus"]
+
+[sub_resource type="Theme" id="Theme_bar"]
+Label/constants/outline_size = 0
+
+[node name="CharacterActionBar" type="HBoxContainer" node_paths=PackedStringArray("crossAnchor", "cross", "panel", "avatar", "nameLabel", "endurance", "defenceRow", "tokenRow", "header", "rows", "soulsLabel", "endTurnButton")]
+mouse_filter = 2
+theme = SubResource("Theme_bar")
+theme_override_constants/separation = 0
 script = ExtResource("1_bar")
-nameLabel = NodePath("Margin/Rows/Header/Name")
-staminaLabel = NodePath("Margin/Rows/Header/Stamina")
-statusLabel = NodePath("Margin/Rows/Header/Status")
-weaponRows = NodePath("Margin/Rows/Weapons")
-endActivationButton = NodePath("Margin/Rows/Header/End Activation")
+crossAnchor = NodePath("Cross Anchor")
+cross = NodePath("Cross Anchor/Cross")
+panel = NodePath("Panel")
+avatar = NodePath("Panel/Margin/Row/Avatar")
+nameLabel = NodePath("Panel/Margin/Row/Character/Name")
+endurance = NodePath("Panel/Margin/Row/Character/Endurance")
+defenceRow = NodePath("Panel/Margin/Row/Character/Defence")
+tokenRow = NodePath("Panel/Margin/Row/Character/Tokens")
+header = NodePath("Panel/Margin/Row/Weapon/Header")
+rows = NodePath("Panel/Margin/Row/Weapon/Rows")
+soulsLabel = NodePath("Panel/Margin/Row/Souls/Value")
+endTurnButton = NodePath("Panel/Margin/Row/End Turn")
+panelStyle = SubResource("StyleBoxFlat_panel")
+panelReactionStyle = SubResource("StyleBoxFlat_panel_reaction")
+physicalIcon = ExtResource("6_phys")
+magicIcon = ExtResource("7_magic")
+blockIcon = ExtResource("8_block")
+resistIcon = ExtResource("9_resist")
+dodgeIcon = ExtResource("10_dodge")
+conditionTextures = Array[Texture2D]([ExtResource("11_bleed"), ExtResource("12_poison"), ExtResource("13_frost"), ExtResource("14_stagger")])
+tokenTextures = Array[Texture2D]([ExtResource("15_estus"), ExtResource("16_heroic"), ExtResource("17_luck")])
 
-[node name="Margin" type="MarginContainer" parent="."]
+[node name="Cross Anchor" type="Control" parent="."]
+custom_minimum_size = Vector2(292, 0)
 layout_mode = 2
-theme_override_constants/margin_left = 12
-theme_override_constants/margin_top = 6
-theme_override_constants/margin_right = 12
-theme_override_constants/margin_bottom = 6
+mouse_filter = 2
 
-[node name="Rows" type="VBoxContainer" parent="Margin"]
-layout_mode = 2
-theme_override_constants/separation = 6
-alignment = 1
+[node name="Cross" parent="Cross Anchor" instance=ExtResource("2_cross")]
+layout_mode = 0
+offset_top = -104.0
+offset_bottom = 112.0
 
-[node name="Header" type="HBoxContainer" parent="Margin/Rows"]
-layout_mode = 2
-theme_override_constants/separation = 12
-
-[node name="Name" type="Label" parent="Margin/Rows/Header"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.902, 0.871, 0.796, 1)
-theme_override_font_sizes/font_size = 15
-text = "Knight"
-vertical_alignment = 1
-
-[node name="Stamina" type="Label" parent="Margin/Rows/Header"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.788, 0.635, 0.294, 1)
-theme_override_font_sizes/font_size = 13
-text = "10 left"
-vertical_alignment = 1
-
-[node name="Status" type="Label" parent="Margin/Rows/Header"]
+[node name="Panel" type="PanelContainer" parent="."]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.549, 0.514, 0.451, 1)
-theme_override_font_sizes/font_size = 12
-text = "Walk: first node free"
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="Margin" type="MarginContainer" parent="Panel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 8
+
+[node name="Row" type="HBoxContainer" parent="Panel/Margin"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+
+[node name="Avatar" type="Control" parent="Panel/Margin/Row" node_paths=PackedStringArray("art")]
+custom_minimum_size = Vector2(104, 104)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("3_avatar")
+art = NodePath("Art")
+circleShader = ExtResource("4_shader")
+
+[node name="Art" type="TextureRect" parent="Panel/Margin/Row/Avatar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Character" type="VBoxContainer" parent="Panel/Margin/Row"]
+custom_minimum_size = Vector2(210, 0)
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 5
+alignment = 1
+
+[node name="Name" type="Label" parent="Panel/Margin/Row/Character"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.788, 0.635, 0.294, 1)
+theme_override_font_sizes/font_size = 20
+text = "Knight"
+
+[node name="Endurance" type="HBoxContainer" parent="Panel/Margin/Row/Character"]
+custom_minimum_size = Vector2(200, 10)
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 3
+script = ExtResource("5_tick")
+separation = 3
+tickHeight = 10
+
+[node name="Defence" type="HBoxContainer" parent="Panel/Margin/Row/Character"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="Tokens" type="HBoxContainer" parent="Panel/Margin/Row/Character"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="Weapon" type="VBoxContainer" parent="Panel/Margin/Row"]
+custom_minimum_size = Vector2(0, 124)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 5
+alignment = 1
+
+[node name="Header" type="HBoxContainer" parent="Panel/Margin/Row/Weapon"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="Rows" type="VBoxContainer" parent="Panel/Margin/Row/Weapon"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="Souls" type="HBoxContainer" parent="Panel/Margin/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="Icon" type="TextureRect" parent="Panel/Margin/Row/Souls"]
+custom_minimum_size = Vector2(26, 26)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = ExtResource("18_soul")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Value" type="Label" parent="Panel/Margin/Row/Souls"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.788, 0.635, 0.294, 1)
+theme_override_font_sizes/font_size = 20
+text = "0"
 vertical_alignment = 1
 
-[node name="End Activation" type="Button" parent="Margin/Rows/Header"]
+[node name="End Turn" type="Button" parent="Panel/Margin/Row"]
+custom_minimum_size = Vector2(88, 88)
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
-text = "End Activation"
-
-[node name="Weapons" type="VBoxContainer" parent="Margin/Rows"]
-layout_mode = 2
-theme_override_constants/separation = 4
+size_flags_vertical = 4
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(0.902, 0.871, 0.796, 1)
+theme_override_colors/font_hover_color = Color(1, 0.96, 0.88, 1)
+theme_override_colors/font_pressed_color = Color(1, 0.96, 0.88, 1)
+theme_override_colors/font_focus_color = Color(0.902, 0.871, 0.796, 1)
+theme_override_colors/font_disabled_color = Color(0.45, 0.42, 0.37, 1)
+theme_override_font_sizes/font_size = 15
+theme_override_styles/focus = SubResource("StyleBoxEmpty_focus")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_end_disabled")
+theme_override_styles/hover = SubResource("StyleBoxFlat_end_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_end_hover")
+theme_override_styles/normal = SubResource("StyleBoxFlat_end")
+text = "End Turn"

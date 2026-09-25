@@ -26,6 +26,11 @@ public partial class Player : Resource
     // so it must never be written into the saved character. PlayerToken drives it.
     public Endurance endurance { get; private set; } = new Endurance();
 
+    // Conditions live here rather than on the board token for the same reason the endurance
+    // bar does: the portrait pane has a Player, not a PlayerToken, and it is where the
+    // character's conditions are now shown.
+    public readonly HashSet<EncounterManager.StatusEffect> conditions = new HashSet<EncounterManager.StatusEffect>();
+
     public Player() { }
 
     public Player(string name, Character character) {

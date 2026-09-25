@@ -1,0 +1,154 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Encounter/HUD/RollReveal.cs" id="1_reveal"]
+[ext_resource type="Texture2D" path="res://Resources/Images/Sprites/Combat/Dodge.png" id="2_dodge"]
+[ext_resource type="Texture2D" path="res://Resources/Images/Sprites/Combat/PhysicalAttack.png" id="3_phys"]
+[ext_resource type="Texture2D" path="res://Resources/Images/Sprites/Combat/MagicAttack.png" id="4_magic"]
+[ext_resource type="Texture2D" path="res://Resources/Images/Sprites/Combat/Block.png" id="5_block"]
+[ext_resource type="Texture2D" path="res://Resources/Images/Sprites/Combat/Resist.png" id="6_resist"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.051, 0.047, 0.039, 0.86)
+border_width_top = 1
+border_width_bottom = 1
+border_color = Color(0.788, 0.635, 0.294, 0.7)
+content_margin_left = 44.0
+content_margin_top = 24.0
+content_margin_right = 44.0
+content_margin_bottom = 24.0
+shadow_color = Color(0, 0, 0, 0.45)
+shadow_size = 24
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button"]
+bg_color = Color(0.106, 0.094, 0.075, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.541, 0.455, 0.204, 1)
+content_margin_left = 24.0
+content_margin_top = 6.0
+content_margin_right = 24.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_hover"]
+bg_color = Color(0.165, 0.141, 0.098, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.91, 0.82, 0.58, 1)
+content_margin_left = 24.0
+content_margin_top = 6.0
+content_margin_right = 24.0
+content_margin_bottom = 6.0
+
+[node name="RollReveal" type="CanvasLayer" node_paths=PackedStringArray("actorRow", "diceRow", "totalLabel", "lineRows", "continueButton")]
+layer = 12
+visible = false
+script = ExtResource("1_reveal")
+actorRow = NodePath("Overlay/Centre/Panel/Rows/Actor")
+diceRow = NodePath("Overlay/Centre/Panel/Rows/Roll/Dice")
+totalLabel = NodePath("Overlay/Centre/Panel/Rows/Roll/Total")
+lineRows = NodePath("Overlay/Centre/Panel/Rows/Lines")
+continueButton = NodePath("Overlay/Centre/Panel/Rows/Continue")
+dodgeIcon = ExtResource("2_dodge")
+physicalIcon = ExtResource("3_phys")
+magicIcon = ExtResource("4_magic")
+blockIcon = ExtResource("5_block")
+resistIcon = ExtResource("6_resist")
+
+[node name="Overlay" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Scrim" type="ColorRect" parent="Overlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.45)
+
+[node name="Centre" type="CenterContainer" parent="Overlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Panel" type="PanelContainer" parent="Overlay/Centre"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="Rows" type="VBoxContainer" parent="Overlay/Centre/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="Actor" type="HBoxContainer" parent="Overlay/Centre/Panel/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="Divider" type="ColorRect" parent="Overlay/Centre/Panel/Rows"]
+custom_minimum_size = Vector2(240, 1)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 2
+color = Color(0.788, 0.635, 0.294, 0.55)
+
+[node name="Roll" type="HBoxContainer" parent="Overlay/Centre/Panel/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 14
+alignment = 1
+
+[node name="Dice" type="HBoxContainer" parent="Overlay/Centre/Panel/Rows/Roll"]
+layout_mode = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="Equals" type="Label" parent="Overlay/Centre/Panel/Rows/Roll"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.702, 0.667, 0.596, 1)
+theme_override_font_sizes/font_size = 26
+text = "="
+vertical_alignment = 1
+
+[node name="Total" type="Label" parent="Overlay/Centre/Panel/Rows/Roll"]
+custom_minimum_size = Vector2(36, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.949, 0.925, 0.878, 1)
+theme_override_font_sizes/font_size = 34
+text = "0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Lines" type="VBoxContainer" parent="Overlay/Centre/Panel/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Spacer" type="Control" parent="Overlay/Centre/Panel/Rows"]
+custom_minimum_size = Vector2(0, 2)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Continue" type="Button" parent="Overlay/Centre/Panel/Rows"]
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_button_hover")
+text = "Continue"

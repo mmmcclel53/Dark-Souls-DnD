@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3 uid="uid://cdmyd1komlp81"]
+[gd_scene load_steps=23 format=3 uid="uid://cdmyd1komlp81"]
 
 [ext_resource type="Theme" uid="uid://b4u8wpfygl601" path="res://Theme.tres" id="1_163b3"]
 [ext_resource type="Script" uid="uid://38e7hdut52ii" path="res://Scripts/MainMenu/Settings.cs" id="2_cws6m"]
@@ -7,7 +7,6 @@
 [ext_resource type="Resource" uid="uid://cmev7rnhedr1j" path="res://Resources/Prefabs/Player/Knight/Knight.tres" id="6_knight"]
 [ext_resource type="PackedScene" path="res://Resources/Prefabs/Enemies/Enemy.tscn" id="7_3kqhr"]
 [ext_resource type="PackedScene" path="res://Resources/Prefabs/UI/TurnQueue.tscn" id="13_queue"]
-[ext_resource type="PackedScene" path="res://Resources/Prefabs/UI/EnemyInfoPanel.tscn" id="14_panel"]
 [ext_resource type="PackedScene" path="res://Resources/Prefabs/UI/DodgePrompt.tscn" id="15_dodge"]
 [ext_resource type="PackedScene" path="res://Resources/Prefabs/UI/PushPrompt.tscn" id="18_push"]
 [ext_resource type="PackedScene" path="res://Resources/Prefabs/UI/EncounterResultPanel.tscn" id="19_result"]
@@ -19,6 +18,8 @@
 [ext_resource type="Script" uid="uid://d1a4camaukfpy" path="res://Scripts/Encounter/GameNode.cs" id="10_2lue5"]
 [ext_resource type="Texture2D" uid="uid://b15uect354dvm" path="res://Resources/Images/Sprites/green_circle.png" id="11_0dxsk"]
 [ext_resource type="Script" path="res://Scripts/WorldMap/EncounterDevControls.cs" id="13_devwm"]
+[ext_resource type="Script" path="res://Scripts/Encounter/BoardCamera.cs" id="20_camera"]
+[ext_resource type="PackedScene" path="res://Resources/Prefabs/UI/RollReveal.tscn" id="21_reveal"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_toggle"]
 
@@ -70,6 +71,13 @@ theme_override_font_sizes/font_size = 24
 text = "Anor Londo  -  Courtyard"
 vertical_alignment = 1
 
+[node name="Reset View" type="Button" parent="CanvasLayer/AspectRatioContainer/UI/Title Panel/Margin/HBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+tooltip_text = "Reset the board's zoom and pan (R). Scroll to zoom, drag to pan."
+text = "Reset View"
+
 [node name="CheckButton" type="CheckButton" parent="CanvasLayer/AspectRatioContainer/UI/Title Panel/Margin/HBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 4
@@ -85,32 +93,36 @@ script = ExtResource("2_cws6m")
 [node name="Character Turn" type="Node" parent="CanvasLayer/AspectRatioContainer/UI" node_paths=PackedStringArray("actionBar")]
 unique_name_in_owner = true
 script = ExtResource("17_turn")
-actionBar = NodePath("../Action Bar")
+actionBar = NodePath("../Stage/HUD/Action Bar")
 
-[node name="Turn Queue" parent="CanvasLayer/AspectRatioContainer/UI" instance=ExtResource("13_queue")]
-layout_mode = 2
-
-[node name="Board" type="HBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI"]
+[node name="Stage" type="Control" parent="CanvasLayer/AspectRatioContainer/UI"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 0
-alignment = 1
-
-[node name="Left Gutter" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board"]
-custom_minimum_size = Vector2(168, 0)
-layout_mode = 2
 mouse_filter = 2
 
-[node name="Board Frame" type="AspectRatioContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board"]
-layout_mode = 2
-size_flags_horizontal = 3
-mouse_filter = 2
+[node name="Board View" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage" node_paths=PackedStringArray("board", "resetButton", "topHud", "bottomHud")]
+clip_contents = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("20_camera")
+board = NodePath("Encounter")
+resetButton = NodePath("../../Title Panel/Margin/HBoxContainer/Reset View")
+topHud = NodePath("../HUD/Turn Queue")
+bottomHud = NodePath("../HUD/Action Bar")
+leftInset = 104.0
+rightInset = 104.0
 
-[node name="Encounter" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame" node_paths=PackedStringArray("nodesParent", "pathGrid", "turnQueue", "characterTurn", "resultPanel")]
+[node name="Encounter" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View" node_paths=PackedStringArray("nodesParent", "pathGrid", "turnQueue", "characterTurn", "resultPanel")]
 unique_name_in_owner = true
-layout_mode = 2
+layout_mode = 0
+offset_right = 600.0
+offset_bottom = 600.0
 script = ExtResource("4_hmy00")
-turnQueue = NodePath("../../../Turn Queue")
+turnQueue = NodePath("../../HUD/Turn Queue")
 characterTurn = NodePath("../../../Character Turn")
 resultPanel = NodePath("../../../../../Encounter Result")
 playerScene = ExtResource("6_xdswp")
@@ -120,7 +132,7 @@ enemies = Array[Object]([ExtResource("7_hollow"), ExtResource("7_hollow")])
 nodesParent = NodePath("Grid")
 pathGrid = NodePath("Grid")
 
-[node name="Map" type="TextureRect" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter"]
+[node name="Map" type="TextureRect" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -132,7 +144,7 @@ expand_mode = 1
 stretch_mode = 0
 flip_h = true
 
-[node name="Grid" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter" node_paths=PackedStringArray("nodesParent")]
+[node name="Grid" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter" node_paths=PackedStringArray("nodesParent")]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -142,7 +154,7 @@ grow_vertical = 2
 script = ExtResource("9_xtn7h")
 nodesParent = NodePath(".")
 
-[node name="Node1" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node1" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 visible = false
 layout_mode = 1
 anchors_preset = -1
@@ -155,7 +167,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isDisabled = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node1"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node1"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -169,7 +181,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node2" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node2" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 visible = false
 layout_mode = 1
 anchors_preset = -1
@@ -182,7 +194,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isDisabled = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node2"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node2"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -196,7 +208,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node3" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node3" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 visible = false
 layout_mode = 1
 anchors_preset = -1
@@ -209,7 +221,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isDisabled = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node3"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node3"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -223,7 +235,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node4" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node4" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.06829
@@ -235,7 +247,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isEntrance = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node4"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node4"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -249,7 +261,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node5" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node5" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 visible = false
 layout_mode = 1
 anchors_preset = -1
@@ -262,7 +274,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isDisabled = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node5"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node5"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -276,7 +288,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node6" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node6" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 visible = false
 layout_mode = 1
 anchors_preset = -1
@@ -289,7 +301,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isDisabled = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node6"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node6"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -303,7 +315,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node7" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node7" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 visible = false
 layout_mode = 1
 anchors_preset = -1
@@ -316,7 +328,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isDisabled = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node7"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node7"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -330,7 +342,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node8" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node8" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 visible = false
 layout_mode = 1
 anchors_preset = -1
@@ -343,7 +355,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isDisabled = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node8"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node8"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -357,7 +369,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node9" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node9" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 visible = false
 layout_mode = 1
 anchors_preset = -1
@@ -370,7 +382,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isDisabled = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node9"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node9"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -384,7 +396,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node10" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node10" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.06829
@@ -396,7 +408,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isEntrance = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node10"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node10"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -410,7 +422,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node11" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node11" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.18991
@@ -421,7 +433,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("10_2lue5")
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node11"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node11"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -435,7 +447,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node12" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node12" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.31153
@@ -446,7 +458,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("10_2lue5")
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node12"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node12"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -460,7 +472,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node13" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node13" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 visible = false
 layout_mode = 1
 anchors_preset = -1
@@ -473,7 +485,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isDisabled = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node13"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node13"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -487,7 +499,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node14" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node14" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 visible = false
 layout_mode = 1
 anchors_preset = -1
@@ -500,7 +512,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isDisabled = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node14"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node14"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -514,7 +526,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node15" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node15" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 visible = false
 layout_mode = 1
 anchors_preset = -1
@@ -527,7 +539,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isDisabled = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node15"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node15"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -541,7 +553,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node16" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node16" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.06829
@@ -553,7 +565,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isEntrance = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node16"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node16"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -567,7 +579,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node17" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node17" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.18991
@@ -579,7 +591,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isEnemySpawn = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node17"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node17"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -593,7 +605,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node18" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node18" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.31153
@@ -605,7 +617,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isDisabled = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node18"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node18"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -619,7 +631,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node19" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node19" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.43315
@@ -631,7 +643,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isEnemySpawn = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node19"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node19"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -645,7 +657,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node20" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node20" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.55477
@@ -656,7 +668,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("10_2lue5")
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node20"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node20"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -670,7 +682,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node21" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node21" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 visible = false
 layout_mode = 1
 anchors_preset = -1
@@ -683,7 +695,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isDisabled = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node21"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node21"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -697,7 +709,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node22" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node22" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.06829
@@ -709,7 +721,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isEnemySpawn = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node22"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node22"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -723,7 +735,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node23" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node23" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.18991
@@ -734,7 +746,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("10_2lue5")
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node23"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node23"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -748,7 +760,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node24" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node24" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.31153
@@ -759,7 +771,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("10_2lue5")
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node24"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node24"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -773,7 +785,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node25" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node25" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.43315
@@ -785,7 +797,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isDisabled = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node25"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node25"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -799,7 +811,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node26" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node26" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.55477
@@ -811,7 +823,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isDisabled = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node26"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node26"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -825,7 +837,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node27" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node27" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.67639
@@ -836,7 +848,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("10_2lue5")
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node27"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node27"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -850,7 +862,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node28" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node28" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.79801
@@ -861,7 +873,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("10_2lue5")
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node28"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node28"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -875,7 +887,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node29" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node29" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 visible = false
 layout_mode = 1
 anchors_preset = -1
@@ -888,7 +900,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isDisabled = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node29"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node29"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -902,7 +914,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node30" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node30" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.31153
@@ -913,7 +925,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("10_2lue5")
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node30"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node30"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -927,7 +939,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node31" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node31" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.43315
@@ -938,7 +950,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("10_2lue5")
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node31"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node31"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -952,7 +964,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node32" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node32" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.55477
@@ -963,7 +975,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("10_2lue5")
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node32"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node32"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -977,7 +989,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node33" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node33" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.67639
@@ -989,7 +1001,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isDisabled = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node33"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node33"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -1003,7 +1015,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node34" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node34" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.79801
@@ -1014,7 +1026,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("10_2lue5")
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node34"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node34"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -1028,7 +1040,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node35" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node35" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 visible = false
 layout_mode = 1
 anchors_preset = -1
@@ -1041,7 +1053,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isDisabled = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node35"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node35"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -1055,7 +1067,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node36" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node36" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 visible = false
 layout_mode = 1
 anchors_preset = -1
@@ -1068,7 +1080,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isDisabled = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node36"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node36"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -1082,7 +1094,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node37" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node37" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 visible = false
 layout_mode = 1
 anchors_preset = -1
@@ -1095,7 +1107,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isDisabled = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node37"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node37"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -1109,7 +1121,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node38" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node38" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.55477
@@ -1120,7 +1132,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("10_2lue5")
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node38"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node38"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -1134,7 +1146,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node39" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node39" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.67639
@@ -1145,7 +1157,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("10_2lue5")
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node39"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node39"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -1159,7 +1171,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node40" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node40" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.79801
@@ -1171,7 +1183,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isEnemySpawn = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node40"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node40"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -1185,7 +1197,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node41" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node41" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 visible = false
 layout_mode = 1
 anchors_preset = -1
@@ -1198,7 +1210,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isDisabled = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node41"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node41"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -1212,7 +1224,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node42" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node42" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 visible = false
 layout_mode = 1
 anchors_preset = -1
@@ -1225,7 +1237,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isDisabled = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node42"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node42"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -1239,7 +1251,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node43" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node43" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 visible = false
 layout_mode = 1
 anchors_preset = -1
@@ -1252,7 +1264,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isDisabled = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node43"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node43"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -1266,7 +1278,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node44" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node44" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 visible = false
 layout_mode = 1
 anchors_preset = -1
@@ -1279,7 +1291,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isDisabled = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node44"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node44"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -1293,7 +1305,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node45" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node45" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 visible = false
 layout_mode = 1
 anchors_preset = -1
@@ -1306,7 +1318,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isDisabled = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node45"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node45"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -1320,7 +1332,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node46" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node46" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.79801
@@ -1331,7 +1343,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("10_2lue5")
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node46"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node46"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -1345,7 +1357,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node47" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node47" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 visible = false
 layout_mode = 1
 anchors_preset = -1
@@ -1358,7 +1370,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isDisabled = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node47"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node47"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -1372,7 +1384,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node48" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node48" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 visible = false
 layout_mode = 1
 anchors_preset = -1
@@ -1385,7 +1397,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isDisabled = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node48"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node48"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -1399,7 +1411,7 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Node49" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid"]
+[node name="Node49" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid"]
 visible = false
 layout_mode = 1
 anchors_preset = -1
@@ -1412,7 +1424,7 @@ grow_vertical = 2
 script = ExtResource("10_2lue5")
 isDisabled = true
 
-[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Board/Board Frame/Encounter/Grid/Node49"]
+[node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node49"]
 modulate = Color(1, 1, 1, 0.501961)
 layout_mode = 1
 anchors_preset = -1
@@ -1426,14 +1438,26 @@ ignore_texture_size = true
 texture_normal = ExtResource("11_0dxsk")
 stretch_mode = 0
 
-[node name="Right Gutter" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Board"]
-custom_minimum_size = Vector2(168, 0)
+[node name="HUD" type="VBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI/Stage"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="Turn Queue" parent="CanvasLayer/AspectRatioContainer/UI/Stage/HUD" instance=ExtResource("13_queue")]
 layout_mode = 2
+
+[node name="Spacer" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/HUD"]
+layout_mode = 2
+size_flags_vertical = 3
 mouse_filter = 2
 
-[node name="Action Bar" parent="CanvasLayer/AspectRatioContainer/UI" instance=ExtResource("16_bar")]
+[node name="Action Bar" parent="CanvasLayer/AspectRatioContainer/UI/Stage/HUD" instance=ExtResource("16_bar")]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 96)
 layout_mode = 2
 
 [node name="Encounter Result" parent="CanvasLayer" instance=ExtResource("19_result")]
@@ -1444,24 +1468,14 @@ visible = false
 unique_name_in_owner = true
 visible = false
 
-[node name="Dodge Prompt" parent="CanvasLayer" instance=ExtResource("15_dodge")]
+[node name="Dodge Prompt" parent="CanvasLayer" node_paths=PackedStringArray("turnQueue", "actionBar") instance=ExtResource("15_dodge")]
 unique_name_in_owner = true
 visible = false
+turnQueue = NodePath("../AspectRatioContainer/UI/Stage/HUD/Turn Queue")
+actionBar = NodePath("../AspectRatioContainer/UI/Stage/HUD/Action Bar")
 
-[node name="Enemy Info Dialog" type="AcceptDialog" parent="CanvasLayer"]
+[node name="Roll Reveal" parent="CanvasLayer" instance=ExtResource("21_reveal")]
 unique_name_in_owner = true
-title = "Enemy Info"
-initial_position = 2
-size = Vector2i(440, 620)
-ok_button_text = "Close"
-
-[node name="Enemy Info Panel" parent="CanvasLayer/Enemy Info Dialog" instance=ExtResource("14_panel")]
-unique_name_in_owner = true
-layout_mode = 1
-offset_left = 8.0
-offset_top = 8.0
-offset_right = -8.0
-offset_bottom = -8.0
 
 [node name="EncounterDevControls" type="Node" parent="CanvasLayer" node_paths=PackedStringArray("encounterTitle", "buttonHost")]
 script = ExtResource("13_devwm")
