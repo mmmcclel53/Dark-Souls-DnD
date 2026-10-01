@@ -49,6 +49,7 @@ public static partial class EncounterManager {
     public static DodgePrompt dodgePrompt;
     public static CharacterTurn characterTurn;
     public static PushPrompt pushPrompt;
+    public static EnemySpotlight spotlight;
     // Registers itself on ready; it sits after the board in the scene so Reset cannot wipe it.
     public static RollReveal rollReveal;
 
@@ -67,6 +68,8 @@ public static partial class EncounterManager {
         isPlayerMoving = false;
         isEnemyMoving = false;
         aggroHolder = null;
+        spotlight = null;
+        NearestMarker.Reset();
         characterTurn = null;
         pushPrompt = null;
         rollReveal = null;
@@ -74,13 +77,18 @@ public static partial class EncounterManager {
         partyDefeated = false;
         deathGridIndex = -1;
         soulDropGridIndex = -1;
+        BoardFx.Reset();
     }
 
+    // The token flies from the last holder to the new one and only shows on landing; with
+    // no one to fly from it simply appears.
     public static void SetAggroHolder(PlayerToken token) {
         PlayerToken previous = aggroHolder;
         aggroHolder = token;
         if (previous != null && GodotObject.IsInstanceValid(previous)) previous.RefreshAggro();
-        if (token != null) token.RefreshAggro();
+        if (token == null) return;
+        if (previous != token && AggroHandoff.Fly(previous, token)) return;
+        token.RefreshAggro();
     }
 
     public static int GridIndexOf(Node2D model) {
@@ -111,7 +119,7 @@ public static partial class EncounterManager {
     public static Enemy GetEnemy(Node2D enemyObj) {
         if (!GodotObject.IsInstanceValid(enemyObj) || enemyObj.GetChildCount() == 0) return null;
         Enemy enemy = enemyObj.GetChild(0) as Enemy;
-        return enemy == null || enemy.IsQueuedForDeletion() ? null : enemy;
+        return enemy == null || enemy.IsQueuedForDeletion() || enemy.isDead ? null : enemy;
     }
 
     // Enemy.ApplyDamage frees the Enemy but leaves its wrapper Node2D behind, so the list
@@ -142,7 +150,7 @@ public static partial class EncounterManager {
         if (pushed == null) return;
 
         GameNode destination = EnemyMovement.PushDestination(pathGrid.NodeFromObj(pushed));
-        if (destination != null && destination != node) MovePlayer(pushed, destination, node);
+        if (destination != null && destination != node) MovePlayer(pushed, destination, node, true);
     }
 
     private static string ArrivalName(Node2D arrival) {
@@ -222,8 +230,18 @@ public static partial class EncounterManager {
         }
     }
 
-    public static bool MovePlayer(Node2D obj, Control newNode, Control oldNode) {
+    // The wrappers are placed at once; the pieces are seen to travel. Everyone this may
+    // re-pack slides from where it was drawn, the mover lifted like a piece picked up and
+    // put down, a pushed one (`stumble`) landing with an overshoot.
+    public static bool MovePlayer(Node2D obj, Control newNode, Control oldNode, bool stumble = false) {
         if (newNode == null) return false;
+
+        Dictionary<Node2D, Vector2> before = new Dictionary<Node2D, Vector2>();
+        if (oldNode != null) {
+            foreach (Node2D occupant in GetAllPlayersInNode(oldNode)) before[occupant] = TokenMotion.VisualPosition(occupant);
+        }
+        foreach (Node2D occupant in GetAllPlayersInNode(newNode)) before[occupant] = TokenMotion.VisualPosition(occupant);
+        if (!obj.IsInsideTree()) before.Remove(obj);
 
         if (oldNode != null) {
             oldNode.RemoveChild(obj);
@@ -233,6 +251,10 @@ public static partial class EncounterManager {
         // The node's button stays first, under the models, so a model can be clicked.
         newNode.AddChild(obj);
         FixPositioning(newNode);
+
+        foreach (KeyValuePair<Node2D, Vector2> pair in before) {
+            TokenMotion.Glide(pair.Key, pair.Value, lift: pair.Key == obj, stumble: stumble && pair.Key == obj);
+        }
         return true;
     }
 }

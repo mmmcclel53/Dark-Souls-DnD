@@ -6,6 +6,11 @@ using Godot;
 public partial class TokenHighlight : Control
 {
 
+	// Children of a token in this group (its Aggro and Nearest badges) stay drawn over the
+	// ring. Done by child order, not ZIndex: a raised ZIndex also lifts them over every
+	// modal that shares the board's canvas layer.
+	public const string ABOVE_RINGS = "token_above_rings";
+
 	public Color color = Colors.Red;
 	public float pulseSpeed = 5f;
 
@@ -16,6 +21,11 @@ public partial class TokenHighlight : Control
 
 		TokenHighlight ring = new TokenHighlight { color = color, MouseFilter = MouseFilterEnum.Ignore };
 		token.AddChild(ring);
+		foreach (Node child in token.GetChildren()) {
+			if (!child.IsInGroup(ABOVE_RINGS)) continue;
+			token.MoveChild(ring, child.GetIndex());
+			break;
+		}
 		ring.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 		return ring;
 	}

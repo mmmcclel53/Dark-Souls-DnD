@@ -116,7 +116,7 @@ bottomHud = NodePath("../HUD/Action Bar")
 leftInset = 104.0
 rightInset = 104.0
 
-[node name="Encounter" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View" node_paths=PackedStringArray("nodesParent", "pathGrid", "turnQueue", "characterTurn", "resultPanel")]
+[node name="Encounter" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View" node_paths=PackedStringArray("nodesParent", "pathGrid", "turnQueue", "characterTurn", "resultPanel", "titleBar")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_right = 600.0
@@ -131,6 +131,7 @@ enemyScene = ExtResource("7_3kqhr")
 enemies = Array[Object]([ExtResource("7_hollow"), ExtResource("7_hollow")])
 nodesParent = NodePath("Grid")
 pathGrid = NodePath("Grid")
+titleBar = NodePath("../../../Title Panel")
 
 [node name="Map" type="TextureRect" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter"]
 layout_mode = 1
@@ -615,7 +616,6 @@ anchor_bottom = 0.43520
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("10_2lue5")
-isDisabled = true
 
 [node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node18"]
 modulate = Color(1, 1, 1, 0.501961)
@@ -795,7 +795,6 @@ anchor_bottom = 0.55682
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("10_2lue5")
-isDisabled = true
 
 [node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node25"]
 modulate = Color(1, 1, 1, 0.501961)
@@ -821,7 +820,6 @@ anchor_bottom = 0.43520
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("10_2lue5")
-isDisabled = true
 
 [node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node26"]
 modulate = Color(1, 1, 1, 0.501961)
@@ -999,7 +997,6 @@ anchor_bottom = 0.55682
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("10_2lue5")
-isDisabled = true
 
 [node name="Button" type="TextureButton" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View/Encounter/Grid/Node33"]
 modulate = Color(1, 1, 1, 0.501961)
@@ -1459,6 +1456,11 @@ mouse_filter = 2
 [node name="Action Bar" parent="CanvasLayer/AspectRatioContainer/UI/Stage/HUD" instance=ExtResource("16_bar")]
 unique_name_in_owner = true
 layout_mode = 2
+
+[node name="Bottom Gap" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/HUD"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+mouse_filter = 2
 
 [node name="Encounter Result" parent="CanvasLayer" instance=ExtResource("19_result")]
 unique_name_in_owner = true

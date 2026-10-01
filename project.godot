@@ -19,6 +19,8 @@ config/icon="res://icon.svg"
 
 CharacterPortraitPane="*res://Scripts/Common/CharacterPortraitPane.cs"
 EquipmentModal="*res://Scripts/Common/EquipmentModal.cs"
+SoulCounter="*res://Scripts/Common/SoulCounter.cs"
+CursorPolicy="*res://Scripts/Common/CursorPolicy.cs"
 
 [display]
 

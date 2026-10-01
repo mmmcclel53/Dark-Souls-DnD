@@ -22,7 +22,15 @@ public partial class WorldMapNode : Control {
 	private bool hovered;
 
 	public bool Cleared { get => cleared; set { cleared = value; QueueRedraw(); } }
-	public bool Reachable { get => reachable; set { reachable = value; QueueRedraw(); } }
+	// Only a reachable hex does anything when clicked, so only a reachable hex shows the hand.
+	public bool Reachable {
+		get => reachable;
+		set {
+			reachable = value;
+			MouseDefaultCursorShape = value ? CursorShape.PointingHand : CursorShape.Arrow;
+			QueueRedraw();
+		}
+	}
 	public bool Selected { get => selected; set { selected = value; QueueRedraw(); } }
 
 	private static Texture2D[] levelIcons;

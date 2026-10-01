@@ -1,11 +1,12 @@
 using Godot;
+using System.Collections.Generic;
 
 // The Dark Souls equipment cross, floating left of the action bar: backup slot on top,
 // armour directly under it edge to edge, the two hand slots either side of that seam with
 // a small gap. Sized from one slot size so the whole cluster scales together.
 //
-// Clicking a hand raises that weapon in the bar; the armour lights up while an incoming
-// attack is being answered. A two-handed weapon occupies one slot and greys the other.
+// Clicking a hand raises that weapon in the bar; while an incoming attack is being answered,
+// every piece that rolls defence lights up instead. A two-handed weapon occupies one slot and greys the other.
 public partial class EquipmentCross : Control
 {
 
@@ -95,7 +96,10 @@ public partial class EquipmentCross : Control
 		if (right != null && right.item == weapon) right.SetSpent(spent);
 	}
 
-	public void SetDefending(bool defending) {
-		armour?.SetRaised(defending);
+	// Lights exactly the pieces given, wherever they sit; an empty list lights nothing.
+	public void SetDefending(ICollection<Equipment> gear) {
+		foreach (EquipmentSlot slot in new[] { backup, left, right, armour }) {
+			slot?.SetRaised(slot.item != null && gear != null && gear.Contains(slot.item));
+		}
 	}
 }

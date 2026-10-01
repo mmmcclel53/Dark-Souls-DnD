@@ -6,15 +6,16 @@ using System.Threading.Tasks;
 // The bottom HUD, in the shape of the Dark Souls games' with BG3's readouts: the equipment
 // cross floating off its left end, then the character's face in a ring, their endurance
 // bar, defence dice and tokens, the raised weapon's attack options as the rows of its
-// printed card, the party's souls, and End Turn.
+// printed card, and End Turn.
 //
 // It has three states and never leaves the layout, because its height is part of what
 // BoardCamera fits the board around:
-//   Idle       – between activations, dimmed, nothing to press.
+//   Idle       – between activations: the selected character, every button disabled.
 //   Activation – the active character; clicking a hand slot raises that weapon and its
 //                options fill the rows. Hovering an option ghosts its cost onto the bar.
+//                Selecting anyone else from the party pane shows them read-only.
 //   Reaction   – an enemy is attacking someone: the defender takes the bar over, the armour
-//                slot lights, the header shows the attack and the rows become Block and
+//                gear that rolls lights on the cross, the header shows the attack and the rows become Block and
 //                Dodge with what each would do. Awaited by DodgePrompt.
 //
 // Rebuilt on every change rather than diffed — a stale button here would let a player take
@@ -26,18 +27,20 @@ public partial class CharacterActionBar : HBoxContainer
 	[Signal] public delegate void EndActivationPressedEventHandler();
 	[Signal] public delegate void ReactionResolvedEventHandler(bool dodge);
 	[Signal] public delegate void DodgeStepEndedEventHandler();
+	[Signal] public delegate void HeroicChosenEventHandler();
+	[Signal] public delegate void BackstabPassedEventHandler();
 
 	[Export] public Control crossAnchor;
 	[Export] public EquipmentCross cross;
 	[Export] public PanelContainer panel;
 	[Export] public CircleAvatar avatar;
+	[Export] public Control aggroBadge;
 	[Export] public Label nameLabel;
 	[Export] public TickBar endurance;
 	[Export] public Container defenceRow;
 	[Export] public Container tokenRow;
 	[Export] public Container header;
 	[Export] public Container rows;
-	[Export] public Label soulsLabel;
 	[Export] public Button endTurnButton;
 
 	[Export] public StyleBox panelStyle;
@@ -51,8 +54,6 @@ public partial class CharacterActionBar : HBoxContainer
 
 	// Ordered to match EncounterManager.StatusEffect: BLEED, POISON, FROST, STAGGER.
 	[Export] public Array<Texture2D> conditionTextures;
-	// Estus Flask, Heroic Action, Luck. Display only until those systems exist.
-	[Export] public Array<Texture2D> tokenTextures;
 
 	[Export] public Color gold = new Color(0.788f, 0.635f, 0.294f);
 	[Export] public Color parchment = new Color(0.902f, 0.871f, 0.796f);
@@ -65,22 +66,35 @@ public partial class CharacterActionBar : HBoxContainer
 	[Export] public float crossMargin = 12f;
 	[Export] public float crossBottomMargin = 6f;
 	[Export] public float dimShade = 0.55f;
+	// Attack rows shrink when a weapon has three options, so the pill never grows past the avatar.
+	[Export] public float rowHeight = 32f;
+	[Export] public float compactRowHeight = 24f;
 
-	private enum Mode { IDLE, ACTIVATION, REACTION, DODGE_STEP }
+	private enum Mode { IDLE, ACTIVATION, REACTION, DODGE_STEP, BACKSTAB }
 
 	private Mode mode = Mode.IDLE;
 	private PlayerToken token;
 	private Weapon raised;
 	private Player shown;
+	private Player selected;
 	private int shownSpent = -1;
 	private int shownDamage = -1;
 
 	private static StyleBoxFlat rowNormal, rowHover, rowArmed, rowDisabled;
+	private StyleBoxFlat pill, pillReaction;
+	private float currentRowHeight = 32f;
+	// Backstab: the Assassin choosing a free attack on the enemy they dodged.
+	private PlayerToken backstabber;
+	private System.Func<Weapon, PlayerMove, bool> backstabReach;
+	private ButtonFx endTurnFx;
 
 	public override void _Ready() {
 		BuildRowStyles();
+		if (aggroBadge != null) aggroBadge.Material = PlayerToken.AggroMask;
+		BuildPillStyles();
 
 		if (endTurnButton != null) endTurnButton.Pressed += OnEndPressed;
+		endTurnFx = ButtonFx.Attach(endTurnButton, round: true);
 		if (cross != null) cross.HandPressed += OnHandPressed;
 		if (crossAnchor != null) {
 			crossAnchor.Resized += PlaceCross;
@@ -100,6 +114,10 @@ public partial class CharacterActionBar : HBoxContainer
 	// Endurance changes from several places (steps, attacks, damage landing after a
 	// reaction), so the bar and face poll like the portraits do.
 	public override void _Process(double delta) {
+		if (aggroBadge != null) {
+			PlayerToken holder = EncounterManager.aggroHolder;
+			aggroBadge.Visible = shown != null && GodotObject.IsInstanceValid(holder) && holder.player == shown;
+		}
 		if (shown == null) return;
 		Endurance bar = shown.endurance;
 		if (bar.staminaSpent == shownSpent && bar.damageTaken == shownDamage) return;
@@ -114,21 +132,9 @@ public partial class CharacterActionBar : HBoxContainer
 	public void ShowIdle() {
 		mode = Mode.IDLE;
 		token = null;
-		raised = null;
-
-		ClearChildren(header);
-		ClearChildren(rows);
-		endurance?.ClearGhost();
-		cross?.SetRaised(null);
-		cross?.SetDefending(false);
-		if (shown == null && nameLabel != null) nameLabel.Text = "";
-		if (endTurnButton != null) {
-			endTurnButton.Text = "End Turn";
-			endTurnButton.Disabled = true;
-		}
-		SetPanelStyle(false);
-		Dim(true);
-		RefreshSouls();
+		backstabber = null;
+		backstabReach = null;
+		ShowSelected();
 	}
 
 	public void Refresh(PlayerToken active) {
@@ -136,28 +142,103 @@ public partial class CharacterActionBar : HBoxContainer
 			ShowIdle();
 			return;
 		}
+		// A new activation brings its character forward; later refreshes keep whoever the
+		// player is looking at.
+		if (token != active) selected = active.player;
 		mode = Mode.ACTIVATION;
 		token = active;
+		ShowSelected();
+	}
 
-		ShowCharacter(active.player, true);
-		cross?.Show(active.player);
-		foreach (Weapon weapon in HandWeapons(active.player)) cross?.SetSpent(weapon, active.HasAttackedWith(weapon));
+	// Picks whose readout the bar shows between and during activations. A reaction or a
+	// dodge step owns the bar while it lasts, so the choice is kept and shown afterwards.
+	public void Select(Player player) {
+		if (player == null) return;
+		selected = player;
+		if (mode == Mode.IDLE || mode == Mode.ACTIVATION) ShowSelected();
+	}
 
-		if (raised == null || !Holds(active.player, raised) || active.HasAttackedWith(raised)) raised = FirstUsable(active);
-		cross?.SetRaised(raised);
-		cross?.SetDefending(false);
+	// The selected character, or the active one. Only the active character's own readout
+	// is live; anyone else is shown with every button disabled.
+	private void ShowSelected() {
+		Player player = selected ?? token?.player;
+		bool live = mode == Mode.ACTIVATION && token != null && token.player == player;
+		PlayerToken viewed = live ? token : TokenOf(player);
 
-		BuildHeader(raised);
-		BuildRows(active, raised);
-
+		endurance?.ClearGhost();
 		if (endTurnButton != null) {
 			endTurnButton.Text = "End Turn";
-			endTurnButton.Disabled = false;
+			EnableEndTurn(live);
 		}
 		SetPanelStyle(false);
 		Dim(false);
-		RefreshSouls();
+
+		if (player == null) {
+			ClearChildren(header);
+			ClearChildren(rows);
+			cross?.Clear();
+			if (nameLabel != null) nameLabel.Text = "";
+			Dim(true);
+			return;
+		}
+
+		ShowCharacter(player);
+		cross?.Show(player);
+		if (live) foreach (Weapon weapon in HandWeapons(player)) cross?.SetSpent(weapon, token.HasAttackedWith(weapon));
+
+		if (raised == null || !Holds(player, raised) || (live && !CanSwing(token, raised))) raised = FirstUsable(player, live ? token : null);
+		cross?.SetDefending(null);
+		cross?.SetRaised(raised);
+
+		BuildHeader(raised);
+		BuildRows(viewed, raised, live);
 	}
+
+	// Backstab: after a successful dodge the Assassin may attack the enemy dodged, for free.
+	// Their attack rows show at no cost, lit only where an option reaches that enemy; End
+	// becomes Pass.
+	public void ShowBackstab(PlayerToken assassin, System.Func<Weapon, PlayerMove, bool> reaches) {
+		if (assassin == null) return;
+		mode = Mode.BACKSTAB;
+		token = null;
+		backstabber = assassin;
+		backstabReach = reaches;
+
+		ShowCharacter(assassin.player);
+		cross?.Show(assassin.player);
+		cross?.SetDefending(null);
+		if (raised == null || !Holds(assassin.player, raised) || !AnyReach(raised)) {
+			raised = null;
+			foreach (Weapon weapon in HandWeapons(assassin.player)) {
+				if (!AnyReach(weapon)) continue;
+				raised = weapon;
+				break;
+			}
+			raised ??= FirstUsable(assassin.player, null);
+		}
+		cross?.SetRaised(raised);
+		BuildHeader(raised);
+		BuildRows(assassin, raised, false);
+
+		if (endTurnButton != null) {
+			endTurnButton.Text = "Pass";
+			EnableEndTurn(true);
+		}
+		SetPanelStyle(false);
+		Dim(false);
+	}
+
+	private bool AnyReach(Weapon weapon) {
+		if (weapon?.attacks == null || backstabReach == null) return false;
+		foreach (PlayerMove move in weapon.attacks) {
+			if (move != null && backstabReach(weapon, move)) return true;
+		}
+		return false;
+	}
+
+	// A weapon swings once per activation (p22), unless Rapid Strike's extra attack is armed.
+	private static bool CanSwing(PlayerToken attacker, Weapon weapon) =>
+		!attacker.HasAttackedWith(weapon) || attacker.pendingHeroic == Heroic.Kind.RAPID_STRIKE;
 
 	// A successful dodge lets the character move one node (p22): the bar shows the dodger
 	// with an End Dodge button while CharacterTurn lights the nodes they may step to.
@@ -166,47 +247,63 @@ public partial class CharacterActionBar : HBoxContainer
 		mode = Mode.DODGE_STEP;
 		token = null;
 
-		ShowCharacter(dodger.player, false);
+		ShowCharacter(dodger.player);
 		cross?.Show(dodger.player);
 		cross?.SetRaised(null);
-		cross?.SetDefending(false);
+		cross?.SetDefending(null);
 		ClearChildren(header);
 		ClearChildren(rows);
 		if (header != null) header.AddChild(Icon(dodgeIcon, dodgeColour, 40f));
 
 		if (endTurnButton != null) {
 			endTurnButton.Text = "End Dodge";
-			endTurnButton.Disabled = false;
+			EnableEndTurn(true);
 		}
 		SetPanelStyle(false);
 		Dim(false);
-		RefreshSouls();
+	}
+
+	// The button glints as it comes alive, so the moment the turn is the player's is seen.
+	private void EnableEndTurn(bool enabled) {
+		bool wasDisabled = endTurnButton.Disabled;
+		endTurnButton.Disabled = !enabled;
+		if (enabled && wasDisabled) endTurnFx?.Pulse();
 	}
 
 	private void OnEndPressed() {
 		if (mode == Mode.DODGE_STEP) EmitSignal(SignalName.DodgeStepEnded);
+		else if (mode == Mode.BACKSTAB) EmitSignal(SignalName.BackstabPassed);
 		else EmitSignal(SignalName.EndActivationPressed);
 	}
 
+	// Any shown character's hands can be raised to read their options; only the active
+	// character's spent weapons stay down.
 	private void OnHandPressed(int hand) {
-		if (mode != Mode.ACTIVATION || token == null || cross == null) return;
+		if ((mode != Mode.IDLE && mode != Mode.ACTIVATION && mode != Mode.BACKSTAB) || cross == null) return;
 		Weapon weapon = cross.WeaponIn(hand);
-		if (weapon == null || token.HasAttackedWith(weapon)) return;
+		if (weapon == null) return;
+		if (mode == Mode.ACTIVATION && token?.player == shown && !CanSwing(token, weapon)) return;
+
+		if (mode == Mode.BACKSTAB) {
+			raised = weapon;
+			cross.SetRaised(raised);
+			BuildHeader(raised);
+			BuildRows(backstabber, raised, false);
+			return;
+		}
 
 		raised = weapon;
-		cross.SetRaised(raised);
-		BuildHeader(raised);
-		BuildRows(token, raised);
+		ShowSelected();
 	}
 
-	private void ShowCharacter(Player player, bool tokensReady) {
+	private void ShowCharacter(Player player) {
 		shown = player;
 		shownSpent = shownDamage = -1;
 		avatar?.Show(player);
 		if (nameLabel != null) nameLabel.Text = player?.name ?? "";
 		if (player != null) endurance?.ShowEndurance(player.endurance);
 		BuildDefence(player);
-		BuildTokens(tokensReady);
+		BuildTokens(player);
 	}
 
 	// ----- Character block -----
@@ -222,38 +319,49 @@ public partial class CharacterActionBar : HBoxContainer
 		AddPool(defenceRow, DefencePool(player, true), DefenceModifier(player, true), 18f);
 	}
 
-	private void BuildTokens(bool ready) {
+	// Estus, Heroic Action and Luck as they stand on the character's board: ready, or
+	// flipped once spent. Only the Estus is used from here — by the active character, with
+	// something to restore. Luck is spent on the roll reveal, where the dice are.
+	private void BuildTokens(Player player) {
 		ClearChildren(tokenRow);
-		if (tokenRow == null || tokenTextures == null) return;
+		if (tokenRow == null || player == null) return;
 
-		string[] names = { "Estus Flask", "Heroic Action", "Luck" };
-		for (int i = 0; i < tokenTextures.Count; i++) {
-			TextureRect token = Icon(tokenTextures[i], ready ? Colors.White : new Color(0.45f, 0.45f, 0.45f), 30f);
-			token.TooltipText = i < names.Length ? names[i] : "";
-			token.MouseFilter = MouseFilterEnum.Pass;
-			tokenRow.AddChild(token);
+		bool live = mode == Mode.ACTIVATION && token != null && token.player == player;
+		AddToken(TokenArt.Kind.ESTUS, player.estusUsed, live && token.CanDrinkEstus, DrinkEstus);
+		Heroic.Kind heroic = player.character?.heroicAction ?? Heroic.Kind.NONE;
+		AddToken(TokenArt.Kind.HEROIC, player.heroicUsed, live && token.CanUseHeroicNow,
+			() => EmitSignal(SignalName.HeroicChosen), $"{Heroic.Name(heroic)}\n{Heroic.Effect(heroic)}");
+		AddToken(TokenArt.Kind.LUCK, player.luckUsed, false, null);
+	}
+
+	private void AddToken(TokenArt.Kind kind, bool used, bool usable, System.Action use, string tooltip = null) {
+		TextureButton button = new TextureButton {
+			TextureNormal = TokenArt.For(kind, used),
+			IgnoreTextureSize = true,
+			StretchMode = TextureButton.StretchModeEnum.KeepAspectCentered,
+			CustomMinimumSize = new Vector2(30, 30),
+			SizeFlagsVertical = SizeFlags.ShrinkCenter,
+			FocusMode = FocusModeEnum.None,
+			Disabled = !usable,
+			TooltipText = tooltip ?? TokenArt.Title(kind),
+		};
+		// Deferred: using a token rebuilds this row, which would free the button mid-signal.
+		if (usable && use != null) button.Pressed += () => Callable.From(use).CallDeferred();
+		tokenRow.AddChild(button);
+	}
+
+	private void DrinkEstus() {
+		if (mode != Mode.ACTIVATION || token == null || !token.CanDrinkEstus) return;
+		token.DrinkEstus();
+		ShowSelected();
+		if (tokenRow != null && tokenRow.GetChildCount() > 0 && tokenRow.GetChild(0) is Control flipped) {
+			PopIn.Scale(flipped, 1.5f, 0.3f);
 		}
 	}
 
-	// Block or Resist gathered from every equipped piece, matching CombatResolver.RollDefence.
-	public static List<Dice> DefencePool(Player player, bool magic) {
-		List<Dice> pool = new List<Dice>();
-		void Add(Array<Dice> dice) {
-			if (dice == null) return;
-			foreach (Dice die in dice) if (die != null) pool.Add(die);
-		}
-		Armour armour = player.GetArmour();
-		Add(magic ? armour?.magicDefense : armour?.physicalDefense);
-		foreach (Weapon weapon in new[] { player.GetLeftHand(), player.GetRightHand(), player.GetBackupSlot() }) {
-			Add(magic ? weapon?.magicDefense : weapon?.physicalDefense);
-		}
-		return pool;
-	}
+	public static List<Dice> DefencePool(Player player, bool magic) => player.GetDefensePool(magic).dice;
 
-	public static int DefenceModifier(Player player, bool magic) {
-		Armour armour = player.GetArmour();
-		return magic ? armour?.magicDefenseModifier ?? 0 : armour?.physicalDefenseModifier ?? 0;
-	}
+	public static int DefenceModifier(Player player, bool magic) => player.GetDefensePool(magic).modifier;
 
 	// ----- Activation: header and attack rows -----
 
@@ -261,47 +369,56 @@ public partial class CharacterActionBar : HBoxContainer
 		ClearChildren(header);
 		if (header == null || weapon == null) return;
 
-		TextureRect art = Icon(EquipmentSlot.CropOf(weapon, cross?.left?.RegionFor(weapon)), Colors.White, 40f);
+		TextureRect art = Icon(EquipmentSlot.CropOf(weapon, cross?.left?.RegionFor(weapon)), Colors.White, 28f);
 		art.StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered;
 		header.AddChild(art);
-		header.AddChild(Text(weapon.name, 18, parchment));
+		header.AddChild(Text(weapon.name, 16, parchment));
 		header.AddChild(Badge(weapon.attackRange.ToString(), gold));
 	}
 
-	private void BuildRows(PlayerToken active, Weapon weapon) {
+	// The token is null for a character not yet on the board; costs then leave out Stagger.
+	private void BuildRows(PlayerToken owner, Weapon weapon, bool live) {
 		ClearChildren(rows);
 		if (rows == null || weapon?.attacks == null) return;
 
-		bool used = active.HasAttackedWith(weapon);
+		bool used = live && owner.HasAttackedWith(weapon);
+		currentRowHeight = weapon.attacks.Count >= 3 ? compactRowHeight : rowHeight;
 		foreach (PlayerMove move in weapon.attacks) {
 			if (move == null) continue;
-			rows.AddChild(AttackRow(active, weapon, move, used));
+			rows.AddChild(AttackRow(owner, weapon, move, used, live));
 		}
 	}
 
-	private Button AttackRow(PlayerToken active, Weapon weapon, PlayerMove move, bool weaponUsed) {
-		int cost = CombatResolver.AttackStaminaCost(active, move);
-		bool armed = EncounterManager.characterTurn?.armed == move;
+	private Button AttackRow(PlayerToken owner, Weapon weapon, PlayerMove move, bool weaponUsed, bool live) {
+		bool backstab = mode == Mode.BACKSTAB;
+		AttackTerms terms = AttackTerms.For(owner, weapon, move, free: backstab);
+		int cost = terms.cost;
+		bool armed = live && EncounterManager.characterTurn?.armed == move;
 
 		Button row = Row(armed);
-		row.Disabled = weaponUsed || !active.CanSpend(cost);
-		row.TooltipText = Describe(weapon, move, cost);
+		row.Disabled = backstab
+			? !(backstabReach?.Invoke(weapon, move) ?? false)
+			: !live || (weaponUsed && !terms.reusesWeapon) || !owner.CanSpend(cost);
+		row.TooltipText = Describe(move, terms, owner);
 
 		HBoxContainer content = RowContent(row);
 		content.AddChild(Text($"[{cost}]", 16, armed ? parchment : muted, 40f));
 		content.AddChild(CubeRow.Stamina(cost));
 		content.AddChild(Spacer(6f));
-		if (move.damage != null) {
-			foreach (DiceChip chip in DiceChip.ForPool(move.damage, 22f)) content.AddChild(chip);
-		}
-		if (move.modifier != 0 || move.damage == null || move.damage.Count == 0) {
+		List<Dice> pool = new List<Dice>();
+		if (move.damage != null) pool.AddRange(move.damage);
+		pool.AddRange(terms.extraDice);
+		foreach (DiceChip chip in DiceChip.ForPool(pool, ChipSize)) content.AddChild(chip);
+		if (move.modifier != 0 || pool.Count == 0) {
 			content.AddChild(Text($"{move.modifier:+#;-#;+0}", 16, parchment));
 		}
 		if (move.isMagic) content.AddChild(Icon(magicIcon, resistColour, 18f));
 		AddCondition(content, move.statusEffect, 18f);
-		if (move.attackRange > 0 && move.attackRange != weapon.attackRange) {
-			content.AddChild(Badge(move.attackRange.ToString(), gold));
+		if (terms.range != weapon.attackRange) {
+			content.AddChild(Badge(terms.range >= EnemyData.UNLIMITED_RANGE ? "∞" : terms.range.ToString(), gold));
 		}
+		// An armed Heroic Action reshaped this attack: its token marks the row.
+		if (terms.boosted) content.AddChild(Icon(TokenArt.Ready(TokenArt.Kind.HEROIC), Colors.White, ChipSize));
 		if (row.Disabled) content.Modulate = new Color(0.5f, 0.5f, 0.5f, 1f);
 
 		// Capture the loop values before the lambda, or every row fires the last option.
@@ -313,12 +430,13 @@ public partial class CharacterActionBar : HBoxContainer
 		return row;
 	}
 
-	private static string Describe(Weapon weapon, PlayerMove move, int cost) {
-		int range = move.attackRange > 0 ? move.attackRange : weapon.attackRange;
-		List<string> notes = new List<string> { $"Range {range}", $"{cost} stamina" };
+	private static string Describe(PlayerMove move, AttackTerms terms, PlayerToken owner) {
+		string range = terms.range >= EnemyData.UNLIMITED_RANGE ? "unlimited" : terms.range.ToString();
+		List<string> notes = new List<string> { $"Range {range}", $"{terms.cost} stamina" };
 
+		if (terms.boosted && owner != null) notes.Add(Heroic.Name(owner.pendingHeroic));
 		if (move.isMagic) notes.Add("magical");
-		if (move.isAOE) notes.Add("whole node");
+		if (terms.aoe) notes.Add("whole node");
 		if (move.isNotZeroRange) notes.Add("cannot hit range 0");
 		if (move.isIgnoreDefense) notes.Add("ignores Block");
 		if (move.repeat > 1) notes.Add($"repeats x{move.repeat} (not implemented)");
@@ -335,17 +453,16 @@ public partial class CharacterActionBar : HBoxContainer
 		mode = Mode.REACTION;
 		token = null;
 
-		ShowCharacter(target.player, false);
+		ShowCharacter(target.player);
 		cross?.Show(target.player);
 		cross?.SetRaised(null);
-		cross?.SetDefending(true);
+		cross?.SetDefending(DefendingGear(target.player, move.isMagic));
 		BuildReactionHeader(attacker, move);
 		BuildReactionRows(attacker, move, target);
 
 		if (endTurnButton != null) endTurnButton.Disabled = true;
 		SetPanelStyle(true);
 		Dim(false);
-		RefreshSouls();
 
 		Variant[] result = await ToSignal(this, SignalName.ReactionResolved);
 
@@ -360,10 +477,11 @@ public partial class CharacterActionBar : HBoxContainer
 
 		// The attacker's face with the red rim the activation bar gives it. No taller than
 		// the weapon art it replaces, so the bar keeps its height and the board stays put.
-		Panel face = new Panel { CustomMinimumSize = new Vector2(30, 40), ClipChildren = ClipChildrenMode.Only, MouseFilter = MouseFilterEnum.Ignore };
+		Panel face = new Panel { CustomMinimumSize = new Vector2(21, 28), ClipChildren = ClipChildrenMode.Only, MouseFilter = MouseFilterEnum.Ignore };
 		face.AddThemeStyleboxOverride("panel", Frame(attackColour, 2));
-		TextureRect portrait = Icon(attacker?.data?.GetPortrait(), Colors.White, 40f);
+		TextureRect portrait = Icon(attacker?.data?.GetPortrait(), Colors.White, 28f);
 		portrait.StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered;
+		portrait.CustomMinimumSize = Vector2.Zero;      // the frame sizes it, not the icon default
 		portrait.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 		portrait.OffsetLeft = portrait.OffsetTop = 2;
 		portrait.OffsetRight = portrait.OffsetBottom = -2;
@@ -373,7 +491,7 @@ public partial class CharacterActionBar : HBoxContainer
 		int strength = CombatResolver.AttackStrength(move, attacker);
 		header.AddChild(AttackBadge(move.isMagic, strength));
 		header.AddChild(CubeRow.Damage(strength, 12f));
-		AddCondition(header, move.statusEffect, 22f);
+		AddCondition(header, move.statusEffect, 20f);
 	}
 
 	// The rulebook's attack icon with the strength inside it. The physical icon's number
@@ -384,12 +502,15 @@ public partial class CharacterActionBar : HBoxContainer
 		icon.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 		badge.AddChild(icon);
 
-		Label value = Text(strength.ToString(), 15, parchment);
+		Label value = Text(strength.ToString(), 14, parchment);
 		value.HorizontalAlignment = HorizontalAlignment.Center;
 		value.AddThemeColorOverride("font_outline_color", Colors.Black);
 		value.AddThemeConstantOverride("outline_size", 5);
 		value.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-		float drop = magic ? 0f : 0.08f;
+		// Centres the digit on the wide part of the physical icon's shield. The label's line box
+		// has room for descenders, so a digit centred in it sits low: this lifts it back.
+		// Measured against the drawn badge, not guessed.
+		float drop = magic ? 0f : -0.075f;
 		value.AnchorTop = drop;
 		value.AnchorBottom = 1f + drop;
 		badge.AddChild(value);
@@ -403,25 +524,20 @@ public partial class CharacterActionBar : HBoxContainer
 		int strength = CombatResolver.AttackStrength(move, attacker);
 		Player player = target.player;
 
-		// Block: the gear that rolls, its dice, and the damage that could still get through.
+		// Block: its dice and the damage that could still get through. The gear that rolls is lit
+		// on the cross rather than repeated here.
 		List<Dice> pool = DefencePool(player, move.isMagic);
 		int modifier = DefenceModifier(player, move.isMagic);
 		(int best, int worst, int expected) = DamageThrough(strength, pool, modifier);
 
+		currentRowHeight = rowHeight;
 		Button block = Row(true);
 		block.TooltipText = move.isMagic ? "Resist" : "Block";
-		HBoxContainer content = RowContent(block);
-		content.AddChild(Icon(move.isMagic ? resistIcon : blockIcon, move.isMagic ? resistColour : blockColour, 26f));
-		foreach (Equipment gear in DefendingGear(player, move.isMagic)) {
-			TextureRect art = Icon(EquipmentSlot.CropOf(gear, cross?.left?.RegionFor(gear)), Colors.White, 26f);
-			art.StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered;
-			content.AddChild(art);
-		}
-		content.AddChild(Spacer(4f));
-		AddPool(content, pool, modifier, 22f);
-		content.AddChild(Spacer(8f));
-		content.AddChild(CubeRow.Damage(1, 10f));
-		content.AddChild(Text(best == worst ? $"{worst}" : $"{best}-{worst}", 16, parchment));
+		HBoxContainer[] blockColumns = Columns(RowContent(block));
+		blockColumns[0].AddChild(Icon(move.isMagic ? resistIcon : blockIcon, move.isMagic ? resistColour : blockColour, 24f));
+		AddPool(blockColumns[1], pool, modifier, ChipSize);
+		blockColumns[2].AddChild(CubeRow.Damage(1, 10f));
+		blockColumns[2].AddChild(Text(best == worst ? $"{worst}" : $"{best}-{worst}", 16, parchment));
 		block.Pressed += () => EmitSignal(SignalName.ReactionResolved, false);
 		block.MouseEntered += () => endurance?.SetGhost(0, expected, worst);
 		block.MouseExited += () => endurance?.ClearGhost();
@@ -438,13 +554,12 @@ public partial class CharacterActionBar : HBoxContainer
 		dodge.Disabled = !possible;
 		dodge.TooltipText = "Dodge";
 		HBoxContainer dodgeContent = RowContent(dodge);
-		dodgeContent.AddChild(Icon(dodgeIcon, possible ? dodgeColour : muted, 26f));
-		dodgeContent.AddChild(DiceChip.Create(DiceUtility.DICE_TYPE.DODGE, dodgePool, 22f));
-		dodgeContent.AddChild(Badge(move.dodgeDifficulty.ToString(), possible ? gold : muted));
-		dodgeContent.AddChild(Spacer(4f));
-		dodgeContent.AddChild(CubeRow.Stamina(cost));
-		dodgeContent.AddChild(Spacer(8f));
-		dodgeContent.AddChild(Text($"{Mathf.RoundToInt(chance * 100f)}%", 16, possible ? parchment : muted));
+		HBoxContainer[] dodgeColumns = Columns(dodgeContent);
+		dodgeColumns[0].AddChild(Icon(dodgeIcon, possible ? dodgeColour : muted, 24f));
+		dodgeColumns[1].AddChild(DiceChip.Create(DiceUtility.DICE_TYPE.DODGE, dodgePool, ChipSize));
+		dodgeColumns[1].AddChild(Badge(move.dodgeDifficulty.ToString(), possible ? gold : muted));
+		dodgeColumns[2].AddChild(CubeRow.Stamina(cost));
+		dodgeColumns[2].AddChild(Text($"{Mathf.RoundToInt(chance * 100f)}%", 16, possible ? parchment : muted));
 		if (!possible) dodgeContent.Modulate = new Color(0.5f, 0.5f, 0.5f, 1f);
 		dodge.Pressed += () => EmitSignal(SignalName.ReactionResolved, true);
 		dodge.MouseEntered += () => { if (possible) endurance?.SetGhost(cost, Mathf.RoundToInt(strength * (1f - chance)), strength); };
@@ -528,9 +643,11 @@ public partial class CharacterActionBar : HBoxContainer
 		return style;
 	}
 
+	private float ChipSize => currentRowHeight - 10f;
+
 	private Button Row(bool armed) {
 		Button row = new Button {
-			CustomMinimumSize = new Vector2(0, 36),
+			CustomMinimumSize = new Vector2(0, currentRowHeight),
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 			MouseDefaultCursorShape = CursorShape.PointingHand,
 		};
@@ -539,25 +656,42 @@ public partial class CharacterActionBar : HBoxContainer
 		row.AddThemeStyleboxOverride("pressed", rowArmed);
 		row.AddThemeStyleboxOverride("focus", armed ? rowArmed : rowHover);
 		row.AddThemeStyleboxOverride("disabled", rowDisabled);
+		// The armed row breathes in step with the target nodes it lit.
+		ButtonFx.Attach(row, breathing: armed);
 		return row;
 	}
 
 	// The row's content is a child of the button, so the button is sized to it by hand.
-	private static HBoxContainer RowContent(Button row) {
+	private HBoxContainer RowContent(Button row) {
+		float height = currentRowHeight;
 		HBoxContainer content = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
 		content.AddThemeConstantOverride("separation", 6);
 
 		MarginContainer margin = new MarginContainer { MouseFilter = MouseFilterEnum.Ignore };
 		margin.AddThemeConstantOverride("margin_left", 10);
 		margin.AddThemeConstantOverride("margin_right", 12);
-		margin.AddThemeConstantOverride("margin_top", 4);
-		margin.AddThemeConstantOverride("margin_bottom", 4);
+		margin.AddThemeConstantOverride("margin_top", 3);
+		margin.AddThemeConstantOverride("margin_bottom", 3);
 		margin.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 		margin.AddChild(content);
 		row.AddChild(margin);
 
-		margin.MinimumSizeChanged += () => row.CustomMinimumSize = new Vector2(0, Mathf.Max(36f, margin.GetCombinedMinimumSize().Y));
+		margin.MinimumSizeChanged += () => row.CustomMinimumSize = new Vector2(0, Mathf.Max(height, margin.GetCombinedMinimumSize().Y));
 		return content;
+	}
+
+	// Block and Dodge share three left-aligned columns (what rolls, the dice, the outcome) so
+	// the two rows read against each other.
+	private static HBoxContainer[] Columns(HBoxContainer content) {
+		float[] widths = { 30f, 120f, 0f };
+		HBoxContainer[] columns = new HBoxContainer[widths.Length];
+		for (int i = 0; i < widths.Length; i++) {
+			columns[i] = new HBoxContainer { CustomMinimumSize = new Vector2(widths[i], 0), MouseFilter = MouseFilterEnum.Ignore };
+			columns[i].AddThemeConstantOverride("separation", 6);
+			if (i == widths.Length - 1) columns[i].SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			content.AddChild(columns[i]);
+		}
+		return columns;
 	}
 
 	private void AddPool(Container into, List<Dice> pool, int modifier, float side) {
@@ -617,8 +751,24 @@ public partial class CharacterActionBar : HBoxContainer
 	private static Control Spacer(float width) =>
 		new Control { CustomMinimumSize = new Vector2(width, 0), MouseFilter = MouseFilterEnum.Ignore };
 
+	// The bar is a pill: fully round ends at whatever height it is laid out at, so the radius
+	// follows the panel's size rather than being a number in the scene.
+	private void BuildPillStyles() {
+		pill = panelStyle?.Duplicate() as StyleBoxFlat;
+		pillReaction = panelReactionStyle?.Duplicate() as StyleBoxFlat;
+		if (panel == null) return;
+		panel.Resized += RoundPill;
+		CallDeferred(nameof(RoundPill));
+	}
+
+	private void RoundPill() {
+		int radius = Mathf.RoundToInt(panel.Size.Y * 0.5f);
+		pill?.SetCornerRadiusAll(radius);
+		pillReaction?.SetCornerRadiusAll(radius);
+	}
+
 	private void SetPanelStyle(bool reaction) {
-		StyleBox style = reaction ? panelReactionStyle : panelStyle;
+		StyleBox style = reaction ? (pillReaction ?? panelReactionStyle) : (pill ?? panelStyle);
 		if (panel != null && style != null) panel.AddThemeStyleboxOverride("panel", style);
 	}
 
@@ -628,10 +778,6 @@ public partial class CharacterActionBar : HBoxContainer
 		Color colour = new Color(shade, shade, shade, 1f);
 		if (panel != null) panel.Modulate = colour;
 		if (cross != null) cross.Modulate = colour;
-	}
-
-	private void RefreshSouls() {
-		if (soulsLabel != null) soulsLabel.Text = SoulCache.current.ToString();
 	}
 
 	private static void ClearChildren(Container container) {
@@ -654,11 +800,20 @@ public partial class CharacterActionBar : HBoxContainer
 		weapon != null && (player.GetLeftHand() == weapon || player.GetRightHand() == weapon);
 
 	// The first hand weapon that can still attack; failing that, whatever is held.
-	private static Weapon FirstUsable(PlayerToken active) {
-		List<Weapon> held = HandWeapons(active.player);
+	private static Weapon FirstUsable(Player player, PlayerToken active) {
+		List<Weapon> held = HandWeapons(player);
 		foreach (Weapon weapon in held) {
-			if (weapon.attacks != null && weapon.attacks.Count > 0 && !active.HasAttackedWith(weapon)) return weapon;
+			if (weapon.attacks != null && weapon.attacks.Count > 0 && !(active?.HasAttackedWith(weapon) ?? false)) return weapon;
 		}
 		return held.Count > 0 ? held[0] : null;
+	}
+
+	private static PlayerToken TokenOf(Player player) {
+		if (player == null) return null;
+		foreach (Node2D model in EncounterManager.players) {
+			PlayerToken token = EncounterManager.GetPlayerToken(model);
+			if (token != null && token.player == player) return token;
+		}
+		return null;
 	}
 }

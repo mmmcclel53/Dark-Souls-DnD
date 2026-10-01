@@ -58,7 +58,10 @@ public partial class EquipmentModal : CanvasLayer
     private Button closeButton;
     private CheckButton devToggle;
 
+    [Signal] public delegate void ClosedEventHandler();
+
     private Player currentPlayer;
+    private bool locked;
     private SlotKind selectedSlot = SlotKind.None;
     private Equipment selectedItem;                 // an Equipment instance from the owned pool
 
@@ -72,6 +75,7 @@ public partial class EquipmentModal : CanvasLayer
         if (devToggle != null) devToggle.Toggled += on => inventoryPanel?.SetDevMode(on);
         if (equipmentPanel != null) equipmentPanel.SlotSelected += OnSlotSelected;
         if (inventoryPanel != null) inventoryPanel.EquipmentClicked += OnInventoryClicked;
+        if (summaryPanel != null) summaryPanel.CycleRequested += CyclePlayer;
         if (comparisonPanel != null) {
             comparisonPanel.Confirmed += OnEquipConfirmed;
             comparisonPanel.Cancelled += OnEquipCancelled;
@@ -198,11 +202,24 @@ public partial class EquipmentModal : CanvasLayer
 
         s.playerNameLabel = AddLabel(vbox, "", 19, HorizontalAlignment.Center, GOLD);
 
-        // Framed avatar portrait — trimmed height to keep the panel scroll-free by default.
+        // Framed avatar portrait between the arrows that step through the party.
+        var portraitRow = new HBoxContainer();
+        portraitRow.Alignment = BoxContainer.AlignmentMode.Center;
+        portraitRow.AddThemeConstantOverride("separation", 36);
+        vbox.AddChild(portraitRow);
+
+        s.previousButton = MakeArrowButton(true);
+        s.previousButton.Pressed += () => s.EmitSignal(CharacterSummaryPanel.SignalName.CycleRequested, -1);
+        portraitRow.AddChild(s.previousButton);
+
         var avatarFrame = new PanelContainer();
         avatarFrame.SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter;
         avatarFrame.AddThemeStyleboxOverride("panel", SlotFrameStyle());
-        vbox.AddChild(avatarFrame);
+        portraitRow.AddChild(avatarFrame);
+
+        s.nextButton = MakeArrowButton(false);
+        s.nextButton.Pressed += () => s.EmitSignal(CharacterSummaryPanel.SignalName.CycleRequested, 1);
+        portraitRow.AddChild(s.nextButton);
         s.avatarRect = new TextureRect();
         s.avatarRect.CustomMinimumSize = new Vector2(124, 148);
         s.avatarRect.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
@@ -242,12 +259,12 @@ public partial class EquipmentModal : CanvasLayer
         AddCombatColHeader(combat, "Mag");
 
         combat.AddChild(MakeIconRow(VectorIcon.IconKind.Sword, "Damage"));
-        s.physDamageLabel  = AddCombatValue(combat);
-        s.magicDamageLabel = AddCombatValue(combat);
+        (s.physDamageDice, s.physDamageLabel)   = AddCombatValue(combat);
+        (s.magicDamageDice, s.magicDamageLabel) = AddCombatValue(combat);
 
         combat.AddChild(MakeIconRow(VectorIcon.IconKind.Shield, "Defense"));
-        s.physDefenseLabel = AddCombatValue(combat);
-        s.magicDefenseLabel = AddCombatValue(combat);
+        (s.physDefenseDice, s.physDefenseLabel)   = AddCombatValue(combat);
+        (s.magicDefenseDice, s.magicDefenseLabel) = AddCombatValue(combat);
 
         s.dodgeLabel = AddLabel(vbox, "", 13, HorizontalAlignment.Center, TEXT_DIM);
 
@@ -267,6 +284,28 @@ public partial class EquipmentModal : CanvasLayer
         s.featuresList = features;
     }
 
+    // A bare chevron, drawn rather than typed so it never depends on the font having the glyph.
+    private static Button MakeArrowButton(bool left) {
+        var button = new Button();
+        button.Flat = true;
+        button.CustomMinimumSize = new Vector2(28, 56);
+        button.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+        button.MouseDefaultCursorShape = Control.CursorShape.PointingHand;
+        button.FocusMode = Control.FocusModeEnum.None;
+        button.TooltipText = left ? "Previous character" : "Next character";
+        button.Draw += () => {
+            Vector2 size = button.Size;
+            float x0 = size.X * (left ? 0.72f : 0.28f), x1 = size.X * (left ? 0.28f : 0.72f);
+            Color colour = button.IsHovered() && !button.Disabled ? GOLD.Lightened(0.25f) : GOLD;
+            button.DrawPolyline(new[] {
+                new Vector2(x0, size.Y * 0.2f), new Vector2(x1, size.Y * 0.5f), new Vector2(x0, size.Y * 0.8f),
+            }, colour, 3f, true);
+        };
+        button.MouseEntered += button.QueueRedraw;
+        button.MouseExited += button.QueueRedraw;
+        return button;
+    }
+
     private static void AddAttrHeader(Container parent, string text) {
         var l = AddLabel(parent, text, 12, HorizontalAlignment.Center, GOLD_DIM);
         l.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
@@ -283,10 +322,22 @@ public partial class EquipmentModal : CanvasLayer
         l.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
     }
 
-    private static Label AddCombatValue(Container parent) {
-        var l = AddLabel(parent, "", 13, HorizontalAlignment.Center, TEXT);
-        l.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        return l;
+    // The dice that roll it, then the range they give — as the action bar shows a pool.
+    private static (Container dice, Label value) AddCombatValue(Container parent) {
+        var cell = new HBoxContainer();
+        cell.Alignment = BoxContainer.AlignmentMode.Center;
+        cell.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        cell.AddThemeConstantOverride("separation", 8);
+        parent.AddChild(cell);
+
+        var dice = new HBoxContainer();
+        dice.AddThemeConstantOverride("separation", 3);
+        dice.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+        cell.AddChild(dice);
+
+        var l = AddLabel(cell, "", 13, HorizontalAlignment.Center, TEXT);
+        l.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+        return (dice, l);
     }
 
     // A row-label cell: sword/shield glyph followed by "Damage"/"Defense".
@@ -336,6 +387,10 @@ public partial class EquipmentModal : CanvasLayer
         e.background = null;                        // no more character-art backdrop
         var vbox = WrapColumn(e, "LOADOUT");
 
+        // Backup on top, as on the equipment cross: it swaps down into a hand.
+        vbox.AddChild(BuildSlotCard("BACKUP", 72, 30, out e.backupSlotButton,
+                                    out e.backupUpgrade1Button, out e.backupUpgrade2Button));
+
         // Weapons side by side.
         var hands = new HBoxContainer();
         hands.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
@@ -348,8 +403,6 @@ public partial class EquipmentModal : CanvasLayer
 
         vbox.AddChild(BuildSlotCard("ARMOUR", 80, 32, out e.armourButton,
                                     out e.armourUpgrade1Button, out e.armourUpgrade2Button));
-        vbox.AddChild(BuildSlotCard("BACKUP", 72, 30, out e.backupSlotButton,
-                                    out e.backupUpgrade1Button, out e.backupUpgrade2Button));
 
         // Push cards to the top; leave breathing room below for the comparison overlay.
         var spacer = new Control();
@@ -621,8 +674,11 @@ public partial class EquipmentModal : CanvasLayer
         return st;
     }
 
-    public void Open(Player p) {
+    // Combat Versatility opens it mid-encounter for one character only, so switching to
+    // anyone else (portraits, arrows) is locked out.
+    public void Open(Player p, bool lockToPlayer = false) {
         if (root == null) return;
+        locked = lockToPlayer;
         currentPlayer = p;
         selectedSlot = SlotKind.None;
         selectedItem = null;
@@ -636,14 +692,16 @@ public partial class EquipmentModal : CanvasLayer
         currentPlayer = null;
         selectedSlot = SlotKind.None;
         selectedItem = null;
+        locked = false;
         comparisonPanel?.HidePanel();
         UpdatePortraitSelection();
+        EmitSignal(SignalName.Closed);
     }
 
     public bool IsOpen() => Visible;
 
     private void OnPortraitClicked(int playerIndex) {
-        if (!Visible) return;                       // bonfire owns portrait clicks when modal isn't open
+        if (!Visible || locked) return;             // bonfire owns portrait clicks when modal isn't open
         var players = CampaignManager.Players;
         if (playerIndex < 0 || playerIndex >= players.Length) return;
         // Toggle-off if clicking the same character.
@@ -651,7 +709,20 @@ public partial class EquipmentModal : CanvasLayer
             Close();
             return;
         }
-        currentPlayer = players[playerIndex];
+        ShowPlayer(players[playerIndex]);
+    }
+
+    // The arrows either side of the portrait step through the party, wrapping at the ends.
+    private void CyclePlayer(int step) {
+        var players = CampaignManager.Players;
+        if (locked || players == null || players.Length < 2) return;
+        int index = System.Array.IndexOf(players, currentPlayer);
+        int next = ((index < 0 ? 0 : index + step) % players.Length + players.Length) % players.Length;
+        ShowPlayer(players[next]);
+    }
+
+    private void ShowPlayer(Player player) {
+        currentPlayer = player;
         selectedSlot = SlotKind.None;
         selectedItem = null;
         comparisonPanel?.HidePanel();
@@ -714,6 +785,7 @@ public partial class EquipmentModal : CanvasLayer
 
     private void RefreshAll() {
         summaryPanel?.SetPlayer(currentPlayer);
+        summaryPanel?.SetCycleEnabled(!locked && CampaignManager.Players != null && CampaignManager.Players.Length > 1);
         equipmentPanel?.SetPlayer(currentPlayer);
         equipmentPanel?.SetSelectedSlot(selectedSlot);
         inventoryPanel?.SetSlotFilter(selectedSlot, currentPlayer);

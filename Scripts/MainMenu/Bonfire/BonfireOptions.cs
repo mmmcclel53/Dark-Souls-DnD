@@ -6,7 +6,8 @@ public partial class BonfireOptions : VBoxContainer
     [Export] public Button equipmentButton;
     [Export] public Button readyButton;
     [Export] public Label restFeedback;
-    [Export] public Label soulsLabel;
+    // The soul counter hangs under this bar's right end.
+    [Export] public Control titleBar;
     [Export] public BonfireRestAnimation restAnimation;
 
     private CharacterPortraitPane pane;
@@ -22,7 +23,7 @@ public partial class BonfireOptions : VBoxContainer
         modal = GetNodeOrNull<EquipmentModal>("/root/EquipmentModal");
 
         if (restFeedback != null) restFeedback.Visible = false;
-        RefreshSouls();
+        GetNodeOrNull<SoulCounter>("/root/SoulCounter")?.ShowBelow(titleBar);
         restButton.GrabFocus();
 
         // Show the floating portrait pane while we're at the bonfire.
@@ -30,6 +31,13 @@ public partial class BonfireOptions : VBoxContainer
 
         // Route portrait clicks to the modal when the modal isn't already open.
         if (pane != null) pane.PortraitClicked += OnPortraitClicked;
+    }
+
+    // The pane is an autoload and outlives this scene; left connected, every later scene's
+    // portrait click would still open the equipment modal.
+    public override void _ExitTree() {
+        if (pane != null) pane.PortraitClicked -= OnPortraitClicked;
+        GetNodeOrNull<SoulCounter>("/root/SoulCounter")?.Release(titleBar);
     }
 
     private void OnPortraitClicked(int playerIndex) {
@@ -52,7 +60,6 @@ public partial class BonfireOptions : VBoxContainer
 
         int respawned = WorldMapManager.RestAtBonfire();
         pane?.Refresh();
-        RefreshSouls();
         ShowRestFeedback(respawned);
 
         if (restAnimation != null) await restAnimation.FadeIn();
@@ -76,9 +83,6 @@ public partial class BonfireOptions : VBoxContainer
     }
 
     // The title bar count is the party pool, not a per-character number (p19).
-    private void RefreshSouls() {
-        if (soulsLabel != null) soulsLabel.Text = SoulCache.current.ToString();
-    }
 
     private void OnPressedEquipment() {
         modal?.Open(null);

@@ -35,6 +35,8 @@ public partial class BoardCamera : Control
 
 	private float zoom = 1f;
 	private Vector2 offset = Vector2.Zero;   // from the fitted position, in view pixels
+	private Vector2 shake = Vector2.Zero;    // a jolt on top, never folded into the pan
+	private Tween shaking;
 
 	private bool dragging;
 	private bool panning;
@@ -47,12 +49,87 @@ public partial class BoardCamera : Control
 		if (bottomHud != null) bottomHud.Resized += Apply;
 		if (resetButton != null) resetButton.Pressed += ResetView;
 		CallDeferred(nameof(Apply));
+		// After the encounter's Reset, which runs in the child's _Ready before this one.
+		BoardFx.camera = this;
+	}
+
+	public override void _ExitTree() {
+		if (BoardFx.camera == this) BoardFx.camera = null;
+	}
+
+	// A jolt of the board: random offsets of up to `pixels`, dying away over `seconds`.
+	public void Shake(float pixels, float seconds) {
+		if (shaking != null && shaking.IsValid()) shaking.Kill();
+		shaking = CreateTween();
+		shaking.TweenMethod(Callable.From<float>(t => {
+			float left = 1f - t;
+			shake = new Vector2(GD.Randf() - 0.5f, GD.Randf() - 0.5f) * 2f * pixels * left;
+			Apply();
+		}), 0f, 1f, seconds);
+		shaking.TweenCallback(Callable.From(() => {
+			shake = Vector2.Zero;
+			Apply();
+		}));
 	}
 
 	public void ResetView() {
+		TakeOver();
 		zoom = 1f;
 		offset = Vector2.Zero;
 		Apply();
+	}
+
+	// ----- Focus -----
+	//
+	// A slow creep in on a point of the board — the two tokens of a held attack — and the
+	// way back out. The view the player had is kept and restored by Release, unless they
+	// zoom or pan meanwhile, in which case the view is theirs again and nothing is restored.
+
+	private bool focused;
+	private float restZoom;
+	private Vector2 restOffset;
+	private Tween focusing;
+
+	public void Focus(Vector2 globalPoint, float factor, float seconds) {
+		if (board == null) return;
+		if (!focused) {
+			restZoom = zoom;
+			restOffset = offset;
+			focused = true;
+		}
+
+		Vector2 local = GetGlobalTransform().AffineInverse() * globalPoint;
+		Vector2 boardPoint = (local - (board.Position - shake)) / zoom;
+		float targetZoom = Mathf.Clamp(zoom * factor, ZOOM_MIN, ZOOM_MAX);
+
+		Rect2 safe = SafeRect();
+		Vector2 origin = FitOrigin(safe, FitSide(safe));
+		Vector2 targetOffset = safe.GetCenter() - boardPoint * targetZoom - origin;
+		Glide(targetZoom, targetOffset, seconds, Tween.EaseType.Out);
+	}
+
+	public void Release(float seconds) {
+		if (!focused) return;
+		focused = false;
+		Glide(restZoom, restOffset, seconds, Tween.EaseType.InOut);
+	}
+
+	private void Glide(float toZoom, Vector2 toOffset, float seconds, Tween.EaseType ease) {
+		if (focusing != null && focusing.IsValid()) focusing.Kill();
+		float fromZoom = zoom;
+		Vector2 fromOffset = offset;
+		focusing = CreateTween();
+		focusing.TweenMethod(Callable.From<float>(t => {
+			zoom = Mathf.Lerp(fromZoom, toZoom, t);
+			offset = fromOffset.Lerp(toOffset, t);
+			Apply();
+		}), 0f, 1f, seconds).SetTrans(Tween.TransitionType.Cubic).SetEase(ease);
+	}
+
+	// The player zooming or panning ends any focus and keeps the view they made.
+	private void TakeOver() {
+		if (focusing != null && focusing.IsValid()) focusing.Kill();
+		focused = false;
 	}
 
 	public override void _Input(InputEvent @event) {
@@ -62,6 +139,7 @@ public partial class BoardCamera : Control
 			dragDistance += mm.Relative;
 			if (!panning && dragDistance.Length() >= DRAG_THRESHOLD) panning = true;
 			if (panning) {
+				TakeOver();
 				offset += mm.Relative;
 				Apply();
 			}
@@ -136,8 +214,9 @@ public partial class BoardCamera : Control
 	// Zoom keeping the board point under the cursor where it is.
 	private void ZoomAt(Vector2 viewportPoint, float factor) {
 		if (board == null) return;
+		TakeOver();
 		Vector2 local = ToLocal(viewportPoint);
-		Vector2 boardPoint = (local - board.Position) / zoom;
+		Vector2 boardPoint = (local - (board.Position - shake)) / zoom;
 
 		zoom = Mathf.Clamp(zoom * factor, ZOOM_MIN, ZOOM_MAX);
 
@@ -163,6 +242,6 @@ public partial class BoardCamera : Control
 
 		board.Size = new Vector2(side, side);
 		board.Scale = new Vector2(zoom, zoom);
-		board.Position = position;
+		board.Position = position + shake;
 	}
 }

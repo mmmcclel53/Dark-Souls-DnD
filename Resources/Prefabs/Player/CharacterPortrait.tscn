@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://chrportr0001"]
+[gd_scene load_steps=10 format=3 uid="uid://chrportr0001"]
 
 [ext_resource type="Script" path="res://Scripts/Common/CharacterPortrait.cs" id="1_script"]
 [ext_resource type="Script" path="res://Scripts/Common/TickBar.cs" id="2_tick"]
@@ -6,6 +6,7 @@
 [ext_resource type="Texture2D" uid="uid://cr2267o6mybvu" path="res://Resources/Images/Sprites/Statuses/Poison.png" id="4_poison"]
 [ext_resource type="Texture2D" uid="uid://m4jhjvt73263" path="res://Resources/Images/Sprites/Statuses/Frost.png" id="5_frost"]
 [ext_resource type="Texture2D" uid="uid://f3eqeucwqox8" path="res://Resources/Images/Sprites/Statuses/Stagger.png" id="6_stagger"]
+[ext_resource type="Texture2D" path="res://Resources/Images/Sprites/Statuses/Aggro Token.png" id="7_aggro"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sel"]
 bg_color = Color(0, 0, 0, 0)
@@ -19,18 +20,35 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
-[node name="CharacterPortrait" type="VBoxContainer" node_paths=PackedStringArray("avatarButton", "artFrame", "damageOverlay", "nameLabel", "endurance", "selectionBorder", "statusEffectsContainer", "activeArrow", "conditionIcons")]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_active"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 1, 1, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+shadow_color = Color(1, 1, 1, 0.25)
+shadow_size = 6
+
+[node name="CharacterPortrait" type="VBoxContainer" node_paths=PackedStringArray("avatarButton", "artFrame", "damageOverlay", "nameLabel", "endurance", "selectionBorder", "activeBorder", "statusEffectsContainer", "activeArrow", "conditionIcons", "aggroIcon")]
+mouse_filter = 2
 theme_override_constants/separation = 3
 script = ExtResource("1_script")
-avatarButton = NodePath("Art/Avatar")
-artFrame = NodePath("Art")
-damageOverlay = NodePath("Art/Damage")
+avatarButton = NodePath("Frame/Art/Avatar")
+artFrame = NodePath("Frame")
+damageOverlay = NodePath("Frame/Art/Damage")
 nameLabel = NodePath("Name")
 endurance = NodePath("Endurance")
-selectionBorder = NodePath("Art/SelectionBorder")
+selectionBorder = NodePath("Frame/SelectionBorder")
+activeBorder = NodePath("Frame/ActiveBorder")
 statusEffectsContainer = NodePath("Conditions")
-activeArrow = NodePath("Art/Arrow")
+activeArrow = NodePath("Frame/Arrow")
 conditionIcons = [NodePath("Conditions/Bleed"), NodePath("Conditions/Poison"), NodePath("Conditions/Frost"), NodePath("Conditions/Stagger")]
+aggroIcon = NodePath("Conditions/Aggro")
 
 [node name="Name" type="Label" parent="."]
 layout_mode = 2
@@ -40,13 +58,21 @@ text = "Name"
 horizontal_alignment = 1
 clip_text = true
 
-[node name="Art" type="Control" parent="."]
+[node name="Frame" type="Control" parent="."]
 custom_minimum_size = Vector2(60, 80)
 layout_mode = 2
 size_flags_horizontal = 4
+
+[node name="Art" type="Control" parent="Frame"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 clip_children = 2
 
-[node name="Avatar" type="TextureButton" parent="Art"]
+[node name="Avatar" type="TextureButton" parent="Frame/Art"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -56,7 +82,7 @@ grow_vertical = 2
 ignore_texture_size = true
 stretch_mode = 5
 
-[node name="Damage" type="ColorRect" parent="Art"]
+[node name="Damage" type="ColorRect" parent="Frame/Art"]
 visible = false
 layout_mode = 1
 anchors_preset = 12
@@ -68,7 +94,7 @@ grow_vertical = 0
 mouse_filter = 2
 color = Color(0.639, 0.11, 0.09, 0.51)
 
-[node name="SelectionBorder" type="Panel" parent="Art"]
+[node name="SelectionBorder" type="Panel" parent="Frame"]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -79,7 +105,22 @@ grow_vertical = 2
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_sel")
 
-[node name="Arrow" type="Label" parent="Art"]
+[node name="ActiveBorder" type="Panel" parent="Frame"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -3.0
+offset_top = -3.0
+offset_right = 3.0
+offset_bottom = 3.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_active")
+
+[node name="Arrow" type="Control" parent="Frame"]
 visible = false
 layout_mode = 1
 anchors_preset = 6
@@ -87,22 +128,16 @@ anchor_left = 1.0
 anchor_top = 0.5
 anchor_right = 1.0
 anchor_bottom = 0.5
-offset_left = -16.0
-offset_top = -12.0
-offset_bottom = 12.0
-grow_horizontal = 0
+offset_left = 8.0
+offset_top = -9.0
+offset_right = 22.0
+offset_bottom = 9.0
 grow_vertical = 2
 mouse_filter = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 5
-theme_override_font_sizes/font_size = 18
-text = "◀"
-horizontal_alignment = 1
-vertical_alignment = 1
 
 [node name="Endurance" type="HBoxContainer" parent="."]
 layout_mode = 2
+mouse_filter = 2
 theme_override_constants/separation = 2
 script = ExtResource("2_tick")
 tickHeight = 5
@@ -112,6 +147,15 @@ visible = false
 layout_mode = 2
 theme_override_constants/separation = 2
 alignment = 1
+
+[node name="Aggro" type="TextureRect" parent="Conditions"]
+visible = false
+custom_minimum_size = Vector2(15, 15)
+layout_mode = 2
+tooltip_text = "Aggro"
+texture = ExtResource("7_aggro")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="Bleed" type="TextureRect" parent="Conditions"]
 visible = false

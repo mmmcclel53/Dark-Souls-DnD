@@ -6,6 +6,11 @@ using System.Collections.Generic;
 // snapshot of the special abilities granted by currently-equipped gear.
 public partial class CharacterSummaryPanel : Control
 {
+    // -1 for the previous character in the party, +1 for the next; the modal does the switching.
+    [Signal] public delegate void CycleRequestedEventHandler(int step);
+
+    [Export] public Button previousButton;
+    [Export] public Button nextButton;
     [Export] public Label playerNameLabel;
     [Export] public TextureRect avatarRect;
     [Export] public Label levelClassLabel;
@@ -22,12 +27,26 @@ public partial class CharacterSummaryPanel : Control
     [Export] public Label magicDefenseLabel;
     [Export] public Label dodgeLabel;
 
+    [Export] public Container physDamageDice;
+    [Export] public Container magicDamageDice;
+    [Export] public Container physDefenseDice;
+    [Export] public Container magicDefenseDice;
+
     [Export] public Container immunitiesRow;   // holds status icons, or a "None" label
     [Export] public Container featuresList;     // holds one row per equipment ability
 
     private Player player;
 
     private static readonly Dictionary<EncounterManager.StatusEffect, Texture2D> statusIcons = new();
+
+    // The arrows only mean something with someone to switch to.
+    public void SetCycleEnabled(bool enabled) {
+        foreach (Button arrow in new[] { previousButton, nextButton }) {
+            if (arrow == null) continue;
+            arrow.Disabled = !enabled;
+            arrow.Modulate = enabled ? Colors.White : new Color(1, 1, 1, 0);
+        }
+    }
 
     public void SetPlayer(Player p) {
         player = p;
@@ -42,6 +61,7 @@ public partial class CharacterSummaryPanel : Control
             ClearStatLabels();
             ClearContainer(immunitiesRow);
             ClearContainer(featuresList);
+            foreach (var c in new[] { physDamageDice, magicDamageDice, physDefenseDice, magicDefenseDice }) ClearContainer(c);
             return;
         }
 
@@ -67,8 +87,26 @@ public partial class CharacterSummaryPanel : Control
         if (magicDefenseLabel != null) magicDefenseLabel.Text = Range(mfMin, mfMax);
         if (dodgeLabel != null)       dodgeLabel.Text        = $"Dodge {dodge}";
 
+        ShowPool(physDamageDice, player.GetBestAttackPool(false));
+        ShowPool(magicDamageDice, player.GetBestAttackPool(true));
+        ShowPool(physDefenseDice, player.GetDefensePool(false));
+        ShowPool(magicDefenseDice, player.GetDefensePool(true));
+
         RefreshImmunities();
         RefreshFeatures();
+    }
+
+    private static void ShowPool(Container into, (List<Dice> dice, int modifier) pool) {
+        if (into == null) return;
+        ClearContainer(into);
+        foreach (DiceChip chip in DiceChip.ForPool(pool.dice, 18f)) into.AddChild(chip);
+        if (pool.modifier == 0) return;
+        var flat = new Label();
+        flat.Text = pool.modifier > 0 ? $"+{pool.modifier}" : pool.modifier.ToString();
+        flat.AddThemeFontSizeOverride("font_size", 12);
+        flat.AddThemeColorOverride("font_color", new Color(0.80f, 0.78f, 0.72f));
+        flat.SizeFlagsVertical = SizeFlags.ShrinkCenter;
+        into.AddChild(flat);
     }
 
     private void RefreshImmunities() {

@@ -9,6 +9,7 @@
 
 [resource]
 script = ExtResource("6_6hruq")
+heroicAction = 2
 name = "Assassin"
 image = ExtResource("2_6ytwm")
 avatar = ExtResource("2_58jl0")

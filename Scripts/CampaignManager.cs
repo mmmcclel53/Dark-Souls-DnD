@@ -28,7 +28,10 @@ public static class CampaignManager {
     // since only a *win* clears the bars at the end of an encounter (p19).
     public static void RestParty() {
         if (Players == null) return;
-        foreach (Player player in Players) player?.endurance?.Clear();
+        foreach (Player player in Players) {
+            player?.endurance?.Clear();
+            player?.RefreshTokens();
+        }
     }
 
     public static void Clear() {

@@ -22,6 +22,13 @@ public partial class Player : Resource
     [Export] public string[] rightHandUpgradeIds = new string[0];
     [Export] public string[] armourUpgradeIds = new string[0];
 
+    // The character board's tokens (p19): each is spent once and flipped, and only a
+    // bonfire rest turns them back. Exported so a spent token stays spent across encounters
+    // and saves; unlike the endurance bar, nothing but a rest clears them.
+    [Export] public bool estusUsed;
+    [Export] public bool heroicUsed;
+    [Export] public bool luckUsed;
+
     // Encounter-scoped and deliberately NOT exported: the bar clears on victory (p19),
     // so it must never be written into the saved character. PlayerToken drives it.
     public Endurance endurance { get; private set; } = new Endurance();
@@ -44,6 +51,12 @@ public partial class Player : Resource
     }
 
     // Equipment accessors via the GameManager owned pool.
+    public void RefreshTokens() {
+        estusUsed = false;
+        heroicUsed = false;
+        luckUsed = false;
+    }
+
     public Weapon GetBackupSlot() => GameManager.GetInstance(backupSlotId) as Weapon;
     public Weapon GetLeftHand() => GameManager.GetInstance(leftHandId) as Weapon;
     public Weapon GetRightHand() => GameManager.GetInstance(rightHandId) as Weapon;
@@ -128,38 +141,58 @@ public partial class Player : Resource
     public (int min, int max) GetPhysicalDefense() => GetDefenseRange(false);
     public (int min, int max) GetMagicDefense() => GetDefenseRange(true);
 
-    private (int min, int max) GetBestAttackRange(bool magic) {
-        int bestMin = 0, bestMax = 0;
+    // The attack with the highest ceiling among everything held, and the dice it rolls: the
+    // summary shows both the pool and its range, so they have to come from one place.
+    public (List<Dice> dice, int modifier) GetBestAttackPool(bool magic) {
+        List<Dice> best = new List<Dice>();
+        int bestModifier = 0, bestMax = 0;
         Weapon[] weapons = { GetLeftHand(), GetRightHand(), GetBackupSlot() };
         foreach (Weapon w in weapons) {
             if (w?.attacks == null) continue;
             foreach (PlayerMove move in w.attacks) {
                 if (move?.damage == null || move.isMagic != magic) continue;
-                int moveMin = move.modifier, moveMax = move.modifier;
-                foreach (Dice d in move.damage) {
-                    var (dMin, dMax) = FacesRange(d);
-                    moveMin += dMin; moveMax += dMax;
-                }
-                moveMin = Mathf.Max(0, moveMin);
-                if (moveMax > bestMax) { bestMax = moveMax; bestMin = moveMin; }
+                List<Dice> dice = new List<Dice>();
+                foreach (Dice d in move.damage) if (d != null) dice.Add(d);
+                int max = RangeOf(dice, move.modifier).max;
+                if (max <= bestMax) continue;
+                bestMax = max;
+                best = dice;
+                bestModifier = move.modifier;
             }
         }
-        return (bestMin, bestMax);
+        return (best, bestModifier);
+    }
+
+    // Block or Resist gathered from every equipped piece, as CombatResolver rolls it.
+    public (List<Dice> dice, int modifier) GetDefensePool(bool magic) {
+        List<Dice> pool = new List<Dice>();
+        void Add(Godot.Collections.Array<Dice> dice) {
+            if (dice == null) return;
+            foreach (Dice d in dice) if (d != null) pool.Add(d);
+        }
+        Armour armour = GetArmour();
+        Add(magic ? armour?.magicDefense : armour?.physicalDefense);
+        foreach (Weapon w in new[] { GetLeftHand(), GetRightHand(), GetBackupSlot() }) {
+            Add(magic ? w?.magicDefense : w?.physicalDefense);
+        }
+        int modifier = magic ? armour?.magicDefenseModifier ?? 0 : armour?.physicalDefenseModifier ?? 0;
+        return (pool, modifier);
+    }
+
+    private (int min, int max) GetBestAttackRange(bool magic) {
+        var (dice, modifier) = GetBestAttackPool(magic);
+        return dice.Count == 0 && modifier == 0 ? (0, 0) : RangeOf(dice, modifier);
     }
 
     private (int min, int max) GetDefenseRange(bool magic) {
-        int min = 0, max = 0;
-        var armour = GetArmour();
-        var armourDice = magic ? armour?.magicDefense : armour?.physicalDefense;
-        if (armourDice != null)
-            foreach (Dice d in armourDice) { var (a, b) = FacesRange(d); min += a; max += b; }
-        Weapon[] weapons = { GetLeftHand(), GetRightHand(), GetBackupSlot() };
-        foreach (Weapon w in weapons) {
-            var wDice = magic ? w?.magicDefense : w?.physicalDefense;
-            if (wDice == null) continue;
-            foreach (Dice d in wDice) { var (a, b) = FacesRange(d); min += a; max += b; }
-        }
-        return (min, max);
+        var (dice, modifier) = GetDefensePool(magic);
+        return RangeOf(dice, modifier);
+    }
+
+    private static (int min, int max) RangeOf(List<Dice> dice, int modifier) {
+        int min = modifier, max = modifier;
+        foreach (Dice d in dice) { var (a, b) = FacesRange(d); min += a; max += b; }
+        return (Mathf.Max(0, min), max);
     }
 
     private static (int min, int max) FacesRange(Dice d) {

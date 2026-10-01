@@ -13,6 +13,8 @@ public partial class ActionListener : Control
 
 	// Used only when the encounter is run on its own, outside a campaign.
 	[Export] public Array<Character> demoParty;
+	// The soul counter hangs under this bar's right end.
+	[Export] public Control titleBar;
 
 	// Every enemy shares one scene; the resource assigned at spawn is what makes it a
 	// Hollow Soldier rather than a Sentinel.
@@ -30,6 +32,15 @@ public partial class ActionListener : Control
 	private Player[] fallbackParty;
 	private List<GameNode> entrances = new List<GameNode>();
 	private CharacterPortraitPane portraitPane;
+	private PhaseBanner phaseBanner;
+
+	[Export] public Color enemyBannerGlow = new Color(0.62f, 0.15f, 0.09f);
+	[Export] public Color adventurerBannerGlow = new Color(0.72f, 0.46f, 0.2f);
+	[Export] public Color victoryBannerGlow = new Color(0.85f, 0.62f, 0.25f);
+	[Export] public Color victoryTextColour = new Color(0.93f, 0.85f, 0.62f);
+	[Export] public Color deathBannerGlow = new Color(0.42f, 0.05f, 0.03f);
+	[Export] public Color deathTextColour = new Color(0.72f, 0.1f, 0.06f);
+	private SoulCounter soulCounter;
 
 	
 	// Wired once for every node, and the only click handler nodes have: the phase decides
@@ -73,6 +84,12 @@ public partial class ActionListener : Control
 		EncounterManager.characterTurn = characterTurn;
 		EncounterManager.dodgePrompt = GetNode<DodgePrompt>("%Dodge Prompt");
 		EncounterManager.pushPrompt = GetNode<PushPrompt>("%Push Prompt");
+		EncounterManager.spotlight = new EnemySpotlight();
+		AddChild(EncounterManager.spotlight);
+		phaseBanner = new PhaseBanner();
+		AddChild(phaseBanner);
+		BoardFx.punch = new ScreenPunch();
+		AddChild(BoardFx.punch);
 
 		ToggleAllNodesOff();
 	    SpawnEnemies();
@@ -85,8 +102,28 @@ public partial class ActionListener : Control
 
 	    portraitPane = GetNodeOrNull<CharacterPortraitPane>("/root/CharacterPortraitPane");
 	    portraitPane?.Show();
+	    soulCounter = GetNodeOrNull<SoulCounter>("/root/SoulCounter");
+	    soulCounter?.ShowBelow(titleBar);
+	    if (portraitPane != null) portraitPane.PortraitClicked += SelectCharacter;
+	    // Deferred: the action bar sits later in the tree and builds its row styles in its own _Ready.
+	    CallDeferred(nameof(SelectCharacter), 0);
 	    if (turnQueue != null) turnQueue.Resized += () => { CallDeferred(nameof(PlacePortraitPane)); };
 	    CallDeferred(nameof(PlacePortraitPane));
+	}
+
+	// The pane is an autoload and outlives this scene, so its signal has to let go of us.
+	public override void _ExitTree() {
+	    if (portraitPane != null) portraitPane.PortraitClicked -= SelectCharacter;
+	    soulCounter?.Release(titleBar);
+	}
+
+	// The action bar always shows someone: the first character until a portrait is clicked
+	// or an activation brings its character forward.
+	private void SelectCharacter(int index) {
+	    Player[] party = GetParty();
+	    if (index < 0 || index >= party.Length) return;
+	    characterTurn?.actionBar?.Select(party[index]);
+	    portraitPane?.SetSelectedIndex(index);
 	}
 
 	// The pane is an autoload floating over the whole window with no idea what scene is up,
@@ -235,13 +272,17 @@ public partial class ActionListener : Control
 	// activates. Enemy movement resolves over several frames inside Enemy._Process, so the
 	// loop is driven by ActivationFinished rather than by running straight through.
 
-	private void BeginEnemyActivation() {
+	// Each phase opens on its banner, and nothing moves until it has faded.
+	private async void BeginEnemyActivation() {
 	    EncounterManager.PruneDeadEnemies();
 	    if (CheckEncounterOver()) return;
 
 	    if (EncounterManager.activeEnemyIndex >= EncounterManager.enemies.Count) {
 	        BeginCharacterPhase();
 	        return;
+	    }
+	    if (EncounterManager.activeEnemyIndex == 0 && phaseBanner != null) {
+	        await phaseBanner.Show("Enemy Turn", enemyBannerGlow);
 	    }
 	    EnemyMove();
 	}
@@ -260,7 +301,7 @@ public partial class ActionListener : Control
 	    EncounterManager.action = EncounterManager.Action.CHARACTER_TURN;
 	}
 
-	private void BeginCharacterActivation() {
+	private async void BeginCharacterActivation() {
 	    if (CheckEncounterOver()) return;
 
 	    PlayerToken token = ActiveCharacter();
@@ -268,6 +309,8 @@ public partial class ActionListener : Control
 	        EndCharacterActivation();
 	        return;
 	    }
+	    if (phaseBanner != null) await phaseBanner.Show($"{token.player?.name}'s Turn", adventurerBannerGlow);
+	    if (!GodotObject.IsInstanceValid(token)) return;
 	    token.BeginActivation();
 	    portraitPane?.SetSelectedIndex(EncounterManager.activeCharacterIndex);
 	    characterTurn?.Begin(token);
@@ -341,12 +384,24 @@ public partial class ActionListener : Control
 	    if (won) {
 	        int? earned = AwardVictory(node);
 	        WorldMapManager.ReportEncounterWon();
-	        resultPanel?.ShowVictory(earned, SoulCache.current);
+	        ShowOutcome(true, earned, SoulCache.current);
 	    } else {
 	        int dropped = SettleDefeat(worldNodeId);
 	        WorldMapManager.ReportPartyDeath();
-	        resultPanel?.ShowDefeat(dropped, SoulCache.current);
+	        ShowOutcome(false, dropped, SoulCache.current);
 	    }
+	}
+
+	// The banner first — gold "Victory", or the games' red "You Died" — and the numbers once
+	// it has gone. The outcome itself is already settled and reported by then.
+	private async void ShowOutcome(bool won, int? change, int total) {
+	    if (phaseBanner != null) {
+	        if (won) await phaseBanner.ShowOutcome("Victory", victoryBannerGlow, victoryTextColour);
+	        else await phaseBanner.ShowOutcome("You Died", deathBannerGlow, deathTextColour);
+	    }
+	    if (!IsInsideTree() || resultPanel == null) return;
+	    if (won) resultPanel.ShowVictory(change, total);
+	    else resultPanel.ShowDefeat(change ?? 0, total);
 	}
 
 	// Returns the souls paid, or null when the win pays nothing yet.

@@ -9,6 +9,8 @@ public partial class WorldMap : VBoxContainer {
 	private const float ZOOM_FACTOR = 1.1f;
 
 	[Export] public Label titleLabel;
+	// The soul counter hangs under this bar's right end.
+	[Export] public Control titleBar;
 	[Export] public Control board;
 	[Export] public Control mapView;
 	[Export] public PanelContainer infoPanel;
@@ -36,6 +38,10 @@ public partial class WorldMap : VBoxContainer {
 	private Vector2 panOffset = Vector2.Zero;
 	private bool panning;
 
+	public override void _ExitTree() {
+		GetNodeOrNull<SoulCounter>("/root/SoulCounter")?.Release(titleBar);
+	}
+
 	public override void _Ready() {
 		actionButton.Pressed += OnActionPressed;
 		rotateLeftButton.Pressed += () => { Rotate(-1); };
@@ -44,6 +50,7 @@ public partial class WorldMap : VBoxContainer {
 		board.Resized += UpdateMapTransform;
 		board.GuiInput += OnBoardGuiInput;
 		GetNode<CharacterPortraitPane>("/root/CharacterPortraitPane")?.Show();
+		GetNodeOrNull<SoulCounter>("/root/SoulCounter")?.ShowBelow(titleBar);
 
 		if (!WorldMapManager.EnsureLoaded()) {
 			titleLabel.Text = "World Map — failed to load campaign file";

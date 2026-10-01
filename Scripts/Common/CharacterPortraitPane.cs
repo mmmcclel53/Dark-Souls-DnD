@@ -37,7 +37,11 @@ public partial class CharacterPortraitPane : CanvasLayer
         container.SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin;
         container.SizeFlagsVertical = Control.SizeFlags.Fill;
         container.AddThemeConstantOverride("separation", 8);
-        container.MouseFilter = Control.MouseFilterEnum.Pass;
+        // Ignore, not Pass: the column is stretched most of the screen's height, and a Pass
+        // control catches clicks anywhere in its rect, including the empty space under the
+        // portraits, where the Encounter's equipment cross sits on a lower canvas layer.
+        // The portraits' own avatar buttons still take their clicks.
+        container.MouseFilter = Control.MouseFilterEnum.Ignore;
         margin.AddChild(container);
     }
 
@@ -92,9 +96,11 @@ public partial class CharacterPortraitPane : CanvasLayer
 
     public void SetSelectedIndex(int index) {
         selectedIndex = index;
-        for (int i = 0; i < container.GetChildCount(); i++) {
-            if (container.GetChild(i) is CharacterPortrait p)
-                p.SetSelected(i == selectedIndex);
+        // Refresh queue-frees the old portraits, so they are still children for a frame.
+        int i = 0;
+        foreach (Node child in container.GetChildren()) {
+            if (child is not CharacterPortrait p || p.IsQueuedForDeletion()) continue;
+            p.SetSelected(i++ == selectedIndex);
         }
     }
 

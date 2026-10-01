@@ -213,22 +213,6 @@ theme_override_font_sizes/font_size = 24
 text = "Bonfire"
 vertical_alignment = 1
 
-[node name="Souls Icon" type="TextureRect" parent="CanvasLayer/AspectRatioContainer/UI/TitleBar/Margin/HBox"]
-custom_minimum_size = Vector2(22, 22)
-layout_mode = 2
-size_flags_vertical = 4
-texture = ExtResource("2_soul")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="Souls Amount" type="Label" parent="CanvasLayer/AspectRatioContainer/UI/TitleBar/Margin/HBox"]
-layout_mode = 2
-size_flags_vertical = 1
-theme_override_colors/font_color = Color(0.788, 0.635, 0.294, 1)
-theme_override_font_sizes/font_size = 18
-text = "0"
-vertical_alignment = 1
-
 [node name="Board" type="MarginContainer" parent="CanvasLayer/AspectRatioContainer/UI"]
 layout_mode = 2
 size_flags_vertical = 3
@@ -299,7 +283,7 @@ color_ramp = SubResource("Gradient_spark_life")
 hue_variation_min = -0.03
 hue_variation_max = 0.03
 
-[node name="Options" type="VBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire" node_paths=PackedStringArray("restButton", "equipmentButton", "readyButton", "restFeedback", "soulsLabel", "restAnimation")]
+[node name="Options" type="VBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire" node_paths=PackedStringArray("restButton", "equipmentButton", "readyButton", "restFeedback", "titleBar", "restAnimation")]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.74
@@ -313,7 +297,7 @@ alignment = 1
 script = ExtResource("4_options")
 restButton = NodePath("Rest")
 restFeedback = NodePath("Rest Feedback")
-soulsLabel = NodePath("../../../TitleBar/Margin/HBox/Souls Amount")
+titleBar = NodePath("../../../TitleBar")
 restAnimation = NodePath("../../../../../../Rest Animation/Overlay")
 equipmentButton = NodePath("Equipment")
 readyButton = NodePath("Ready")

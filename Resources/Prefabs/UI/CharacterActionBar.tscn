@@ -1,4 +1,4 @@
-[gd_scene load_steps=26 format=3]
+[gd_scene load_steps=23 format=3]
 
 [ext_resource type="Script" path="res://Scripts/Encounter/Player/CharacterActionBar.cs" id="1_bar"]
 [ext_resource type="PackedScene" path="res://Resources/Prefabs/UI/EquipmentCross.tscn" id="2_cross"]
@@ -14,20 +14,25 @@
 [ext_resource type="Texture2D" uid="uid://cr2267o6mybvu" path="res://Resources/Images/Sprites/Statuses/Poison.png" id="12_poison"]
 [ext_resource type="Texture2D" uid="uid://m4jhjvt73263" path="res://Resources/Images/Sprites/Statuses/Frost.png" id="13_frost"]
 [ext_resource type="Texture2D" uid="uid://f3eqeucwqox8" path="res://Resources/Images/Sprites/Statuses/Stagger.png" id="14_stagger"]
-[ext_resource type="Texture2D" path="res://Resources/Images/Sprites/Character/Estus.png" id="15_estus"]
-[ext_resource type="Texture2D" path="res://Resources/Images/Sprites/Character/Heroic.png" id="16_heroic"]
-[ext_resource type="Texture2D" path="res://Resources/Images/Sprites/Character/Luck.png" id="17_luck"]
-[ext_resource type="Texture2D" path="res://Resources/Images/Sprites/Soul.png" id="18_soul"]
+[ext_resource type="Texture2D" path="res://Resources/Images/Sprites/Statuses/Aggro Token.png" id="19_aggro"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 bg_color = Color(0.09, 0.082, 0.067, 0.88)
+border_width_left = 1
 border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
 border_color = Color(0.47, 0.38, 0.2, 1)
+anti_aliasing_size = 1.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel_reaction"]
 bg_color = Color(0.09, 0.082, 0.067, 0.88)
+border_width_left = 2
 border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
 border_color = Color(0.851, 0.18, 0.122, 1)
+anti_aliasing_size = 1.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_end"]
 bg_color = Color(0.12, 0.1, 0.075, 0.95)
@@ -36,10 +41,10 @@ border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
 border_color = Color(0.788, 0.635, 0.294, 1)
-corner_radius_top_left = 44
-corner_radius_top_right = 44
-corner_radius_bottom_right = 44
-corner_radius_bottom_left = 44
+corner_radius_top_left = 50
+corner_radius_top_right = 50
+corner_radius_bottom_right = 50
+corner_radius_bottom_left = 50
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_end_hover"]
 bg_color = Color(0.17, 0.14, 0.1, 1)
@@ -48,10 +53,10 @@ border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
 border_color = Color(0.95, 0.8, 0.45, 1)
-corner_radius_top_left = 44
-corner_radius_top_right = 44
-corner_radius_bottom_right = 44
-corner_radius_bottom_left = 44
+corner_radius_top_left = 50
+corner_radius_top_right = 50
+corner_radius_bottom_right = 50
+corner_radius_bottom_left = 50
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_end_disabled"]
 bg_color = Color(0.08, 0.07, 0.055, 0.9)
@@ -60,17 +65,17 @@ border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
 border_color = Color(0.29, 0.251, 0.188, 1)
-corner_radius_top_left = 44
-corner_radius_top_right = 44
-corner_radius_bottom_right = 44
-corner_radius_bottom_left = 44
+corner_radius_top_left = 50
+corner_radius_top_right = 50
+corner_radius_bottom_right = 50
+corner_radius_bottom_left = 50
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_focus"]
 
 [sub_resource type="Theme" id="Theme_bar"]
 Label/constants/outline_size = 0
 
-[node name="CharacterActionBar" type="HBoxContainer" node_paths=PackedStringArray("crossAnchor", "cross", "panel", "avatar", "nameLabel", "endurance", "defenceRow", "tokenRow", "header", "rows", "soulsLabel", "endTurnButton")]
+[node name="CharacterActionBar" type="HBoxContainer" node_paths=PackedStringArray("crossAnchor", "cross", "panel", "avatar", "aggroBadge", "nameLabel", "endurance", "defenceRow", "tokenRow", "header", "rows", "endTurnButton")]
 mouse_filter = 2
 theme = SubResource("Theme_bar")
 theme_override_constants/separation = 0
@@ -79,13 +84,13 @@ crossAnchor = NodePath("Cross Anchor")
 cross = NodePath("Cross Anchor/Cross")
 panel = NodePath("Panel")
 avatar = NodePath("Panel/Margin/Row/Avatar")
+aggroBadge = NodePath("Panel/Margin/Row/Avatar/Aggro")
 nameLabel = NodePath("Panel/Margin/Row/Character/Name")
 endurance = NodePath("Panel/Margin/Row/Character/Endurance")
 defenceRow = NodePath("Panel/Margin/Row/Character/Defence")
 tokenRow = NodePath("Panel/Margin/Row/Character/Tokens")
 header = NodePath("Panel/Margin/Row/Weapon/Header")
 rows = NodePath("Panel/Margin/Row/Weapon/Rows")
-soulsLabel = NodePath("Panel/Margin/Row/Souls/Value")
 endTurnButton = NodePath("Panel/Margin/Row/End Turn")
 panelStyle = SubResource("StyleBoxFlat_panel")
 panelReactionStyle = SubResource("StyleBoxFlat_panel_reaction")
@@ -95,7 +100,6 @@ blockIcon = ExtResource("8_block")
 resistIcon = ExtResource("9_resist")
 dodgeIcon = ExtResource("10_dodge")
 conditionTextures = Array[Texture2D]([ExtResource("11_bleed"), ExtResource("12_poison"), ExtResource("13_frost"), ExtResource("14_stagger")])
-tokenTextures = Array[Texture2D]([ExtResource("15_estus"), ExtResource("16_heroic"), ExtResource("17_luck")])
 
 [node name="Cross Anchor" type="Control" parent="."]
 custom_minimum_size = Vector2(292, 0)
@@ -115,10 +119,10 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 [node name="Margin" type="MarginContainer" parent="Panel"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/margin_left = 14
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 8
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 6
 
 [node name="Row" type="HBoxContainer" parent="Panel/Margin"]
 layout_mode = 2
@@ -126,7 +130,7 @@ mouse_filter = 2
 theme_override_constants/separation = 16
 
 [node name="Avatar" type="Control" parent="Panel/Margin/Row" node_paths=PackedStringArray("art")]
-custom_minimum_size = Vector2(104, 104)
+custom_minimum_size = Vector2(112, 112)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
@@ -148,6 +152,23 @@ grow_vertical = 2
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 6
+
+[node name="Aggro" type="TextureRect" parent="Panel/Margin/Row/Avatar"]
+visible = false
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -34.0
+offset_top = -2.0
+offset_right = 2.0
+offset_bottom = 34.0
+grow_horizontal = 0
+tooltip_text = "Aggro"
+mouse_filter = 1
+texture = ExtResource("19_aggro")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="Character" type="VBoxContainer" parent="Panel/Margin/Row"]
 custom_minimum_size = Vector2(210, 0)
@@ -182,11 +203,11 @@ mouse_filter = 2
 theme_override_constants/separation = 8
 
 [node name="Weapon" type="VBoxContainer" parent="Panel/Margin/Row"]
-custom_minimum_size = Vector2(0, 124)
+custom_minimum_size = Vector2(0, 112)
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
-theme_override_constants/separation = 5
+theme_override_constants/separation = 4
 alignment = 1
 
 [node name="Header" type="HBoxContainer" parent="Panel/Margin/Row/Weapon"]
@@ -197,32 +218,10 @@ theme_override_constants/separation = 8
 [node name="Rows" type="VBoxContainer" parent="Panel/Margin/Row/Weapon"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 4
-
-[node name="Souls" type="HBoxContainer" parent="Panel/Margin/Row"]
-layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 2
-theme_override_constants/separation = 6
-
-[node name="Icon" type="TextureRect" parent="Panel/Margin/Row/Souls"]
-custom_minimum_size = Vector2(26, 26)
-layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 2
-texture = ExtResource("18_soul")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="Value" type="Label" parent="Panel/Margin/Row/Souls"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.788, 0.635, 0.294, 1)
-theme_override_font_sizes/font_size = 20
-text = "0"
-vertical_alignment = 1
+theme_override_constants/separation = 3
 
 [node name="End Turn" type="Button" parent="Panel/Margin/Row"]
-custom_minimum_size = Vector2(88, 88)
+custom_minimum_size = Vector2(100, 100)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_default_cursor_shape = 2
@@ -238,3 +237,8 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_end_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_end_hover")
 theme_override_styles/normal = SubResource("StyleBoxFlat_end")
 text = "End Turn"
+
+[node name="Right Gap" type="Control" parent="."]
+custom_minimum_size = Vector2(12, 0)
+layout_mode = 2
+mouse_filter = 2

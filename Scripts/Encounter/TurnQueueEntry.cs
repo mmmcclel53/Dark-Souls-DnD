@@ -36,7 +36,11 @@ public partial class TurnQueueEntry : VBoxContainer
 	private int shownConditions = -1;
 
 	public override void _Ready() {
-		if (face != null) face.GuiInput += OnFaceInput;
+		if (face != null) {
+			face.GuiInput += OnFaceInput;
+			face.MouseEntered += () => NearestMarker.Hover(enemy);
+			face.MouseExited += () => NearestMarker.Unhover(enemy);
+		}
 	}
 
 	private void OnFaceInput(InputEvent @event) {
@@ -86,6 +90,7 @@ public partial class TurnQueueEntry : VBoxContainer
 	private void Refresh() {
 		if (enemy == null || !GodotObject.IsInstanceValid(enemy)) return;
 
+		bool first = shownConditions < 0;
 		shownHealth = enemy.currentHealth;
 		shownConditions = ConditionMask();
 
@@ -103,9 +108,11 @@ public partial class TurnQueueEntry : VBoxContainer
 
 		if (conditionIcons != null) {
 			for (int i = 0; i < conditionIcons.Count; i++) {
-				if (conditionIcons[i] != null) {
-					conditionIcons[i].Visible = enemy.HasCondition((EncounterManager.StatusEffect)i);
-				}
+				TextureRect icon = conditionIcons[i];
+				if (icon == null) continue;
+				bool shown = enemy.HasCondition((EncounterManager.StatusEffect)i);
+				if (shown && !icon.Visible && !first) PopIn.Scale(icon);
+				icon.Visible = shown;
 			}
 		}
 		if (conditions != null) conditions.Visible = shownConditions != 0;

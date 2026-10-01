@@ -67,10 +67,15 @@ public partial class CharacterSelect : Control
 			playerButton.AddChild(selectionBorder);
 		}
 
+		// A class button finds its character by name, and a class with no character wired
+		// into the scene is disabled rather than left to index past the end of the array.
 		for (int i = 0; i < characterButtonsContainer.GetChildCount(); i++) {
 			Button characterButton = (Button)characterButtonsContainer.GetChild(i);
 			int captured = i;
-			characterButton.Pressed += () => { OnCharacterSelect(captured, characters[captured]); };
+			Character character = CharacterFor(characterButton, i);
+			characterButton.Disabled = character == null;
+			if (character == null) continue;
+			characterButton.Pressed += () => { OnCharacterSelect(captured, character); };
 		}
 
 		nameModal.Visible = true;
@@ -130,6 +135,17 @@ public partial class CharacterSelect : Control
 		characterSheet.SetCharacter(shownChar);
 		RefreshSummary(shownChar);
 		RefreshSelectionStyles();
+	}
+
+	// By the button's node name or label first, so the scene's button order and the
+	// exported array's order do not have to agree; by position only as a fallback.
+	private Character CharacterFor(Button button, int index) {
+		if (characters == null) return null;
+		string nodeName = button.Name;
+		foreach (Character c in characters) {
+			if (c != null && (c.name == nodeName || c.name == button.Text)) return c;
+		}
+		return index < characters.Length ? characters[index] : null;
 	}
 
 	private void OnCharacterSelect(int index, Character c) {

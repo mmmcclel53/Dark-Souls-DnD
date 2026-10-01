@@ -41,6 +41,16 @@ public partial class RollReveal : CanvasLayer
 		public int modifier;
 		public int total;
 		public List<Line> lines = new List<Line>();
+		// An enemy's attack on a character: damage in the lines is coming the party's way.
+		public bool againstCharacter;
+		// Whose Luck token may reroll one die of this roll: the character who rolled it.
+		public Player luckOwner;
+		// Rebuilds total and lines from the faces after a reroll. The presenter reads the
+		// outcome back from the same view once the reveal closes.
+		public System.Action<View> recompute;
+		// Whose Heroic Action may add a die to this roll (the Knight's Stand Fast), and which.
+		public Player heroicOwner;
+		public Dice heroicDie;
 	}
 
 	[Export] public Container actorRow;
@@ -55,10 +65,9 @@ public partial class RollReveal : CanvasLayer
 	[Export] public Texture2D blockIcon;
 	[Export] public Texture2D resistIcon;
 
-	[Export] public float dieSide = 52f;
-	[Export] public float tumbleSeconds = 0.9f;
-	[Export] public float settleStagger = 0.15f;
-	[Export] public float tickSeconds = 0.05f;
+	[Export] public float dieSide = 68f;
+	[Export] public float settleStagger = 0.12f;
+	[Export] public float countSeconds = 0.35f;
 
 	[Export] public Color parchment = new Color(0.902f, 0.871f, 0.796f);
 	[Export] public Color gold = new Color(0.788f, 0.635f, 0.294f);
@@ -82,17 +91,147 @@ public partial class RollReveal : CanvasLayer
 		Visible = true;
 		if (continueButton != null) continueButton.Disabled = true;
 
-		await Tumble();
+		await Throw();
+		await CountTotal(view.total);
 
-		if (totalLabel != null) totalLabel.Text = view.total.ToString();
-		if (lineRows != null) lineRows.Visible = true;
-		if (continueButton != null) {
+		ShowLines(view);
+
+		bool continued = (CanUseLuck(view) || CanUseHeroic(view)) && await OfferTokens(view);
+		if (!continued && continueButton != null) {
 			continueButton.Disabled = false;
 			continueButton.GrabFocus();
 			await ToSignal(continueButton, BaseButton.SignalName.Pressed);
 		}
 
 		Visible = false;
+	}
+
+	private void ShowLines(View view) {
+		if (lineRows == null) return;
+		Clear(lineRows);
+		foreach (Line line in view.lines) lineRows.AddChild(BuildLine(line));
+		lineRows.Visible = true;
+
+		// Damage coming the party's way is felt as the numbers land, before it is applied.
+		if (view.againstCharacter) {
+			int worst = 0;
+			foreach (Line line in view.lines) worst = Mathf.Max(worst, line.dodged ? 0 : line.damage);
+			if (worst > 0) BoardFx.punch?.Flash(worst);
+		}
+	}
+
+	// ----- Luck and the Heroic die -----
+
+	private const int CONTINUE = -1;
+	private const int HEROIC = -2;
+
+	private bool CanUseLuck(View view) =>
+		view.luckOwner != null && !view.luckOwner.luckUsed && view.recompute != null && dice.Count > 0 && diceRow != null;
+
+	private bool CanUseHeroic(View view) =>
+		view.heroicOwner != null && !view.heroicOwner.heroicUsed && view.heroicDie != null && view.recompute != null && diceRow != null;
+
+	// The roller's unspent tokens sit at the end of the dice. With Luck, every die lights
+	// under the cursor and a click throws it again; the Heroic token (Stand Fast) is clicked
+	// to throw one more die. Either may follow the other. Continue passes on whatever is
+	// left. Returns true if they carried on.
+	private async Task<bool> OfferTokens(View view) {
+		TextureRect luck = null;
+		TextureButton heroic = null;
+		if (CanUseLuck(view)) {
+			luck = Icon(TokenArt.Ready(TokenArt.Kind.LUCK), Colors.White, 46f);
+			luck.TooltipText = TokenArt.Title(TokenArt.Kind.LUCK);
+			luck.MouseFilter = Control.MouseFilterEnum.Pass;
+			diceRow.AddChild(luck);
+			PopIn.Scale(luck, 1.4f, 0.3f);
+		}
+		if (CanUseHeroic(view)) {
+			heroic = new TextureButton {
+				TextureNormal = TokenArt.Ready(TokenArt.Kind.HEROIC),
+				IgnoreTextureSize = true,
+				StretchMode = TextureButton.StretchModeEnum.KeepAspectCentered,
+				CustomMinimumSize = new Vector2(46f, 46f),
+				SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+				FocusMode = Control.FocusModeEnum.None,
+				TooltipText = Heroic.Name(view.heroicOwner.character?.heroicAction ?? Heroic.Kind.NONE),
+			};
+			diceRow.AddChild(heroic);
+			PopIn.Scale(heroic, 1.4f, 0.3f);
+		}
+
+		while (true) {
+			bool canLuck = luck != null && CanUseLuck(view);
+			bool canHeroic = heroic != null && CanUseHeroic(view);
+			if (!canLuck && !canHeroic) return false;
+
+			TaskCompletionSource<int> choice = new TaskCompletionSource<int>();
+			List<System.Action> handlers = new List<System.Action>();
+			if (canLuck) {
+				for (int i = 0; i < dice.Count; i++) {
+					int index = i;
+					System.Action handler = () => choice.TrySetResult(index);
+					handlers.Add(handler);
+					dice[i].Picked += handler;
+					dice[i].SetPickable(true);
+				}
+			}
+			System.Action onHeroic = () => choice.TrySetResult(HEROIC);
+			if (canHeroic) heroic.Pressed += onHeroic;
+			System.Action onContinue = () => choice.TrySetResult(CONTINUE);
+			if (continueButton != null) {
+				continueButton.Pressed += onContinue;
+				continueButton.Disabled = false;
+				continueButton.GrabFocus();
+			}
+
+			int picked = await choice.Task;
+
+			for (int i = 0; i < handlers.Count; i++) {
+				dice[i].Picked -= handlers[i];
+				dice[i].SetPickable(false);
+			}
+			if (canHeroic) heroic.Pressed -= onHeroic;
+			if (continueButton != null) continueButton.Pressed -= onContinue;
+			if (picked == CONTINUE) return true;
+
+			if (continueButton != null) continueButton.Disabled = true;
+			if (picked == HEROIC) await ThrowHeroicDie(view, heroic);
+			else await RerollWithLuck(view, picked, luck);
+
+			view.recompute(view);
+			await CountTotal(view.total);
+			ShowLines(view);
+		}
+	}
+
+	private async Task RerollWithLuck(View view, int picked, TextureRect luck) {
+		view.luckOwner.luckUsed = true;
+		luck.Texture = TokenArt.Used(TokenArt.Kind.LUCK);
+		PopIn.Scale(luck, 1.5f, 0.3f);
+
+		Face face = view.faces[picked];
+		face.value = face.faces != null && face.faces.Length > 0 ? DiceUtility.RollDice(face.faces) : face.value;
+		view.faces[picked] = face;
+		RollDie die = dice[picked];
+		die.Reroll(face.value);
+		while (!die.settled) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+	}
+
+	private async Task ThrowHeroicDie(View view, TextureButton heroic) {
+		view.heroicOwner.heroicUsed = true;
+		heroic.Disabled = true;
+		heroic.TextureNormal = TokenArt.Used(TokenArt.Kind.HEROIC);
+		PopIn.Scale(heroic, 1.5f, 0.3f);
+
+		Dice source = view.heroicDie;
+		Face face = new Face { type = source.diceType, value = DiceUtility.Roll(source), faces = source.dice };
+		view.faces.Add(face);
+		RollDie die = RollDie.Create(face, dieSide);
+		dice.Add(die);
+		diceRow.AddChild(die);
+		diceRow.MoveChild(die, dice.Count - 1);     // after the last die, before the modifier and tokens
+		die.Throw(0f);
+		while (!die.settled) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
 	}
 
 	// ----- Building -----
@@ -112,7 +251,7 @@ public partial class RollReveal : CanvasLayer
 
 		if (diceRow != null) {
 			foreach (Face face in view.faces) {
-				RollDie die = RollDie.Create(face, dodgeIcon, dieSide);
+				RollDie die = RollDie.Create(face, dieSide);
 				dice.Add(die);
 				diceRow.AddChild(die);
 			}
@@ -120,10 +259,7 @@ public partial class RollReveal : CanvasLayer
 		}
 		if (totalLabel != null) totalLabel.Text = "";
 
-		if (lineRows != null) {
-			lineRows.Visible = false;
-			foreach (Line line in view.lines) lineRows.AddChild(BuildLine(line));
-		}
+		if (lineRows != null) lineRows.Visible = false;
 	}
 
 	private Control BuildLine(Line line) {
@@ -178,28 +314,39 @@ public partial class RollReveal : CanvasLayer
 		return badge;
 	}
 
-	// ----- The tumble -----
+	// ----- The throw -----
 
-	// Every die cycles random faces, then they land one after another, left to right.
-	private async Task Tumble() {
-		double elapsed = 0;
+	// The handful is thrown together, each die a beat after the last, and the reveal waits
+	// until every one has come to rest.
+	private async Task Throw() {
+		for (int i = 0; i < dice.Count; i++) dice[i].Throw(i * settleStagger);
+
 		while (true) {
-			await ToSignal(GetTree().CreateTimer(tickSeconds), SceneTreeTimer.SignalName.Timeout);
-			elapsed += tickSeconds;
-
 			bool allSettled = true;
-			for (int i = 0; i < dice.Count; i++) {
-				RollDie die = dice[i];
-				if (die.settled) continue;
-				if (elapsed >= tumbleSeconds + i * settleStagger) {
-					die.Settle();
-				} else {
-					die.ShowFace(die.RandomFace());
+			foreach (RollDie die in dice) {
+				if (!die.settled) {
 					allSettled = false;
+					break;
 				}
 			}
 			if (allSettled) return;
+			await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
 		}
+	}
+
+	// The total counts up from nothing and pops when it gets there.
+	private async Task CountTotal(int total) {
+		if (totalLabel == null) return;
+		if (total <= 0) {
+			totalLabel.Text = total.ToString();
+			return;
+		}
+
+		Tween tween = CreateTween();
+		tween.TweenMethod(Callable.From<float>(v => totalLabel.Text = Mathf.RoundToInt(v).ToString()), 0f, (float)total, countSeconds);
+		await ToSignal(tween, Tween.SignalName.Finished);
+		totalLabel.Text = total.ToString();
+		PopIn.Scale(totalLabel, 1.5f, 0.25f);
 	}
 
 	// ----- Pieces -----

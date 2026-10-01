@@ -9,6 +9,9 @@ public partial class Character : Resource
     [Export(PropertyHint.MultilineText)]
     public string description;
 
+    // From the character board; see Heroic.
+    [Export] public Heroic.Kind heroicAction;
+
     [ExportGroup("Equipment")]
     [Export] public Weapon backupSlotDefault;
     [Export] public Weapon leftHandDefault;
