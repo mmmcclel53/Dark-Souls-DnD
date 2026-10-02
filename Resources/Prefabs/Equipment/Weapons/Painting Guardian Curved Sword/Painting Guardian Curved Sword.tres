@@ -11,6 +11,7 @@ damage = Array[Object]([ExtResource("4_x"), ExtResource("4_x")])
 attackRange = 0
 statusEffect = 0
 bonusMovement = 2
+shiftAfter = 1
 repeat = 1
 
 [sub_resource type="Resource" id="PM1"]
@@ -20,6 +21,7 @@ damage = Array[Object]([ExtResource("4_x"), ExtResource("4_x"), ExtResource("4_x
 attackRange = 0
 statusEffect = 0
 bonusMovement = 2
+shiftAfter = 1
 repeat = 1
 
 [resource]

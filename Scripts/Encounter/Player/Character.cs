@@ -29,7 +29,7 @@ public partial class Character : Resource
 
     public int GetDodge() {
         int dodge = armourDefault?.dodgeAbility ?? 0;
-        Weapon[] weapons = [leftHandDefault, rightHandDefault, backupSlotDefault];
+        Weapon[] weapons = [leftHandDefault, rightHandDefault];
         foreach (Weapon w in weapons) dodge += w?.dodgeAbility ?? 0;
         return dodge;
     }
@@ -41,7 +41,7 @@ public partial class Character : Resource
 
     private (int min, int max) GetBestAttackRange(bool magic) {
         int bestMin = 0, bestMax = 0;
-        Weapon[] weapons = [leftHandDefault, rightHandDefault, backupSlotDefault];
+        Weapon[] weapons = [leftHandDefault, rightHandDefault];
         foreach (Weapon w in weapons) {
             if (w?.attacks == null) continue;
             foreach (PlayerMove move in w.attacks) {
@@ -63,7 +63,7 @@ public partial class Character : Resource
         var armourDice = magic ? armourDefault?.magicDefense : armourDefault?.physicalDefense;
         if (armourDice != null)
             foreach (Dice d in armourDice) { var (a, b) = FacesRange(d); min += a; max += b; }
-        Weapon[] weapons = [leftHandDefault, rightHandDefault, backupSlotDefault];
+        Weapon[] weapons = [leftHandDefault, rightHandDefault];
         foreach (Weapon w in weapons) {
             var wDice = magic ? w?.magicDefense : w?.physicalDefense;
             if (wDice == null) continue;

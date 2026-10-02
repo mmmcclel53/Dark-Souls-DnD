@@ -26,9 +26,21 @@ public partial class PlayerMove : Resource {
     [Export] public EncounterManager.StatusEffect statusEffect = EncounterManager.StatusEffect.NONE;
 
     // Move
+    // Shift (p23): free nodes the attack may move. Icons before the dice move before the roll,
+    // after the dice after it; shiftAfter is how many of bonusMovement are the latter.
     [Export] public int bonusMovement;
+    [Export] public int shiftAfter;
     [Export] public int repeat = 1;   // total times this attack is made (1 = once); from "xN Turns"
     [Export] public RepeatTarget repeatConstraint = RepeatTarget.FREE;
+
+    public int ShiftBefore => Mathf.Max(0, bonusMovement - shiftAfter);
+    public int ShiftAfter => Mathf.Min(shiftAfter, bonusMovement);
+    public int Uses => Mathf.Max(1, repeat);
+
+    // An option that is only a Shift (Carthus Curved Sword's, Lucerne's): nothing to roll or
+    // inflict, so it moves and never asks for a target.
+    public bool IsMovementOnly => bonusMovement > 0 && (damage == null || damage.Count == 0) && modifier == 0
+        && statusEffect == EncounterManager.StatusEffect.NONE && !isPush;
 
     // Conditional / triggered riders (Damage +1 If Embered, heals, buffs, etc.).
     // Always-on attack keywords stay as the flags above; only genuinely conditional

@@ -1,4 +1,4 @@
-[gd_scene load_steps=23 format=3 uid="uid://cdmyd1komlp81"]
+[gd_scene load_steps=27 format=3 uid="uid://cdmyd1komlp81"]
 
 [ext_resource type="Theme" uid="uid://b4u8wpfygl601" path="res://Theme.tres" id="1_163b3"]
 [ext_resource type="Script" uid="uid://38e7hdut52ii" path="res://Scripts/MainMenu/Settings.cs" id="2_cws6m"]
@@ -13,6 +13,10 @@
 [ext_resource type="PackedScene" path="res://Resources/Prefabs/UI/CharacterActionBar.tscn" id="16_bar"]
 [ext_resource type="Script" path="res://Scripts/Encounter/Player/CharacterTurn.cs" id="17_turn"]
 [ext_resource type="Resource" path="res://Resources/Prefabs/Enemies/Hollow Soldier/Hollow Soldier.tres" id="7_hollow"]
+[ext_resource type="Resource" path="res://Resources/Prefabs/Player/Tester/Tester.tres" id="90_tester"]
+[ext_resource type="Resource" path="res://Resources/Prefabs/Enemies/Skeleton Soldier/Skeleton Soldier.tres" id="91_skeleton"]
+[ext_resource type="Resource" path="res://Resources/Prefabs/Enemies/Silver Knight Swordsman/Silver Knight Swordsman.tres" id="92_swordsman"]
+[ext_resource type="Resource" path="res://Resources/Prefabs/Enemies/Sentinel/Sentinel.tres" id="93_sentinel"]
 [ext_resource type="Texture2D" uid="uid://df6n2favwrlhq" path="res://Resources/Images/Backgrounds/Tile 2.jpg" id="8_drip3"]
 [ext_resource type="Script" uid="uid://bfltixxyyql5j" path="res://Scripts/Encounter/Enemy/Pathfinding/PathGrid.cs" id="9_xtn7h"]
 [ext_resource type="Script" uid="uid://d1a4camaukfpy" path="res://Scripts/Encounter/GameNode.cs" id="10_2lue5"]
@@ -126,9 +130,9 @@ turnQueue = NodePath("../../HUD/Turn Queue")
 characterTurn = NodePath("../../../Character Turn")
 resultPanel = NodePath("../../../../../Encounter Result")
 playerScene = ExtResource("6_xdswp")
-demoParty = Array[Object]([ExtResource("6_knight")])
+demoParty = Array[Object]([ExtResource("90_tester")])
 enemyScene = ExtResource("7_3kqhr")
-enemies = Array[Object]([ExtResource("7_hollow"), ExtResource("7_hollow")])
+enemies = Array[Object]([ExtResource("91_skeleton"), ExtResource("92_swordsman"), ExtResource("93_sentinel")])
 nodesParent = NodePath("Grid")
 pathGrid = NodePath("Grid")
 titleBar = NodePath("../../../Title Panel")

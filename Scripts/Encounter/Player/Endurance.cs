@@ -2,7 +2,9 @@ using Godot;
 
 // The endurance bar (rules p20). Ten boxes track Stamina and Health together:
 // spending Stamina fills black cubes from the left, suffering damage fills red cubes
-// from the right, and the character dies when the two meet.
+// from the right. The character dies only when damage overflows the bar, needing more red
+// cubes than there are boxes left (Matt's ruling): a bar filled exactly, by stamina or by
+// damage that just fits, is still standing.
 //
 // There is no separate stamina pool — what a character can still spend IS the uncovered
 // part of the bar, so a wound and a sprint compete for the same boxes. Gaining Stamina or
@@ -16,7 +18,8 @@ public class Endurance {
 	public int damageTaken { get; private set; }
 
 	public int free => BOXES - staminaSpent - damageTaken;
-	public bool isDead => free <= 0;
+	// Set by damage that would not fit; nothing else kills, and only Clear takes it back.
+	public bool isDead { get; private set; }
 
 	// Boxes not covered by a red cube — the conventional "health remaining" reading.
 	public int healthRemaining => BOXES - damageTaken;
@@ -33,8 +36,10 @@ public class Endurance {
 		staminaSpent = Mathf.Max(0, staminaSpent - stamina);
 	}
 
-	// Returns the damage actually absorbed, which stops at the last free box.
+	// Returns the damage actually absorbed, which stops at the last free box. Damage beyond
+	// that is the overflow that kills.
 	public int TakeDamage(int damage) {
+		if (damage > free) isDead = true;
 		int applied = Mathf.Clamp(damage, 0, free);
 		damageTaken += applied;
 		return applied;
@@ -47,5 +52,6 @@ public class Endurance {
 	public void Clear() {
 		staminaSpent = 0;
 		damageTaken = 0;
+		isDead = false;
 	}
 }

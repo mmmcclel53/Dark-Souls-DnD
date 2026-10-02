@@ -57,7 +57,7 @@ avatar = NodePath("Frame/Face/Avatar")
 damageOverlay = NodePath("Frame/Face/Damage")
 threatBadge = NodePath("Frame/Threat")
 threatLabel = NodePath("Frame/Threat/Label")
-nameLabel = NodePath("Name")
+nameLabel = NodePath("Name Box/Name")
 activeRim = NodePath("Frame/Face/Active Rim")
 attackRim = NodePath("Frame/Face/Attack Rim")
 tierRim = NodePath("Frame/Face/Tier Rim")
@@ -203,6 +203,7 @@ grow_vertical = 2
 theme_override_constants/separation = 2
 script = ExtResource("2_tick")
 tickHeight = 13
+continuous = true
 
 [node name="Value" type="Label" parent="Health"]
 layout_mode = 1
@@ -263,11 +264,23 @@ texture = ExtResource("6_stagger")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Name" type="Label" parent="."]
-custom_minimum_size = Vector2(60, 0)
+[node name="Name Box" type="Control" parent="."]
+custom_minimum_size = Vector2(60, 12)
 layout_mode = 2
+mouse_filter = 2
+
+[node name="Name" type="Label" parent="Name Box"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -10.0
+offset_right = 10.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 theme_override_colors/font_color = Color(0.549, 0.514, 0.451, 1)
-theme_override_font_sizes/font_size = 9
+theme_override_font_sizes/font_size = 8
 text = "Enemy"
 horizontal_alignment = 1
 text_overrun_behavior = 3

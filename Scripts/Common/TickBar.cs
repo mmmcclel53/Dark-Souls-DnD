@@ -18,6 +18,10 @@ using Godot;
 // from the right (an enemy's lost health from the left, where it drains), and the tick it
 // covers flashes. Only a change animates — the first fill of a bar, and a bar handed a
 // different character, is silent.
+//
+// `continuous` draws enemy health as one solid bar instead: a boss's health in ticks would
+// be unreadable. A hit leaves the lost part lingering pale before it drains away, as the
+// games' health bars do. It drains from the right, the fill anchored left.
 public partial class TickBar : HBoxContainer
 {
 
@@ -33,6 +37,11 @@ public partial class TickBar : HBoxContainer
 	// Enemy health drains right to left, matching the endurance bar's damage direction.
 	[Export] public Color healthColour = new Color(0.72f, 0.23f, 0.18f);
 	[Export] public Color lostColour = new Color(0.16f, 0.12f, 0.10f);
+
+	[Export] public bool continuous;
+	[Export] public Color trailColour = new Color(0.95f, 0.78f, 0.45f);
+	[Export] public float trailDelay = 0.3f;
+	[Export] public float trailSeconds = 0.5f;
 
 	[Export] public float pulseSpeed = 4f;
 	[Export] public float slideSeconds = 0.22f;
@@ -56,6 +65,12 @@ public partial class TickBar : HBoxContainer
 	private float[] flash = System.Array.Empty<float>();
 	private bool animating;
 	private bool silent = true;
+
+	// Continuous: the health fraction shown, where the pale trail still reaches, and how long
+	// before it starts to drain. fill < 0 until the first value, which never trails.
+	private float fill = -1f;
+	private float trail;
+	private float trailWait;
 
 	private bool hasGhost => ghostSpent > 0 || ghostExpected > 0 || ghostWorst > 0;
 
@@ -113,7 +128,24 @@ public partial class TickBar : HBoxContainer
 		if (max <= 0) return;
 		if (endurance != null) silent = true;
 		endurance = null;
+		if (continuous) {
+			ShowFraction(Mathf.Clamp((float)current / max, 0f, 1f));
+			return;
+		}
 		Build(max, i => i < max - current ? lostColour : healthColour, i => i < max - current ? Kind.LOST : Kind.FREE);
+	}
+
+	private void ShowFraction(float value) {
+		if (Mathf.IsEqualApprox(value, fill)) return;
+		if (fill < 0f || value > fill) {
+			trail = value;
+		} else {
+			trail = Mathf.Max(trail, fill);
+			trailWait = trailDelay;
+			animating = true;
+		}
+		fill = value;
+		QueueRedraw();
 	}
 
 	private void Build(int count, System.Func<int, Color> colourOf, System.Func<int, Kind> kindOf) {
@@ -149,6 +181,13 @@ public partial class TickBar : HBoxContainer
 	}
 
 	private void Advance(float dt) {
+		if (continuous) {
+			if (trailWait > 0f) trailWait -= dt;
+			else trail = Mathf.MoveToward(trail, fill, dt / trailSeconds);
+			animating = trail > fill;
+			QueueRedraw();
+			return;
+		}
 		bool any = false;
 		for (int i = 0; i < ticks.Length; i++) {
 			if (leaving[i] != Kind.FREE) {
@@ -173,6 +212,10 @@ public partial class TickBar : HBoxContainer
 	}
 
 	public override void _Draw() {
+		if (continuous) {
+			DrawSolid();
+			return;
+		}
 		int count = ticks.Length;
 		if (count == 0) return;
 
@@ -201,6 +244,14 @@ public partial class TickBar : HBoxContainer
 
 			if (flash[i] > 0f) DrawRect(rect, new Color(1f, 1f, 1f, flash[i] * flash[i] * 0.55f));
 		}
+	}
+
+	private void DrawSolid() {
+		if (fill < 0f) return;
+		float top = Mathf.Floor((Size.Y - tickHeight) * 0.5f);
+		DrawRect(new Rect2(0f, top, Size.X, tickHeight), lostColour);
+		if (trail > fill) DrawRect(new Rect2(0f, top, Mathf.Round(Size.X * trail), tickHeight), trailColour);
+		DrawRect(new Rect2(0f, top, Mathf.Round(Size.X * fill), tickHeight), healthColour);
 	}
 
 	// Damage comes from the right; spent stamina and lost health from the left.

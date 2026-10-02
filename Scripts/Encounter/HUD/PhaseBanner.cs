@@ -87,12 +87,12 @@ public partial class PhaseBanner : CanvasLayer
 		root.Visible = true;
 
 		float total = fadeIn + hold + fadeOut;
-		Tween tween = CreateTween().SetParallel(true);
 		Tween fade = CreateTween();
 		fade.TweenProperty(root, "modulate:a", 1f, fadeIn).SetEase(Tween.EaseType.Out);
 		fade.TweenInterval(hold);
 		fade.TweenProperty(root, "modulate:a", 0f, fadeOut).SetEase(Tween.EaseType.In);
-		if (creep > 1f) tween.TweenMethod(Callable.From<float>(SetBandHeight), height, height * creep, total);
+		// Only the outcome banners creep; a tween left empty is an error.
+		if (creep > 1f) CreateTween().TweenMethod(Callable.From<float>(SetBandHeight), height, height * creep, total);
 		await ToSignal(fade, Tween.SignalName.Finished);
 
 		root.Visible = false;

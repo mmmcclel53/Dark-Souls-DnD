@@ -87,7 +87,12 @@ public partial class Player : Resource
         return idx;
     }
 
-    // Status effects the wearer is immune to, gathered from every equipped piece.
+    // The weapons in hand. Only these and the armour count (p25: "the character's armour and
+    // hand slots"): a weapon in the backup slot is carried, not used, so its dice, dodge,
+    // immunities and passives do nothing until it is swapped into a hand.
+    private Weapon[] HeldWeapons() => new[] { GetLeftHand(), GetRightHand() };
+
+    // Status effects the wearer is immune to, gathered from the armour and both hands.
     public List<EncounterManager.StatusEffect> GetImmunities() {
         var set = new HashSet<EncounterManager.StatusEffect>();
         void Collect(Godot.Collections.Array<EncounterManager.StatusEffect> arr) {
@@ -96,9 +101,16 @@ public partial class Player : Resource
                 if (s != EncounterManager.StatusEffect.NONE) set.Add(s);
         }
         Collect(GetArmour()?.immunities);
-        foreach (Weapon w in new[] { GetLeftHand(), GetRightHand(), GetBackupSlot() })
+        foreach (Weapon w in HeldWeapons())
             Collect(w?.immunities);
         return new List<EncounterManager.StatusEffect>(set);
+    }
+
+    public bool IsPushImmune() {
+        if (GetArmour()?.pushImmune ?? false) return true;
+        foreach (Weapon w in HeldWeapons())
+            if (w?.pushImmune ?? false) return true;
+        return false;
     }
 
     // Passive EquipmentEffects contributed by all equipped gear (armour + weapons/shields).
@@ -110,7 +122,7 @@ public partial class Player : Resource
                 if (e != null && e.type != EquipmentEffect.EffectType.NONE) list.Add(e);
         }
         Collect(GetArmour()?.passives);
-        foreach (Weapon w in new[] { GetLeftHand(), GetRightHand(), GetBackupSlot() })
+        foreach (Weapon w in HeldWeapons())
             Collect(w?.passives);
         return list;
     }
@@ -118,7 +130,7 @@ public partial class Player : Resource
     // Statuses this character's weapon attacks inflict on hit.
     public List<EncounterManager.StatusEffect> GetInflictedStatuses() {
         var set = new HashSet<EncounterManager.StatusEffect>();
-        foreach (Weapon w in new[] { GetLeftHand(), GetRightHand(), GetBackupSlot() }) {
+        foreach (Weapon w in HeldWeapons()) {
             if (w?.attacks == null) continue;
             foreach (PlayerMove m in w.attacks)
                 if (m != null && m.statusEffect != EncounterManager.StatusEffect.NONE)
@@ -131,7 +143,7 @@ public partial class Player : Resource
 
     public int GetDodge() {
         int dodge = GetArmour()?.dodgeAbility ?? 0;
-        Weapon[] weapons = { GetLeftHand(), GetRightHand(), GetBackupSlot() };
+        Weapon[] weapons = HeldWeapons();
         foreach (Weapon w in weapons) dodge += w?.dodgeAbility ?? 0;
         return dodge;
     }
@@ -146,7 +158,7 @@ public partial class Player : Resource
     public (List<Dice> dice, int modifier) GetBestAttackPool(bool magic) {
         List<Dice> best = new List<Dice>();
         int bestModifier = 0, bestMax = 0;
-        Weapon[] weapons = { GetLeftHand(), GetRightHand(), GetBackupSlot() };
+        Weapon[] weapons = HeldWeapons();
         foreach (Weapon w in weapons) {
             if (w?.attacks == null) continue;
             foreach (PlayerMove move in w.attacks) {
@@ -172,9 +184,19 @@ public partial class Player : Resource
         }
         Armour armour = GetArmour();
         Add(magic ? armour?.magicDefense : armour?.physicalDefense);
-        foreach (Weapon w in new[] { GetLeftHand(), GetRightHand(), GetBackupSlot() }) {
+        foreach (Weapon w in HeldWeapons()) {
             Add(magic ? w?.magicDefense : w?.physicalDefense);
         }
+        int modifier = magic ? armour?.magicDefenseModifier ?? 0 : armour?.physicalDefenseModifier ?? 0;
+        return (pool, modifier);
+    }
+
+    // V2 failed dodge: the armour slot's Block or Resist on its own.
+    public (List<Dice> dice, int modifier) GetArmourPool(bool magic) {
+        Armour armour = GetArmour();
+        List<Dice> pool = new List<Dice>();
+        Godot.Collections.Array<Dice> dice = magic ? armour?.magicDefense : armour?.physicalDefense;
+        if (dice != null) foreach (Dice d in dice) if (d != null) pool.Add(d);
         int modifier = magic ? armour?.magicDefenseModifier ?? 0 : armour?.physicalDefenseModifier ?? 0;
         return (pool, modifier);
     }

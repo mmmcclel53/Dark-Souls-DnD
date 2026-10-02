@@ -8,6 +8,12 @@ using System.Threading.Tasks;
 //
 // Movement is deliberately one node per click (p22): the first step of an activation is the
 // free Walk and each one after is a Run, so the cost only makes sense a step at a time.
+//
+// An attack is armed, then committed by its first hit or Shift step, which is when it is paid
+// for, once however many times it Repeats. From there it runs until its uses are made or the
+// player says Done: each use is the Shift before the dice (a node click is a step, an enemy
+// click the roll), the roll, then the Shift after the dice (p23). Shift steps are free and
+// are not the Walk or a Run, so the movement lock (p22) does not apply to them.
 public partial class CharacterTurn : Node
 {
 
@@ -23,13 +29,37 @@ public partial class CharacterTurn : Node
 
 	public PlayerToken active { get; private set; }
 	public bool isTargeting => armedMove != null;
-	public PlayerMove armed => armedMove;
+	public PlayerMove armed => armedMove ?? underway?.move;
+	public bool isCommitted => underway != null;
+	public Weapon committedWeapon => underway?.weapon;
 
 	private Weapon armedWeapon;
 	private PlayerMove armedMove;
 	private readonly List<GameNode> highlighted = new List<GameNode>();
 	private readonly List<TokenHighlight> targetRings = new List<TokenHighlight>();
 	private readonly List<Enemy> targetable = new List<Enemy>();
+	private readonly List<GameNode> targetNodes = new List<GameNode>();
+	private readonly List<GameNode> shiftNodes = new List<GameNode>();
+
+	// The attack under way, from the moment it is paid for until its last use.
+	private class Underway
+	{
+		public Weapon weapon;
+		public PlayerMove move;
+		public AttackTerms terms;
+		public int usesLeft;
+		public bool recorded;
+		// Repeat's targeting constraint, fixed by the first use.
+		public Enemy lockedEnemy;
+		public GameNode lockedNode;
+	}
+	private Underway underway;
+	// Shift nodes left at this stage of the attack, and whether it is the Shift after the dice.
+	private int shiftLeft;
+	private bool shiftingAfter;
+
+	// V2: the move after a successful dodge is a choice, and costs 1 stamina.
+	private const int DODGE_STEP_COST = 1;
 
 	// Backstab's choice of attack, while the Assassin is making it.
 	private TaskCompletionSource<(Weapon, PlayerMove)> backstabChoice;
@@ -43,7 +73,11 @@ public partial class CharacterTurn : Node
 
 		if (actionBar != null) {
 			actionBar.AttackChosen += OnAttackChosen;
-			actionBar.EndActivationPressed += () => EmitSignal(SignalName.ActivationEnded);
+			// While an attack is under way the button reads Done and ends that stage of it.
+			actionBar.EndActivationPressed += () => {
+				if (underway != null) Done();
+				else EmitSignal(SignalName.ActivationEnded);
+			};
 			actionBar.DodgeStepEnded += () => EmitSignal(SignalName.DodgeStepEnded);
 			actionBar.HeroicChosen += UseHeroic;
 			actionBar.BackstabPassed += () => backstabChoice?.TrySetResult((null, null));
@@ -53,13 +87,13 @@ public partial class CharacterTurn : Node
 
 	public void Begin(PlayerToken token) {
 		active = token;
-		Disarm();
+		DropAttack();
 		if (actionBar != null) actionBar.Refresh(token);
 		ShowMoveOptions();
 	}
 
 	public void End() {
-		Disarm();
+		DropAttack();
 		ClearHighlights();
 		active = null;
 		if (actionBar != null) actionBar.ShowIdle();
@@ -71,7 +105,7 @@ public partial class CharacterTurn : Node
 	// waits on it: the adjacent nodes light, the bar offers End Dodge, and either a node
 	// click or that button finishes it. The stamina was paid with the dodge itself.
 	public async Task OfferDodgeStep(PlayerToken token) {
-		if (token == null || !GodotObject.IsInstanceValid(token)) return;
+		if (token == null || !GodotObject.IsInstanceValid(token) || !token.CanSpend(DODGE_STEP_COST)) return;
 
 		dodger = token;
 		ClearHighlights();
@@ -92,8 +126,11 @@ public partial class CharacterTurn : Node
 		if (dodger == null || !highlighted.Contains(node)) return;
 
 		Node2D self = (Node2D)dodger.GetParent();
+		if (!dodger.SpendStamina(DODGE_STEP_COST)) return;
 		ClearHighlights();
+		PathNode from = EncounterManager.pathGrid.NodeFromObj(self);
 		if (EncounterManager.MovePlayer(self, node, (Control)self.GetParent())) {
+			dodger.lastStep = Pushing.Step(from, EncounterManager.pathGrid.NodeFromObj(self));
 			EncounterManager.ApplyNodeHazard(node, self);
 			await EncounterManager.ResolveOverflow(node, self);
 		}
@@ -104,7 +141,7 @@ public partial class CharacterTurn : Node
 
 	private void ShowMoveOptions() {
 		ClearHighlights();
-		if (active == null || isTargeting || !active.CanStep()) return;
+		if (active == null || isTargeting || underway != null || !active.CanStep()) return;
 
 		foreach (GameNode node in AdjacentNodes(active)) {
 			node.Highlight(moveColour, true);
@@ -116,16 +153,22 @@ public partial class CharacterTurn : Node
 	public async void OnNodeClicked(GameNode node) {
 		if (active == null) return;
 
+		if (shiftNodes.Contains(node)) {
+			ShiftStep(node);
+			return;
+		}
 		if (isTargeting) {
 			if (ArmedTerms.aoe) ResolveAgainstNode(node);
 			else PickOnlyTargetOn(node);
 			return;
 		}
-		if (!highlighted.Contains(node)) return;
+		if (underway != null || !highlighted.Contains(node)) return;
 
 		Node2D self = (Node2D)active.GetParent();
 		if (!active.TakeStep()) return;
+		PathNode from = EncounterManager.pathGrid.NodeFromObj(self);
 		if (!EncounterManager.MovePlayer(self, node, (Control)self.GetParent())) return;
+		active.lastStep = Pushing.Step(from, EncounterManager.pathGrid.NodeFromObj(self));
 
 		ClearHighlights();
 		EncounterManager.ApplyNodeHazard(node, self);
@@ -153,6 +196,11 @@ public partial class CharacterTurn : Node
 			backstabChoice.TrySetResult((weapon, move));
 			return;
 		}
+		// Once paid for, the armed option's own row is another way to say Done.
+		if (underway != null) {
+			if (move == underway.move) Done();
+			return;
+		}
 		// Clicking the armed option again cancels it.
 		if (armedMove == move) {
 			Disarm();
@@ -162,6 +210,7 @@ public partial class CharacterTurn : Node
 
 		armedWeapon = weapon;
 		armedMove = move;
+		shiftLeft = move.ShiftBefore;
 		// Rebuilt so the row shows armed, then the targets lit.
 		Refresh();
 	}
@@ -169,28 +218,88 @@ public partial class CharacterTurn : Node
 	private void Disarm() {
 		armedWeapon = null;
 		armedMove = null;
+		if (underway == null) shiftLeft = 0;
 	}
 
-	// Range, cost and AOE come from the terms, so an armed Heroic boost counts here too.
-	private AttackTerms ArmedTerms => AttackTerms.For(active, armedWeapon, armedMove);
+	private void DropAttack() {
+		underway = null;
+		shiftingAfter = false;
+		Disarm();
+	}
 
-	private bool InRange(Enemy enemy) => ArmedTerms.Reaches(active, enemy);
+	// Range, cost and AOE come from the terms, so an armed Heroic boost counts here too. Once
+	// paid for, the attack keeps the terms it was paid on.
+	private AttackTerms ArmedTerms => underway != null ? underway.terms : AttackTerms.For(active, armedWeapon, armedMove);
+
+	private bool InRange(Enemy enemy) => ArmedTerms.Reaches(active, enemy) && MeetsRepeatConstraint(enemy);
+
+	// "One Enemy" repeats must strike the enemy the first use hit; "One Node" ones, an enemy
+	// on the node it hit.
+	private bool MeetsRepeatConstraint(Enemy enemy) {
+		if (underway?.lockedEnemy != null) return enemy == underway.lockedEnemy;
+		if (underway?.lockedNode != null) return enemy.GetParent()?.GetParent() == underway.lockedNode;
+		return true;
+	}
+
+	public bool CanTarget(Enemy enemy) =>
+		isTargeting && active != null && enemy != null && !armedMove.IsMovementOnly && InRange(enemy);
 
 	// Nodes light up for every armed attack; a single-target attack also rings each enemy
 	// it can reach, since that is what gets clicked. The Node icon picks a node, not a model.
+	// Shift steps light the neighbours too: under a Node attack's targets, since clicking that
+	// node is the attack, and over a single-target attack's, whose enemies are clicked instead.
 	private void ShowTargets() {
 		ClearHighlights();
 
 		bool aoe = ArmedTerms.aoe;
+		if (!aoe) ShowTargetsOnly(false);
+		ShowShiftOptions();
+		if (aoe) ShowTargetsOnly(true);
+	}
+
+	private void ShowTargetsOnly(bool aoe) {
+		if (armedMove.IsMovementOnly) return;
 		foreach (Enemy enemy in EnemiesInRange()) {
 			if (!aoe) targetRings.Add(TokenHighlight.Attach(enemy, targetRingColour));
 			enemy.MouseDefaultCursorShape = Control.CursorShape.PointingHand;
 			targetable.Add(enemy);
 
-			if (enemy.GetParent().GetParent() is not GameNode node || highlighted.Contains(node)) continue;
+			if (enemy.GetParent().GetParent() is not GameNode node || targetNodes.Contains(node)) continue;
 			node.Highlight(targetColour, true);
-			highlighted.Add(node);
+			targetNodes.Add(node);
+			if (aoe) shiftNodes.Remove(node);
+			if (!highlighted.Contains(node)) highlighted.Add(node);
 		}
+	}
+
+	private void ShowShiftOptions() {
+		if (shiftLeft <= 0 || active == null) return;
+		foreach (GameNode node in AdjacentNodes(active)) {
+			node.Highlight(moveColour, true);
+			shiftNodes.Add(node);
+			if (!highlighted.Contains(node)) highlighted.Add(node);
+		}
+	}
+
+	// A Shift step: free, and not the Walk or a Run. The first one commits the attack.
+	private async void ShiftStep(GameNode node) {
+		if (active == null || shiftLeft <= 0 || (underway == null && !Commit())) return;
+
+		Node2D self = (Node2D)active.GetParent();
+		PathNode from = EncounterManager.pathGrid.NodeFromObj(self);
+		ClearHighlights();
+		if (EncounterManager.MovePlayer(self, node, (Control)self.GetParent())) {
+			active.lastStep = Pushing.Step(from, EncounterManager.pathGrid.NodeFromObj(self));
+			EncounterManager.ApplyNodeHazard(node, self);
+			await EncounterManager.ResolveOverflow(node, self);
+		}
+		if (active == null || underway == null) return;
+
+		shiftLeft--;
+		if (shiftLeft > 0) Refresh();
+		else if (shiftingAfter) NextUse();
+		else if (underway.move.IsMovementOnly) EndAttack();
+		else Refresh();
 	}
 
 	private List<Enemy> EnemiesInRange(GameNode onNode = null) {
@@ -207,7 +316,7 @@ public partial class CharacterTurn : Node
 	// Clicking a lit node rather than a model is unambiguous when only one enemy there can
 	// be hit; with more than one, the player has to pick the model.
 	private void PickOnlyTargetOn(GameNode node) {
-		if (!highlighted.Contains(node)) return;
+		if (!targetNodes.Contains(node)) return;
 		List<Enemy> candidates = EnemiesInRange(node);
 		if (candidates.Count == 1) PickTarget(candidates[0]);
 	}
@@ -215,32 +324,48 @@ public partial class CharacterTurn : Node
 	// Async because the roll is shown before it lands: the attack is disarmed and the
 	// highlights cleared first, so nothing on the board answers a click during the reveal.
 	public async void PickTarget(Enemy enemy) {
-		if (!isTargeting || active == null || enemy == null || !InRange(enemy)) return;
+		if (!CanTarget(enemy)) return;
 
-		AttackTerms terms = ArmedTerms;
-		if (terms.aoe) {
+		if (ArmedTerms.aoe) {
 			if (enemy.GetParent()?.GetParent() is GameNode node) ResolveAgainstNode(node);
 			return;
 		}
 
-		if (!PayFor(terms)) return;
+		if (!Commit()) return;
 		(Weapon weapon, PlayerMove move) = TakeArmed();
-		await CombatPresenter.CharacterAttacks(active, move, weapon, enemy, terms.extraDice);
-		FinishAttack(weapon, terms);
+		if (move.repeatConstraint == PlayerMove.RepeatTarget.ONE_ENEMY) underway.lockedEnemy ??= enemy;
+		if (move.repeatConstraint == PlayerMove.RepeatTarget.ONE_NODE) underway.lockedNode ??= enemy.GetParent()?.GetParent() as GameNode;
+		RecordUse();
+		await CombatPresenter.CharacterAttacks(active, move, weapon, enemy, underway.terms.extraDice);
+		await PushHit(active, move, new[] { enemy });
+		AfterUse();
 	}
 
 	// The Node icon rolls once and compares that total against every enemy there (p23).
 	private async void ResolveAgainstNode(GameNode node) {
-		if (!highlighted.Contains(node)) return;
+		if (!targetNodes.Contains(node)) return;
 
 		List<Enemy> targets = EnemiesOn(node);
-		if (targets.Count == 0) return;
+		if (targets.Count == 0 || !Commit()) return;
 
-		AttackTerms terms = ArmedTerms;
-		if (!PayFor(terms)) return;
 		(Weapon weapon, PlayerMove move) = TakeArmed();
-		await CombatPresenter.CharacterAttacksNode(active, move, weapon, node, targets, terms.extraDice);
-		FinishAttack(weapon, terms);
+		if (move.repeatConstraint != PlayerMove.RepeatTarget.FREE) underway.lockedNode ??= node;
+		RecordUse();
+		await CombatPresenter.CharacterAttacksNode(active, move, weapon, node, targets, underway.terms.extraDice);
+		await PushHit(active, move, targets);
+		AfterUse();
+	}
+
+	// An attack with the Push icon shoves every enemy it hit and did not kill, straight on
+	// away from the attacker (p21, V2). Enemies cannot dodge, so every target was hit.
+	private static async Task PushHit(PlayerToken attacker, PlayerMove move, IEnumerable<Enemy> hit) {
+		if (!move.isPush || !GodotObject.IsInstanceValid(attacker)) return;
+		Node2D from = (Node2D)attacker.GetParent();
+		foreach (Enemy enemy in hit) {
+			if (!GodotObject.IsInstanceValid(enemy) || enemy.GetParent() is not Node2D model) continue;
+			if (EncounterManager.GetEnemy(model) == null) continue;
+			await Pushing.Shove(model, Pushing.Away(from, model, attacker.lastStep));
+		}
 	}
 
 	private static List<Enemy> EnemiesOn(GameNode node) {
@@ -262,17 +387,75 @@ public partial class CharacterTurn : Node
 		return (weapon, move);
 	}
 
-	private void FinishAttack(Weapon weapon, AttackTerms terms) {
+	// Pays for the armed attack, once for all its uses (Matt's call: the Repeat icon repeats
+	// the option, not its cost).
+	private bool Commit() {
+		if (underway != null) return true;
+		if (armedMove == null) return false;
+		AttackTerms terms = ArmedTerms;
+		if (!PayFor(terms)) return false;
+		underway = new Underway { weapon = armedWeapon, move = armedMove, terms = terms, usesLeft = armedMove.Uses };
+		return true;
+	}
+
+	// The weapon's one attack (p22) and any Heroic boost are spent by the first use.
+	private void RecordUse() {
+		if (underway == null || underway.recorded || active == null) return;
+		underway.recorded = true;
+		active.RecordAttack(underway.weapon, !underway.terms.reusesWeapon);
+		if (underway.terms.boosted) active.SpendHeroicBoost();
+	}
+
+	private void AfterUse() {
 		// The activation may have been torn down while the roll was on screen.
-		if (active == null || !GodotObject.IsInstanceValid(active)) return;
+		if (active == null || !GodotObject.IsInstanceValid(active) || underway == null) return;
 
-		active.RecordAttack(weapon, !terms.reusesWeapon);
-		if (terms.boosted) active.SpendHeroicBoost();
+		underway.usesLeft--;
 		EncounterManager.PruneDeadEnemies();
-		Refresh();
-
-		// Last, because a win ends the activation and tears this turn down.
+		// A win ends the activation and tears this turn down.
 		EmitSignal(SignalName.AttackResolved);
+		if (active == null || underway == null) return;
+
+		if (underway.move.ShiftAfter > 0) {
+			shiftingAfter = true;
+			shiftLeft = underway.move.ShiftAfter;
+			Refresh();
+			return;
+		}
+		NextUse();
+	}
+
+	// The next Repeat, armed again without paying; or the end of the attack when there are no
+	// uses left or nothing it could still do.
+	private void NextUse() {
+		shiftingAfter = false;
+		shiftLeft = 0;
+		if (underway == null || active == null) return;
+		if (underway.usesLeft <= 0) {
+			EndAttack();
+			return;
+		}
+		armedWeapon = underway.weapon;
+		armedMove = underway.move;
+		shiftLeft = armedMove.ShiftBefore;
+		if (shiftLeft == 0 && EnemiesInRange().Count == 0) {
+			EndAttack();
+			return;
+		}
+		Refresh();
+	}
+
+	// Done: ends the Shift after the dice, or else the rest of the attack.
+	private void Done() {
+		if (underway == null) return;
+		if (shiftingAfter) NextUse();
+		else EndAttack();
+	}
+
+	private void EndAttack() {
+		RecordUse();
+		DropAttack();
+		if (active != null && GodotObject.IsInstanceValid(active)) Refresh();
 	}
 
 	// ----- Heroic Actions -----
@@ -284,7 +467,7 @@ public partial class CharacterTurn : Node
 		PlayerToken user = active;
 		Heroic.Kind kind = user.heroic;
 		user.player.heroicUsed = true;
-		Disarm();
+		if (underway == null) Disarm();
 
 		switch (kind) {
 			case Heroic.Kind.PERSEVERANCE:
@@ -350,9 +533,12 @@ public partial class CharacterTurn : Node
 
 		AttackTerms terms = AttackTerms.For(assassin, chosenWeapon, chosenMove, free: true);
 		if (terms.aoe && enemy.GetParent()?.GetParent() is GameNode node) {
-			await CombatPresenter.CharacterAttacksNode(assassin, chosenMove, chosenWeapon, node, EnemiesOn(node), terms.extraDice);
+			List<Enemy> targets = EnemiesOn(node);
+			await CombatPresenter.CharacterAttacksNode(assassin, chosenMove, chosenWeapon, node, targets, terms.extraDice);
+			await PushHit(assassin, chosenMove, targets);
 		} else {
 			await CombatPresenter.CharacterAttacks(assassin, chosenMove, chosenWeapon, enemy, terms.extraDice);
+			await PushHit(assassin, chosenMove, new[] { enemy });
 		}
 	}
 
@@ -370,7 +556,11 @@ public partial class CharacterTurn : Node
 
 	private void Refresh() {
 		if (actionBar != null) actionBar.Refresh(active);
-		if (isTargeting) ShowTargets(); else ShowMoveOptions();
+		if (shiftingAfter) {
+			ClearHighlights();
+			ShowShiftOptions();
+		} else if (isTargeting) ShowTargets();
+		else ShowMoveOptions();
 	}
 
 	private void ClearHighlights() {
@@ -378,6 +568,8 @@ public partial class CharacterTurn : Node
 			if (GodotObject.IsInstanceValid(node)) node.ClearHighlight();
 		}
 		highlighted.Clear();
+		targetNodes.Clear();
+		shiftNodes.Clear();
 
 		foreach (TokenHighlight ring in targetRings) TokenHighlight.Detach(ring);
 		targetRings.Clear();

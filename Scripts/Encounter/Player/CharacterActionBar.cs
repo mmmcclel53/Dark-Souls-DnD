@@ -87,9 +87,17 @@ public partial class CharacterActionBar : HBoxContainer
 	private PlayerToken backstabber;
 	private System.Func<Weapon, PlayerMove, bool> backstabReach;
 	private ButtonFx endTurnFx;
+	private CardPreview cardPreview;
+	// While the players choose where a push sends a model, End Turn is held disabled, and
+	// whatever it was before comes back after.
+	private bool lockedForPush;
+	private bool enabledBeforePush;
 
 	public override void _Ready() {
 		BuildRowStyles();
+		cardPreview = new CardPreview();
+		AddChild(cardPreview);
+		WatchCrossForPreview();
 		if (aggroBadge != null) aggroBadge.Material = PlayerToken.AggroMask;
 		BuildPillStyles();
 
@@ -114,6 +122,7 @@ public partial class CharacterActionBar : HBoxContainer
 	// Endurance changes from several places (steps, attacks, damage landing after a
 	// reaction), so the bar and face poll like the portraits do.
 	public override void _Process(double delta) {
+		LockEndForPush();
 		if (aggroBadge != null) {
 			PlayerToken holder = EncounterManager.aggroHolder;
 			aggroBadge.Visible = shown != null && GodotObject.IsInstanceValid(holder) && holder.player == shown;
@@ -167,7 +176,7 @@ public partial class CharacterActionBar : HBoxContainer
 
 		endurance?.ClearGhost();
 		if (endTurnButton != null) {
-			endTurnButton.Text = "End Turn";
+			endTurnButton.Text = live && Committed ? "Done" : "End Turn";
 			EnableEndTurn(live);
 		}
 		SetPanelStyle(false);
@@ -237,8 +246,13 @@ public partial class CharacterActionBar : HBoxContainer
 	}
 
 	// A weapon swings once per activation (p22), unless Rapid Strike's extra attack is armed.
+	// The weapon of an attack still repeating or shifting stays up.
 	private static bool CanSwing(PlayerToken attacker, Weapon weapon) =>
-		!attacker.HasAttackedWith(weapon) || attacker.pendingHeroic == Heroic.Kind.RAPID_STRIKE;
+		!attacker.HasAttackedWith(weapon) || attacker.pendingHeroic == Heroic.Kind.RAPID_STRIKE
+		|| EncounterManager.characterTurn?.committedWeapon == weapon;
+
+	// An attack is paid for and under way: its own row stays live, every other is held.
+	private static bool Committed => EncounterManager.characterTurn?.isCommitted ?? false;
 
 	// A successful dodge lets the character move one node (p22): the bar shows the dodger
 	// with an End Dodge button while CharacterTurn lights the nodes they may step to.
@@ -270,7 +284,20 @@ public partial class CharacterActionBar : HBoxContainer
 		if (enabled && wasDisabled) endTurnFx?.Pulse();
 	}
 
+	private void LockEndForPush() {
+		bool choosing = EncounterManager.pushPrompt != null && EncounterManager.pushPrompt.isChoosingNode;
+		if (choosing == lockedForPush || endTurnButton == null) return;
+		lockedForPush = choosing;
+		if (choosing) {
+			enabledBeforePush = !endTurnButton.Disabled;
+			endTurnButton.Disabled = true;
+		} else if (enabledBeforePush) {
+			endTurnButton.Disabled = false;
+		}
+	}
+
 	private void OnEndPressed() {
+		if (lockedForPush) return;
 		if (mode == Mode.DODGE_STEP) EmitSignal(SignalName.DodgeStepEnded);
 		else if (mode == Mode.BACKSTAB) EmitSignal(SignalName.BackstabPassed);
 		else EmitSignal(SignalName.EndActivationPressed);
@@ -371,6 +398,7 @@ public partial class CharacterActionBar : HBoxContainer
 
 		TextureRect art = Icon(EquipmentSlot.CropOf(weapon, cross?.left?.RegionFor(weapon)), Colors.White, 28f);
 		art.StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered;
+		PreviewOnHover(art, () => weapon.image);
 		header.AddChild(art);
 		header.AddChild(Text(weapon.name, 16, parchment));
 		header.AddChild(Badge(weapon.attackRange.ToString(), gold));
@@ -395,9 +423,11 @@ public partial class CharacterActionBar : HBoxContainer
 		int cost = terms.cost;
 		bool armed = live && EncounterManager.characterTurn?.armed == move;
 
+		bool underway = live && Committed;
 		Button row = Row(armed);
 		row.Disabled = backstab
 			? !(backstabReach?.Invoke(weapon, move) ?? false)
+			: underway ? !armed
 			: !live || (weaponUsed && !terms.reusesWeapon) || !owner.CanSpend(cost);
 		row.TooltipText = Describe(move, terms, owner);
 
@@ -408,12 +438,13 @@ public partial class CharacterActionBar : HBoxContainer
 		List<Dice> pool = new List<Dice>();
 		if (move.damage != null) pool.AddRange(move.damage);
 		pool.AddRange(terms.extraDice);
+		// Shift sits where the card prints it: before the dice moves before the roll (p23).
+		if (move.ShiftBefore > 0) content.AddChild(Keyword(RuleIcons.Kind.SHIFT, ChipSize, move.ShiftBefore));
 		foreach (DiceChip chip in DiceChip.ForPool(pool, ChipSize)) content.AddChild(chip);
-		if (move.modifier != 0 || pool.Count == 0) {
-			content.AddChild(Text($"{move.modifier:+#;-#;+0}", 16, parchment));
-		}
+		if (move.modifier != 0) content.AddChild(Text($"{move.modifier:+#;-#}", 16, parchment));
 		if (move.isMagic) content.AddChild(Icon(magicIcon, resistColour, 18f));
 		AddCondition(content, move.statusEffect, 18f);
+		AddKeywords(content, move, terms);
 		if (terms.range != weapon.attackRange) {
 			content.AddChild(Badge(terms.range >= EnemyData.UNLIMITED_RANGE ? "∞" : terms.range.ToString(), gold));
 		}
@@ -425,9 +456,68 @@ public partial class CharacterActionBar : HBoxContainer
 		Weapon capturedWeapon = weapon;
 		PlayerMove capturedMove = move;
 		row.Pressed += () => EmitSignal(SignalName.AttackChosen, capturedWeapon, capturedMove);
-		row.MouseEntered += () => { if (!row.Disabled) endurance?.SetGhost(cost, 0, 0); };
+		int ghost = underway ? 0 : cost;
+		row.MouseEntered += () => { if (!row.Disabled) endurance?.SetGhost(ghost, 0, 0); };
 		row.MouseExited += () => endurance?.ClearGhost();
 		return row;
+	}
+
+	// The printed option's icons, as the card shows them (p21, p23): Push (with how many nodes
+	// when it is more than one), Node, Shaft, Repeat and Shift (with their numbers).
+	private void AddKeywords(Container into, PlayerMove move, AttackTerms terms) {
+		float size = ChipSize;
+		if (move.isPush) into.AddChild(Keyword(RuleIcons.Kind.PUSH, size, PushNodes(move)));
+		if (terms.aoe) into.AddChild(Keyword(RuleIcons.Kind.NODE, size, 0));
+		if (move.isNotZeroRange) into.AddChild(Keyword(RuleIcons.Kind.SHAFT, size, 0));
+		if (move.repeat > 1) into.AddChild(Keyword(RuleIcons.Kind.REPEAT, size, move.repeat));
+		if (move.ShiftAfter > 0) into.AddChild(Keyword(RuleIcons.Kind.SHIFT, size, move.ShiftAfter));
+	}
+
+	// "Push x2" is stored as a Push effect with its node count; plain Push is one node.
+	private static int PushNodes(PlayerMove move) {
+		if (move.bonusEffects == null) return 1;
+		foreach (EquipmentEffect effect in move.bonusEffects) {
+			if (effect != null && effect.type == EquipmentEffect.EffectType.PUSH && effect.magnitude > 1) return effect.magnitude;
+		}
+		return 1;
+	}
+
+	// The icon, with the number in its centre for Repeat and Shift, or beside it (x2) for Push.
+	private Control Keyword(RuleIcons.Kind kind, float size, int number) {
+		Control box = new Control { CustomMinimumSize = new Vector2(size, size), SizeFlagsVertical = SizeFlags.ShrinkCenter, MouseFilter = MouseFilterEnum.Ignore };
+		TextureRect icon = Icon(RuleIcons.Get(kind), parchment, size);
+		icon.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+		box.AddChild(icon);
+
+		bool inside = kind == RuleIcons.Kind.REPEAT || kind == RuleIcons.Kind.SHIFT;
+		if (number > 0 && (inside || number > 1)) {
+			Label value = Text(inside ? number.ToString() : $"x{number}", Mathf.RoundToInt(size * (inside ? 0.5f : 0.45f)), parchment);
+			value.HorizontalAlignment = inside ? HorizontalAlignment.Center : HorizontalAlignment.Right;
+			value.VerticalAlignment = inside ? VerticalAlignment.Center : VerticalAlignment.Bottom;
+			value.AddThemeColorOverride("font_outline_color", Colors.Black);
+			value.AddThemeConstantOverride("outline_size", 4);
+			value.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+			if (!inside) value.OffsetRight = size * 0.35f;
+			box.AddChild(value);
+		}
+		return box;
+	}
+
+	// ----- Card preview -----
+
+	private void WatchCrossForPreview() {
+		if (cross == null) return;
+		foreach (EquipmentSlot slot in new[] { cross.backup, cross.left, cross.right, cross.armour }) {
+			if (slot == null) continue;
+			EquipmentSlot captured = slot;
+			PreviewOnHover(captured, () => captured.item?.image);
+		}
+	}
+
+	private void PreviewOnHover(Control control, System.Func<Texture2D> card) {
+		if (control.MouseFilter == MouseFilterEnum.Ignore) control.MouseFilter = MouseFilterEnum.Pass;
+		control.MouseEntered += () => cardPreview?.ShowCard(card(), control);
+		control.MouseExited += () => cardPreview?.HideCard(control);
 	}
 
 	private static string Describe(PlayerMove move, AttackTerms terms, PlayerToken owner) {
@@ -439,8 +529,21 @@ public partial class CharacterActionBar : HBoxContainer
 		if (terms.aoe) notes.Add("whole node");
 		if (move.isNotZeroRange) notes.Add("cannot hit range 0");
 		if (move.isIgnoreDefense) notes.Add("ignores Block");
-		if (move.repeat > 1) notes.Add($"repeats x{move.repeat} (not implemented)");
-		if (move.bonusMovement > 0) notes.Add($"shift {move.bonusMovement} (not implemented)");
+		if (move.repeat > 1) notes.Add($"x{move.repeat}" + move.repeatConstraint switch {
+			PlayerMove.RepeatTarget.ONE_ENEMY => ", one enemy",
+			PlayerMove.RepeatTarget.ONE_NODE => ", one node",
+			_ => "",
+		});
+		if (move.ShiftBefore > 0) notes.Add($"shift {move.ShiftBefore} before the roll");
+		if (move.ShiftAfter > 0) notes.Add($"shift {move.ShiftAfter} after the roll");
+		if (move.isPush) notes.Add(PushNodes(move) > 1 ? $"push {PushNodes(move)} nodes (pushes 1 for now)" : "push");
+		if (move.bonusEffects != null) {
+			foreach (EquipmentEffect effect in move.bonusEffects) {
+				if (effect == null || effect.type == EquipmentEffect.EffectType.PUSH) continue;
+				string text = CharacterSummaryPanel.DescribeEffect(effect);
+				if (!string.IsNullOrEmpty(text)) notes.Add($"{text} (not implemented)");
+			}
+		}
 
 		return string.Join("  ·  ", notes);
 	}
@@ -509,8 +612,9 @@ public partial class CharacterActionBar : HBoxContainer
 		value.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 		// Centres the digit on the wide part of the physical icon's shield. The label's line box
 		// has room for descenders, so a digit centred in it sits low: this lifts it back.
-		// Measured against the drawn badge, not guessed.
-		float drop = magic ? 0f : -0.075f;
+		// Measured from two screenshots (+0.03 sat ~4px low, -0.075 ~2.7px high) and set
+		// between them where the error crosses zero.
+		float drop = magic ? 0f : -0.03f;
 		value.AnchorTop = drop;
 		value.AnchorBottom = 1f + drop;
 		badge.AddChild(value);
@@ -562,7 +666,10 @@ public partial class CharacterActionBar : HBoxContainer
 		dodgeColumns[2].AddChild(Text($"{Mathf.RoundToInt(chance * 100f)}%", 16, possible ? parchment : muted));
 		if (!possible) dodgeContent.Modulate = new Color(0.5f, 0.5f, 0.5f, 1f);
 		dodge.Pressed += () => EmitSignal(SignalName.ReactionResolved, true);
-		dodge.MouseEntered += () => { if (possible) endurance?.SetGhost(cost, Mathf.RoundToInt(strength * (1f - chance)), strength); };
+		// A failed dodge still blocks with the armour's dice (V2), so that is what can land.
+		(List<Dice> armourPool, int armourModifier) = player.GetArmourPool(move.isMagic);
+		(int _, int failWorst, int failExpected) = DamageThrough(strength, armourPool, armourModifier);
+		dodge.MouseEntered += () => { if (possible) endurance?.SetGhost(cost, Mathf.RoundToInt(failExpected * (1f - chance)), failWorst); };
 		dodge.MouseExited += () => endurance?.ClearGhost();
 		rows.AddChild(dodge);
 
@@ -574,7 +681,7 @@ public partial class CharacterActionBar : HBoxContainer
 		List<Equipment> gear = new List<Equipment>();
 		Armour armour = player.GetArmour();
 		if (armour != null && HasDice(magic ? armour.magicDefense : armour.physicalDefense)) gear.Add(armour);
-		foreach (Weapon weapon in new[] { player.GetLeftHand(), player.GetRightHand(), player.GetBackupSlot() }) {
+		foreach (Weapon weapon in new[] { player.GetLeftHand(), player.GetRightHand() }) {
 			if (weapon != null && HasDice(magic ? weapon.magicDefense : weapon.physicalDefense) && !gear.Contains(weapon)) gear.Add(weapon);
 		}
 		return gear;

@@ -205,6 +205,9 @@ public partial class RollDie : Control
 			Vector3 p = rotation * CORNERS[f][k];
 			points[k] = centre + new Vector2(p.X, p.Y) * scale * (1f + p.Z * perspective);
 		}
+		// A side turned nearly edge-on projects to a sliver that cannot be triangulated; under
+		// 2% of a full face it is barely visible anyway.
+		if (Mathf.Abs(QuadArea(points)) < 0.02f * 4f * scale * scale) return;
 
 		float shade = 0.55f + 0.45f * Mathf.Clamp(normal.Dot(LIGHT), 0f, 1f);
 		Color light = new Color(shade, shade, shade);
@@ -220,6 +223,12 @@ public partial class RollDie : Control
 		bool front = settled && f == 0;
 		Color ink = front ? new Color(0.95f, 0.8f, 0.45f) : new Color(0.05f, 0.04f, 0.03f, 0.75f);
 		DrawPolyline(new[] { points[0], points[1], points[2], points[3], points[0] }, ink, front ? 2.5f : 1.2f, true);
+	}
+
+	private static float QuadArea(Vector2[] q) {
+		float area = 0f;
+		for (int k = 0; k < q.Length; k++) area += q[k].Cross(q[(k + 1) % q.Length]);
+		return area * 0.5f;
 	}
 
 	private void DrawNumber(Vector2 centre, Color colour) {

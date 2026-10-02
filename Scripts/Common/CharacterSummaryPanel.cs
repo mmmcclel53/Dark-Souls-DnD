@@ -169,7 +169,7 @@ public partial class CharacterSummaryPanel : Control
 
     // Short, human-readable label for a passive equipment effect. Returns null for
     // downsides/inert effects we don't want cluttering the snapshot.
-    private static string DescribeEffect(EquipmentEffect e) {
+    public static string DescribeEffect(EquipmentEffect e) {
         if (e == null || e.type == EquipmentEffect.EffectType.NONE) return null;
         int m = e.magnitude;
         switch (e.type) {

@@ -77,11 +77,15 @@ public partial class CharacterPortraitPane : CanvasLayer
         }
     }
 
+    // The Encounter run on its own has no campaign party; it hands its demo party in here
+    // while it is up, or nobody would be drawn and a character's conditions would show nowhere.
+    public Player[] standaloneParty;
+
     public void Refresh() {
         if (container == null) return;
         foreach (Node child in container.GetChildren()) child.QueueFree();
 
-        var players = CampaignManager.Players;
+        var players = standaloneParty ?? CampaignManager.Players;
         if (players == null) return;
 
         for (int i = 0; i < players.Length; i++) {

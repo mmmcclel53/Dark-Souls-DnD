@@ -57,6 +57,11 @@ public partial class ActionListener : Control
 	}
 
 	private void OnNodeClicked(GameNode node) {
+	    // Where a pushed model goes is asked mid-attack, on either side's turn.
+	    if (EncounterManager.pushPrompt != null && EncounterManager.pushPrompt.isChoosingNode) {
+	        EncounterManager.pushPrompt.OnNodeClicked(node);
+	        return;
+	    }
 	    // A dodge's free step happens inside the enemy phase, so it is asked before the phase.
 	    if (characterTurn != null && characterTurn.isDodgeStepping) {
 	        characterTurn.OnDodgeStepNodeClicked(node);
@@ -101,6 +106,9 @@ public partial class ActionListener : Control
 	    WireNodeClicks();
 
 	    portraitPane = GetNodeOrNull<CharacterPortraitPane>("/root/CharacterPortraitPane");
+	    if (portraitPane != null && (CampaignManager.Players == null || CampaignManager.Players.Length == 0)) {
+	        portraitPane.standaloneParty = GetParty();
+	    }
 	    portraitPane?.Show();
 	    soulCounter = GetNodeOrNull<SoulCounter>("/root/SoulCounter");
 	    soulCounter?.ShowBelow(titleBar);
@@ -111,9 +119,13 @@ public partial class ActionListener : Control
 	    CallDeferred(nameof(PlacePortraitPane));
 	}
 
+
 	// The pane is an autoload and outlives this scene, so its signal has to let go of us.
 	public override void _ExitTree() {
-	    if (portraitPane != null) portraitPane.PortraitClicked -= SelectCharacter;
+	    if (portraitPane != null) {
+	        portraitPane.PortraitClicked -= SelectCharacter;
+	        portraitPane.standaloneParty = null;
+	    }
 	    soulCounter?.Release(titleBar);
 	}
 

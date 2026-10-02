@@ -30,6 +30,9 @@ public partial class PlayerToken : TextureButton
 	public Heroic.Kind heroic => player?.character?.heroicAction ?? Heroic.Kind.NONE;
 	// A boost armed by this character's Heroic Action, waiting for the attack it applies to.
 	public Heroic.Kind pendingHeroic { get; private set; }
+	// The last node step this character took: their push on an enemy sharing their node
+	// carries on in this direction (Pushing).
+	public Vector2I lastStep { get; set; }
 	// Berserk Charge's free node, which neither costs nor counts as the Walk.
 	public int freeSteps { get; private set; }
 
@@ -203,9 +206,8 @@ public partial class PlayerToken : TextureButton
 	public bool CanSpend(int stamina) => endurance.CanSpend(stamina);
 
 	public bool SpendStamina(int stamina) {
-		if (!endurance.SpendStamina(stamina)) return false;
-		CheckDeath();
-		return true;
+		// Spending can only fill the bar, never overflow it, so it can never kill.
+		return endurance.SpendStamina(stamina);
 	}
 
 	public void ApplyDamage(int damage) {
@@ -286,8 +288,9 @@ public partial class PlayerToken : TextureButton
 		conditions.Remove(EncounterManager.StatusEffect.STAGGER);
 	}
 
-	// Rules p20: all ten boxes covered kills the character, and p19 makes that an
-	// immediate party defeat. The turn loop owns what happens next.
+	// Damage that overflows the bar kills the character (Matt's ruling, in place of p20's
+	// "all ten boxes covered"), and p19 makes that an immediate party defeat. The turn
+	// loop owns what happens next.
 	private void CheckDeath() {
 		if (!endurance.isDead || EncounterManager.partyDefeated) return;
 

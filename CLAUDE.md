@@ -31,6 +31,7 @@ Scripts/
       CircleAvatar.cs      — Face in a gold ring with damage rising as a red fill (shader)
       RollReveal.cs        — Centre-screen modal: dice tumble, land, then the arithmetic; click to continue
       PhaseBanner.cs       — "Enemy Turn" / "<Name>'s Turn" banner the turn loop awaits
+      CardPreview.cs       — The full printed card while a cross slot or the raised weapon's art is hovered
     Player/
       Player.cs            — Campaign-persistent character (stats, equipment, level)
       PlayerToken.cs       — Character on the board; endurance, conditions, aggro, activation state
@@ -86,9 +87,10 @@ Scripts/
     CharacterPortraitPane.cs  — Autoloaded floating party pane (Bonfire/Encounter)
     SoulCounter.cs            — Autoloaded DS-style soul count, top-right under each scene's title bar
     CharacterPortrait.cs      — Single portrait: avatar bg, name, HP, stamina, status strip
-    TickBar.cs                — Ten-tick endurance / enemy health row, with ghost previews
+    TickBar.cs                — Ten-tick endurance row with ghost previews; solid (continuous) bar for enemy health
     DiceChip.cs               — A die type and count as a coloured chip
     TokenArt.cs               — Estus / Heroic / Luck token art, ready and spent (flipped)
+    RuleIcons.cs              — The rulebook's Push / Node / Shaft / Repeat / Shift icons (Tools/RuleIcons/extract.py)
     CubeRow.cs                — A row of black (stamina) or red (damage) cubes
     ButtonFx.cs               — Hover glint, press ripple and (armed) breathing border drawn over a button
     PopIn.cs                  — A control settling in from large, for icons that appear
@@ -118,10 +120,17 @@ The physical game rules are in `Dark Souls Board Game Rules.pdf`. Key mechanics 
 - **Aggro token**: The active character always holds aggro. Enemies prioritize the aggro holder. Ties for "nearest" break to the aggro holder, then to the higher **Taunt** (`Character.taunt` — characters have Taunt, only enemies have Threat).
 - **Combat (player attacks)**: Roll dice per weapon attack option, subtract enemy Block (physical) or Resist (magic). Result = damage.
 - **Combat (enemy attacks)**: Fixed damage value. Player rolls defense dice to reduce. Or spend 1 stamina to attempt dodge roll vs dodge difficulty.
-- **Endurance bar** (p20): 10 boxes shared by Stamina and Health. Spending 1 stamina adds a black cube from the left; suffering 1 damage adds a red cube from the right. Uncovered boxes are the remaining capacity to do *either*. All ten covered = character dead and the party immediately defeated. Gaining stamina/health **removes** cubes and does nothing when there are none to remove. Cleared on encounter victory.
+- **Endurance bar** (p20): 10 boxes shared by Stamina and Health. Spending 1 stamina adds a black cube from the left; suffering 1 damage adds a red cube from the right. Uncovered boxes are the remaining capacity to do *either*. ⚠️ **Death (Matt's ruling, replaces p20's "all ten covered"):** a character dies only when **damage overflows** the bar, needing more red cubes than there are boxes left, from an enemy attack or a condition such as Poison. A bar filled exactly, whether by their own stamina or by damage that just fits, is still standing. Stamina can never kill, since nothing spends more than the free boxes. The party is then immediately defeated (p19). Gaining stamina/health **removes** cubes and does nothing when there are none to remove. Cleared on encounter victory.
 - **Status effects** (rules p21): conditions apply to **any model — characters and enemies alike**. BLEED (2 extra damage next time the model is damaged, then remove), POISON (1 damage at end of the model's activation), FROST/Frostbite (character: +1 stamina to walk/run/dodge; enemy: Move icon values −1), STAGGER (character: +1 stamina to use weapon actions; enemy: attack damage values −1). All of this is implemented — see Conditions under Architecture Notes.
 - **Bonfire rest**: Refills estus, heroic action, luck. Resets all encounters (enemies respawn) — **except bosses, which stay beaten** (this project's own call; see Bonfire Rest under Architecture Notes). ⚠️ The printed rule also costs 1 **spark** — sparks are **deliberately cut from this project**. Do not implement them, do not gate resting on them, and do not use p19's spark-based boss soul formula.
 - **Souls**: Currency. Earned 2 per character per non-boss encounter win. Spent on treasure (1 soul) and leveling up stats. Implemented — see Souls under Architecture Notes. Spending is not wired to anything yet.
+
+### V2 Rules (official revision; these are deliberate, not mistakes)
+
+Steamforged issued V2 rules that change some of the printed (V1) rulebook. Where they differ, this project follows **V2**. Code that looks like it contradicts the page numbers above is following these:
+
+- **Dodge (changes p22 / p25).** A **failed** dodge no longer takes the full damage: the character still blocks, rolling **only the dice on their armour slot** (its Block or Resist for the attack's type, plus that armour's own flat modifier) instead of their full Block. A **successful** dodge lets the character **choose** to spend **1 stamina** to move 1 node; in V1 the move came free with every dodge, before the roll. The dodge's own stamina is still paid up front. Code: `CombatPresenter.EnemyAttacksDodging` → `EnemyAttacks(armourOnly: true)`, `Player.GetArmourPool`, `CharacterTurn.DODGE_STEP_COST`.
+- **Push (changes p21).** A pushed model can no longer go to any adjacent node of the players' choosing. It goes **away**, in the opposite direction from where the pusher came: away from the attacker, or onward along the enemy's step. "Away" is the node straight on and the two 45° either side of it, and **the players choose** among those (Matt's reading, Oct 2026), on either side's turn. Code: `Pushing`, `PushPrompt.ChooseNode`.
 
 ### Combat Values & Clarifications
 
@@ -134,7 +143,7 @@ Concrete numbers and rules confirmed while analysing the equipment `.tres` data.
   - Damage/defense are arrays of these dice plus a flat `modifier`; expected value = sum of dice averages + modifier.
 - **Action economy** (p22): a character makes up to **one attack with each weapon in a hand slot** — so two one-handers means two attacks in an activation, and a two-hander means one. Movement is one block, before or after the attacking.
 - **Stamina is recovered capacity, not a pool**: there is no stamina number. What a character can spend is whatever the endurance bar still has uncovered, so an undamaged character with a clean bar can spend up to 10 in a single activation. The +2 at activation start *removes black cubes*, so it is a recovery rate, not income to bank. Burst is available immediately; the +2 governs only the long-run average, so sustained damage ≈ `attackDamage × min(1, 2/cost)` while a one-off spike can far exceed it.
-- **Stamina and damage compete for the same boxes**: every point spent is a box that can no longer absorb a hit, and spending competes with running and dodging. Overspending while wounded kills you outright.
+- **Stamina and damage compete for the same boxes**: every point spent is a box that can no longer absorb a hit, and spending competes with running and dodging. Spending your bar full does not kill you, but it leaves no room, so the next point of damage does (see Death above).
 - **Upgrade slots** (`upgradeSlots`):
   - *Weapon slot* — each grants **+1 damage OR +1 black die** (avg 1.167) to the weapon's attacks.
   - *Armour slot* — each grants **+1 stamina OR +1 health at the start of every activation** (persistent regen; stamina slots effectively raise the +2 income).
@@ -172,9 +181,16 @@ Targeting: an option-specific `attackRange` replaces the weapon's standard range
 
 ⚠️ `EncounterManager.Reset()` clears `characterTurn`, and `ActionListener._Ready` (which calls it) runs *after* `CharacterTurn._Ready` registers itself — so `ActionListener` re-registers it straight after `Reset`. Without that, every enemy click saw no armed attack, which is why picking a target never worked.
 
-Attack buttons show their dice as `DiceChip`s — a rounded square in the die's colour with the count inside — instead of "1B 1U".
+Attack buttons show their dice as `DiceChip`s — a rounded square in the die's colour with the count inside — instead of "1B 1U". After the dice come the option's icons as the printed card shows them: magic, its condition, then the rulebook's keyword icons (`RuleIcons`: Push, with "x2" when it pushes two nodes; Node; Shaft; Repeat and Shift with their number inside; a Shift before the dice sits before the dice chips, as on the card), the range badge when it differs, and the Heroic token when a boost applies. A modifier shows only when it is not 0, so an option with no dice shows no "+0". The row's tooltip spells all of it out, including the option's bonus effects (marked "not implemented" until equipment effects are resolved in combat). The icons were cut from the rulebook PDF (p21, p23) by `Tools/RuleIcons/extract.py`, white on transparent so the bar tints them, with Shift's and Repeat's example numbers blanked out.
 
-Not implemented, deliberately: `repeat`/`repeatConstraint` (xN uses with free / one-enemy / one-node constraints) and `bonusMovement` (Shift — free nodes that don't consume walk/run). Both need their own interaction; the action bar's tooltip marks them "(not implemented)" so they aren't mistaken for working.
+Hovering any slot of the equipment cross, or the raised weapon's art above the rows, shows the whole printed card just above it (`CardPreview`, a `CanvasLayer` at 14). It re-checks every frame that the cursor is still over that control instead of trusting `MouseExited`, because the bar rebuilds its header freely and a freed control never reports the mouse leaving.
+
+**Shift and Repeat** (p23). An attack is *armed* by its row, then *committed* by its first hit or first Shift step, which is when its stamina is paid: **once for every use** (Matt's call; the book says Repeat repeats "that entire weapon option"). From there it runs as `CharacterTurn.Underway` until its uses are made or the player stops it, and End Turn reads **Done** (the armed row's own click does the same). Each use is the option in full, as the book's wording reads, so Shift comes again with each Repeat:
+- **Shift before the dice**: while armed, the neighbours light as free steps alongside the targets. A node click is a step and an enemy click is the roll (`Enemy.OnClick` only targets an enemy `CanTarget` accepts and otherwise presses its node). Under a Node attack a node that is also a target is the attack, not a step.
+- **The roll**, then **Shift after the dice**: nodes only, Done ends it early.
+- **The next use** re-arms with no cost, held to `repeatConstraint`: ONE_ENEMY only the enemy the first use hit, ONE_NODE only enemies on its node. It ends by itself when no uses are left, or when nothing is in reach and there is no Shift to get there.
+
+Shift steps are free and are not the Walk or a Run, so they ignore the movement lock and never set `hasMoved`. Pushes, hazards and the over-full-node prompt still apply. Where a Shift sits is not in the equipment sheet, so it was read off the card art: `PlayerMove.shiftAfter` is how many of `bonusMovement` come after the dice (Carthus Curved Sword, Lucerne, Dark Silver Tracer, Gold Tracer; Painting Guardian Curved Sword has one on each side). `Tools/onboard_equipment.py` keeps the same table (`SHIFT_AFTER`). An option that is only a Shift (`IsMovementOnly`: Carthus's and Lucerne's [0]) asks for no target. It still uses the weapon's one attack. The weapon's attack (p22) and any Heroic boost are spent by the first use. Backstab makes one attack and ignores both.
 
 ### Ending an Encounter
 `ActionListener.CheckEncounterOver` sets `ENCOUNTER_WON` / `ENCOUNTER_LOST` and calls `EndEncounter`, which clears every model's conditions and then settles the outcome. `WorldMapManager` is told **last**, because `ReportEncounterWon` / `ReportPartyDeath` consume `PendingEncounterNodeId` and both branches need it first.
@@ -222,6 +238,12 @@ Everything in the p21 lifecycle is wired: applied on any hit through `CombatReso
 
 Equipment immunities are honoured for characters only (`PlayerToken.ApplyCondition` checks `Player.GetImmunities()`); enemies carry no equipment so nothing grants them immunity.
 
+**What counts as a hit** (Matt's ruling, Oct 2026): every attack hits unless it is **successfully dodged**. A Block or Resist that brings the damage to 0 is still a hit, and so is the V2 failed dodge's armour block. Enemies never dodge, so a character's attack always hits. On every hit the attack's condition is applied **and** any Push happens, whatever the damage (`AttackOutcome.hit`, `CombatResolver.Apply`).
+
+**Only the armour and the two hands count** (p25: "the character's armour and hand slots"). `Player.HeldWeapons` is the one list every gear reading uses: dodge dice, Block/Resist dice, immunities, push immunity, passives and the summary panel's numbers, plus `CombatResolver.RollDefence`, the cross's Block highlight and `Character`'s template summaries. A weapon in the backup slot is carried, not used, until it is swapped into a hand.
+
+**Push immunity** is `pushImmune` on `Weapon` / `Armour` (`Player.IsPushImmune`, checked by `Pushing.Shove`), not a `StatusEffect`. Push is not a condition, and adding it to that enum would renumber every value already saved in the `.tres` files. It once was in the enum (`…STAGGER, PUSH, NONE`); when it was taken out, Black Iron Greatshield's stored `[4]` silently became `NONE`. `Tools/onboard_equipment.py` now uses the enum's real numbering and writes `pushImmune = true` for "Immune to Push".
+
 `GameNode.statusEffect` makes a node a hazard: `EncounterManager.ApplyNodeHazard` applies it to anything that steps on. **This is not a rule from the book** — the book's node-level hazard is the Trap token (p18), which damages characters and ignores enemies. Treat hazard nodes as this project's own idea.
 
 ### Enemy Behaviour Execution
@@ -233,7 +255,7 @@ Attacks are `async` because each one asks `DodgePrompt` and waits: the enemy's w
 
 The Block-or-Dodge question lives **in the action bar**, not over the board: `DodgePrompt.Ask` only rings the two tokens (`TokenHighlight`, red attacker / gold defender), gives the attacker's activation-bar entry a red rim (`TurnQueueEntry.SetAttacking`) and awaits `CharacterActionBar.AskReaction`. The bar swaps to the defender, lights every piece of gear that rolls defence on the equipment cross (`EquipmentCross.SetDefending`), shows the attacker's face with the attack icon carrying its real strength (`CombatResolver.AttackStrength`, so Stagger shows), the damage as red cubes and any condition icon, and turns the rows into **Block** (icon, its dice chips, the damage range that can still get through) over **Dodge** (the dodge dice pool, the difficulty, the stamina cube, the chance). Dodge is greyed when the pool cannot reach the difficulty or the stamina cannot be paid — paying to fail is not a choice. Hovering either ghosts its consequence onto the endurance bar: expected damage pulsing hard, worst case softly beyond it. The icons in `Resources/Images/Sprites/Combat/` are the rulebook's own vector icons (p25), rendered white so the scene tints them. `Enemy.Walk` awaits each node it enters for the same reason — arriving on a node can open that prompt.
 
-A successful dodge grants the free one-node step of p22: `Enemy.Strike` awaits `CharacterTurn.OfferDodgeStep`, which lights the adjacent nodes and puts the defender on the bar with the End button relabelled **End Dodge**; a node click takes the step (through `MovePlayer`, hazards and the push prompt as usual) and either that or the button ends it. `ActionListener.OnNodeClicked` routes clicks to it before checking the phase, because it happens inside the enemy phase.
+A successful dodge offers the one-node step (V2: **1 stamina**, optional, only offered if it can be paid): `Enemy.Strike` awaits `CharacterTurn.OfferDodgeStep`, which lights the adjacent nodes and puts the defender on the bar with the End button relabelled **End Dodge**; a node click pays and takes the step (through `MovePlayer`, hazards and the push prompt as usual) and either that or the button ends it. `ActionListener.OnNodeClicked` routes clicks to it before checking the phase, because it happens inside the enemy phase.
 
 ⚠️ In a hand-edited `.tres`, every property of `[resource]` must come **after** its `script = ` line. Godot applies them in order, and a property set before the script exists is silently dropped. `heroicAction` was once inserted above it and every class loaded as `NONE`.
 
@@ -299,12 +321,19 @@ Each character has three tokens on their board: **Estus Flask**, **Heroic Action
   - **Backstab** is offered after a successful dodge **and** its free step (`Enemy.Strike` → `CharacterTurn.OfferBackstab`). The bar goes into a Backstab mode (`CharacterActionBar.ShowBackstab`): the Assassin's rows at 0 stamina, lit only where an option reaches the enemy dodged, and End relabelled Pass. Weapons already used do not matter; it is outside their activation.
   - ⚠️ Backstab can kill an enemy **during its own activation**, while its behaviour loop is still running on it. So `Enemy.ApplyDamage` does not free an enemy that dies while `isActivating`. It sets `isDead`, hides it, and `ProcessNextMove` / `Walk` / `Attack` / `EnterNode` check `isDead` after every await, finish the activation (the signal still arrives) and only then free it. `GetEnemy` treats `isDead` as gone, so targeting, pruning and the win check already ignore it. The next `BeginEnemyActivation` prunes it and checks for the win.
 
+### Test Bench
+Running `Encounter.tscn` on its own (no campaign party) uses its `demoParty` and `enemies`, and starting gear skips the stat check there. Both are set up to test dodge and push:
+- **Party: `Tester`** (`Resources/Prefabs/Player/Tester/Tester.tres`), not a real class. ⚠️ **Currently swapped to test Shift and Repeat:** **Dancer's Enchanted Swords** (two-handed, Shift 1 before the dice, x2) in the hands and Force in backup. The dodge/push loadout it is described with below is Force + Target Shield in the hands and the Estoc in backup. An Assassin holding **Force** (option 1: 0 stamina, range 2, no dice, Push, so it shows a 0-damage hit still pushes) and the **Target Shield**, with the **Estoc** in backup and **Assassin Armour**. That gives 2 dodge dice (armour + shield), 1 black die Block/Resist on the armour for the V2 failed-dodge roll, and Backstab. No class can equip a Push weapon at starting stats (Force needs Intelligence 12; the best start is 11), which is why this exists.
+- **Enemies:** **Skeleton Soldier** (Move 1 with Push for 2, dodge difficulty 1, 1 health: movement push and dodging it), **Silver Knight Swordsman** (Move 2, then a 5-damage Push attack at range 0, dodge difficulty 2: attack push and failed dodges), **Sentinel** (Move with Push for 0 damage, 10 health: starting-node push).
+
+To go back to a normal standalone run, set `demoParty` to a real class (it was the Knight) and `enemies` back to two Hollow Soldiers.
+
 ### Player Model
 `Player` is the campaign-persistent Resource (stats, equipment ids, level) and `PlayerToken : TextureButton` is the character on the board, exactly mirroring the `EnemyData` / `Enemy` split. `ActionListener` spawns one shared `PlayerToken.tscn` per party member and assigns the `Player` before parenting it.
 
 Encounter state lives on `Player.endurance` and `Player.conditions`, both deliberately **not** `[Export]`ed — the bar clears on victory (p19), so it must never be written into the saved character. It is a plain `Endurance` object rather than a Resource so it stays out of serialisation entirely. `Player` is per-character (one per party member from `CampaignManager.Players`), so mutable runtime state on it is safe in a way it would not be on a shared template like `EnemyData`.
 
-The party comes from `CampaignManager.Players`; when that is empty the encounter falls back to `ActionListener.demoParty` (a list of `Character` resources) so the scene can be run standalone.
+The party comes from `CampaignManager.Players`; when that is empty the encounter falls back to `ActionListener.demoParty` (a list of `Character` resources) so the scene can be run standalone. The portrait pane only knows `CampaignManager.Players`, so a standalone run hands it that fallback party through `CharacterPortraitPane.standaloneParty` (cleared in `_ExitTree`). Without it the test bench drew no portraits, and since tokens carry no badges, a character's conditions showed nowhere.
 
 ### Pacing and Targeting Readouts
 Each phase opens on a `PhaseBanner` (BG3-style: fades in, holds, fades out; a dimmed red glow for "Enemy Turn", dimmed gold for "<Name>'s Turn" with the activating character's name). `ActionListener.BeginEnemyActivation` / `BeginCharacterActivation` are `async void` and await it, so nothing moves until the banner is gone. The enemy banner shows once per enemy phase (at `activeEnemyIndex == 0`), the adventurer banner once per activation.
@@ -319,7 +348,7 @@ Tokens: the character token wears the printed **Aggro token** at its top-left (`
 
 `TurnQueue` is the **Enemy Activation** bar: the round count in the top-left corner and one `TurnQueueEntry` per enemy in threat order, centred. It has no title and no background — the board runs under it when zoomed. There is no Party entry — every enemy acts between every character activation, so the party's place in the order is fixed and drawing it says nothing.
 
-Each entry carries what the token used to: a 3:4 portrait cropped from the card art (`EnemyData.GetPortrait`, region `portraitRegion` in card fractions — nudge it per enemy when the art is off-centre), a **diamond** threat badge (rotated 45° with the label counter-rotated, matching the printed card's corner), an **ember rim at tier 2+**, a **segmented** health bar sized to that enemy's Health — one tick per point, so a 1-health enemy shows one tick and a Sentinel shows ten — condition icons, and a damage veil. Spent enemies dim and grey.
+Each entry carries what the token used to: a 3:4 portrait cropped from the card art (`EnemyData.GetPortrait`, region `portraitRegion` in card fractions — nudge it per enemy when the art is off-centre), a **diamond** threat badge (rotated 45° with the label counter-rotated, matching the printed card's corner), an **ember rim at tier 2+**, a **solid** health bar with the value over it (`TickBar.continuous`: ticks would make a boss's health unreadable; a hit leaves the lost part lingering pale before it drains, as the games' bars do, and it drains from the right), condition icons, and a damage veil. The name is one size smaller than it was (8) and may run 10px past each side of its 60px entry into the 22px gap (`Name Box`), so names up to ~80px fit. Only the three longest Silver Knight names still end in an ellipsis. Spent enemies dim and grey.
 
 `TurnQueue` is still a pure mirror of the turn loop, but the entries **poll** their enemy: health and conditions change from attacks, pushes and poison ticking at end of activation, and a missed push-refresh would leave a dead enemy looking healthy.
 
@@ -338,12 +367,22 @@ A portrait click means whatever the current scene says: in the Encounter it sele
 
 The pane has a `Player`, never a `PlayerToken`, which is why `Player.conditions` sits beside `Player.endurance` and why `CharacterPortrait` asks `EncounterManager.characterTurn?.active` whose turn it is. Portraits **poll** rather than being pushed at, for the same reason the activation bar entries do.
 
+### Pushing
+Three things push, all through `Pushing` and all by the V2 rule: the pushed model goes straight on, away from the pusher.
+- **Enemy movement with Push** (`Enemy.EnterNode`): each node it enters, every character there is struck by the movement attack if it has damage, then pushed onward along the enemy's step. A character who dodged that attack is not hit, so is not pushed. Before moving, a Move with Push also clears the enemy's **starting** node (p21), back against its first step and without damage (p25: movement attacks never hit the starting node).
+- **Enemy attacks with Push** (`Enemy.Attack` → `PushAway`): after the roll, each character hit is pushed away from the enemy (p25). A successful dodge is not a hit (p20).
+- **Character attacks with Push** (`CharacterTurn.PushHit`, from `PlayerMove.isPush`): every enemy hit and still standing is pushed away from the attacker. Enemies never dodge, so every target is hit.
+
+When the pusher and the pushed share a node there is no "away", so the pusher's **last step** carries on (`Enemy.lastStep`, reset each activation; `PlayerToken.lastStep`, set by every move and dodge step). The candidates are the node straight on and the two 45° either side, kept only if walkable and with room (`Pushing.Destinations`). With two or three, **the players choose**: `PushPrompt.ChooseNode` lights them (pulsing, so they read as clickable), rings the model being pushed, and waits for a click on one. `ActionListener.OnNodeClicked` sends board clicks there first while it is open, before even the dodge step. With one candidate it is taken without asking; with none the model is not moved. `Pushing.Shove` is awaited for that reason, so an enemy's activation or a character's attack waits on the choice. While the choice is open the action bar holds End Turn disabled (`CharacterActionBar.LockEndForPush`, polled; it restores whatever the button was before), so a turn cannot end mid-push. A push never lands on a full node, so it never owes a further push.
+
+The over-full-node push (p10, below) has no pusher, so it keeps its own destination rule (`EnemyMovement.PushDestination`).
+
 ### Node Occupancy
 A node holds at most `EncounterManager.MAX_MODELS_PER_NODE` (3) models — but a full node is **enterable**, not blocked. p10: "If there are already three models on a node and another model moves onto that node, the players must push one of the three models already on the node." So `PathGrid.IsBlocked` is terrain only and full nodes stay pathable; `PathGrid.HasRoom` is the separate occupancy question.
 
 `EncounterManager.ResolveOverflow` runs after any arrival and, if the node is now over the limit, asks `PushPrompt` which of the models that were *already there* gets shoved off. The rule gives that choice to the players whoever walked in, so an arriving enemy prompts exactly as an arriving character does; it auto-resolves when only one model could be pushed, and only ever fires on a node that was already at three.
 
-The push **destination** is auto-picked (first adjacent node with room, falling back to any walkable one). p21 gives the players that choice too — prompting for both would double the clicks, so only the "who" is asked.
+For this over-full push the **destination** is auto-picked (first adjacent node with room, falling back to any walkable one). p21 gives the players that choice too — prompting for both would double the clicks, so only the "who" is asked. Pushes from attacks and enemy movement follow the V2 direction instead (see Pushing).
 
 ⚠️ An earlier pass had this wrong, treating full nodes as impassable. That is what made enemies deadlock around a cornered character. Do not reintroduce occupancy into `IsBlocked`.
 
@@ -394,15 +433,16 @@ Scenes are swapped by instantiating the next scene, adding it to root, then free
 
 - `CharacterSheet.cs`: `_Ready()` always loads the Assassin, ignoring the `[Export] character` property
 - `Pathfinding.cs`: `openSet.UpdateItem` is commented out — may produce suboptimal paths
-- `PlayerMove.repeat` / `repeatConstraint` (xN attacks with FREE / ONE_ENEMY / ONE_NODE targeting) is parsed but never executed — an attack always resolves exactly once
-- `PlayerMove.bonusMovement` (Shift icon: free nodes that do not consume the walk/run budget, usable before or after the dice) is parsed but never executed
+- Shift and Repeat were verified by build, a load check of `shiftAfter` / `IsMovementOnly` and code review only, not yet by playing through them
 - Characters cannot swap backup ↔ hand slots during their activation (p22)
 - The first character activation should be the players' choice of character (p19); `activeCharacterIndex` just cycles from index 0
 - Boss encounters award no souls — p19's formula needs sparks, which are cut, so boss rewards need their own rule
 - Souls can be earned but never spent — treasure and levelling do not consume them
 - The First Activation token (p19) is unimplemented; `activeCharacterIndex` always starts at 0 rather than rotating between encounters
 - Characters are not placed on the Bonfire tile on a wipe; the result panel just returns to the Bonfire scene
-- The push **destination** is auto-picked; p21 gives the players that choice
+- "Push x2" (a Push effect with magnitude 2, e.g. Force's second option) still pushes one node; the row shows x2 and the tooltip says so
+- The over-full-node push (p10) auto-picks its destination; p21 gives the players that choice. Attack and movement pushes follow the V2 direction rule instead
+- The V2 dodge, all three pushes and the starting-node push were verified by build, a load check, a direction check of `Pushing.Destination` against the board edge, and code review only, not yet by playing through them
 - Enemy tokens are bare avatars while character tokens are clipped discs with a rim; they do not match visually
 - Save/load is scaffolded but non-functional
 - Only five classes have a `Character` resource (Herald, Assassin, Knight, Deprived, Cleric). Mercenary, Pyromancer, Sorcerer, Thief and Warrior have art folders but no class resource, so their Heroic Actions are coded but cannot be played until the resources exist. Set `heroicAction` on each when made

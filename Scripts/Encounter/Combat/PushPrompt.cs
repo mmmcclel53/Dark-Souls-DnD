@@ -8,8 +8,18 @@ using System.Threading.Tasks;
 // arriving enemy exactly as it does for an arriving character. It only ever appears when a
 // node was already full, which is rare, and it is skipped entirely when there is no real
 // choice to make.
+//
+// It also asks where a pushed model goes (ChooseNode): the nodes "away" from the pusher light
+// up on the board, the model being pushed is ringed, and a click on one of the nodes decides.
+// ActionListener routes board clicks here first while that is open.
 public partial class PushPrompt : Control
 {
+	[Export] public Color choiceColour = new Color(0.95f, 0.72f, 0.3f, 0.6f);
+	[Export] public Color pushedRingColour = new Color(0.96f, 0.86f, 0.55f);
+
+	private TaskCompletionSource<GameNode> nodeChoice;
+	private readonly List<GameNode> choices = new List<GameNode>();
+	public bool isChoosingNode => nodeChoice != null;
 
 	[Signal] public delegate void ChosenEventHandler(int index);
 
@@ -35,6 +45,38 @@ public partial class PushPrompt : Control
 
 		int index = result.Length > 0 ? result[0].AsInt32() : 0;
 		return index >= 0 && index < candidates.Count ? candidates[index] : candidates[0];
+	}
+
+	public async Task<GameNode> ChooseNode(Node2D model, List<GameNode> options) {
+		if (options == null || options.Count == 0) return null;
+		if (options.Count == 1) return options[0];
+
+		Dictionary<GameNode, Color> previous = new Dictionary<GameNode, Color>();
+		choices.Clear();
+		foreach (GameNode node in options) {
+			previous[node] = node.ClickTarget.Modulate;
+			node.Highlight(choiceColour, true);
+			choices.Add(node);
+		}
+		TokenHighlight ring = model.GetChildCount() > 0 && model.GetChild(0) is Control token
+			? TokenHighlight.Attach(token, pushedRingColour) : null;
+
+		nodeChoice = new TaskCompletionSource<GameNode>();
+		GameNode chosen = await nodeChoice.Task;
+		nodeChoice = null;
+
+		TokenHighlight.Detach(ring);
+		foreach (KeyValuePair<GameNode, Color> pair in previous) {
+			if (!IsInstanceValid(pair.Key)) continue;
+			pair.Key.ClearHighlight();
+			pair.Key.ClickTarget.Modulate = pair.Value;
+		}
+		choices.Clear();
+		return chosen;
+	}
+
+	public void OnNodeClicked(GameNode node) {
+		if (nodeChoice != null && choices.Contains(node)) nodeChoice.TrySetResult(node);
 	}
 
 	private void BuildOptions(List<Node2D> candidates) {

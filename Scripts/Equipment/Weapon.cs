@@ -30,6 +30,9 @@ public partial class Weapon : Resource, Equipment {
     [ExportGroup("Passives")]
     [Export] public Array<EquipmentEffect> passives = new();
     [Export] public Array<EncounterManager.StatusEffect> immunities = new();
+    // "Immune to Push": a separate flag rather than a StatusEffect, because Push is not a
+    // condition and adding it to that enum would renumber the values saved in every .tres.
+    [Export] public bool pushImmune;
 
     [ExportGroup("Weapon Reqs")]
     [Export] public int strengthReq { get; set; }

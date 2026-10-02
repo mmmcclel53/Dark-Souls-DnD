@@ -32,9 +32,17 @@ SCOPE = dict(TARGET=0,SELF=1,ONE_ENEMY=2,ONE_NODE=3,ALL_ENEMIES_IN_RANGE=4,ONE_C
 DUR = dict(INSTANT=0,UNTIL_END_OF_ACTIVATION=1,UNTIL_NEXT_CHARACTER_ACTIVATION=2,
     UNTIL_END_OF_ENEMY_ACTIVATION=3,PERMANENT=4)
 DK = dict(PHYSICAL=0,MAGIC=1,BOTH=2)
-STATUS = dict(BLEED=0,POISON=1,FROST=2,STAGGER=3,PUSH=4,NONE=5)
+# Must match EncounterManager.StatusEffect. Push is not a condition: "Immune to Push" sets pushImmune.
+STATUS = dict(BLEED=0,POISON=1,FROST=2,STAGGER=3,NONE=4)
 COLOUR = dict(Black=0,Blue=1,Orange=2)
 REPEAT_T = dict(FREE=0,ONE_ENEMY=1,ONE_NODE=2)
+# The sheet does not say where a Shift icon sits, only the card art does (p23: before the dice
+# moves before the roll, after moves after). Read off the cards: (item, option index) -> how
+# many of that option's Shift nodes come after the dice. Every other Shift comes before.
+SHIFT_AFTER = {("Carthus Curved Sword",0):1, ("Carthus Curved Sword",1):1,
+               ("Lucerne",0):1, ("Lucerne",1):1,
+               ("Dark Silver Tracer",1):1, ("Gold Tracer",1):1,
+               ("Painting Guardian Curved Sword",0):1, ("Painting Guardian Curved Sword",1):1}
 STATUS_TOKENS = {"Bleed":"BLEED","Poison":"POISON","Frost":"FROST","Stagger":"STAGGER"}
 
 warnings = []
@@ -130,7 +138,8 @@ def parse_effect_text(item, text, cond, is_passive=False):
             rest = tok[len("Immune to"):].strip()
             for part in re.split(r"&|,", rest):
                 p=part.strip().upper()
-                if p in STATUS: immun.append(STATUS[p])
+                if p == "PUSH": immun.append("PUSH")
+                elif p in STATUS and p != "NONE": immun.append(STATUS[p])
                 else: warn(item,f"immunity '{part.strip()}' not a status - skipped")
         elif low == "look at 1 trap": warn(item,f"'{tok}' has no effect type - skipped (inert)")
         else:
@@ -243,6 +252,7 @@ def render(item):
             if mv.get(f): L.append(f'{f} = true')
         if mv.get("statusEffect",5)!=5: L.append(f'statusEffect = {mv["statusEffect"]}')
         if mv.get("bonusMovement"): L.append(f'bonusMovement = {mv["bonusMovement"]}')
+        if mv.get("shiftAfter"): L.append(f'shiftAfter = {mv["shiftAfter"]}')
         L.append(f'repeat = {mv.get("repeat",1)}')
         if mv.get("repeatConstraint"): L.append(f'repeatConstraint = {mv["repeatConstraint"]}')
         be=[add_effect_sub(e) for e in mv.get("bonusEffects",[])]
@@ -267,7 +277,9 @@ def render(item):
     body.append(f'dodgeAbility = {item.get("dodgeAbility",0)}')
     body.append(f'upgradeSlots = {item.get("upgradeSlots",0)}')
     if passive_ids: body.append('passives = Array[Object]([' + ", ".join(f'SubResource("{s}")' for s in passive_ids) + '])')
-    if item.get("immunities"): body.append('immunities = Array[int]([' + ", ".join(str(x) for x in item["immunities"]) + '])')
+    statuses = [x for x in item.get("immunities", []) if x != "PUSH"]
+    if statuses: body.append('immunities = Array[int]([' + ", ".join(str(x) for x in statuses) + '])')
+    if "PUSH" in item.get("immunities", []): body.append('pushImmune = true')
     body += [f'strengthReq = {item["str"]}', f'dexterityReq = {item["dex"]}',
              f'intelligenceReq = {item["int"]}', f'faithReq = {item["fth"]}']
 
@@ -300,6 +312,7 @@ def build_attacks(row, name):
                 isIgnoreDefense=flags.get("isIgnoreDefense",False),
                 statusEffect=flags.get("statusEffect",5), bonusMovement=flags.get("bonusMovement",0),
                 repeatConstraint=flags.get("repeatConstraint",0))
+        mv["shiftAfter"]=SHIFT_AFTER.get((name,len(attacks)),0)
         attacks.append(mv)
     return attacks
 

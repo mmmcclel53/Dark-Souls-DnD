@@ -51,7 +51,7 @@ public static class CombatResolver
 			? RollPips(armour?.magicDefense) + (armour?.magicDefenseModifier ?? 0)
 			: RollPips(armour?.physicalDefense) + (armour?.physicalDefenseModifier ?? 0);
 
-		foreach (Weapon weapon in new[] { defender.GetLeftHand(), defender.GetRightHand(), defender.GetBackupSlot() }) {
+		foreach (Weapon weapon in new[] { defender.GetLeftHand(), defender.GetRightHand() }) {
 			total += RollPips(magic ? weapon?.magicDefense : weapon?.physicalDefense);
 		}
 		return total;

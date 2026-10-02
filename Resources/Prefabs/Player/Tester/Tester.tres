@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="Character" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Encounter/Player/Character.cs" id="1_char"]
+[ext_resource type="Texture2D" path="res://Resources/Prefabs/Player/Assassin/Assassin.jpg" id="2_art"]
+[ext_resource type="Texture2D" path="res://Resources/Prefabs/Player/Assassin/Avatar.png" id="3_avatar"]
+[ext_resource type="Resource" path="res://Resources/Prefabs/Equipment/Weapons/Force/Force.tres" id="4_force"]
+[ext_resource type="Resource" path="res://Resources/Prefabs/Equipment/Weapons/Dancer's Enchanted Swords/Dancer's Enchanted Swords.tres" id="5_dancer"]
+[ext_resource type="Resource" path="res://Resources/Prefabs/Player/Assassin/Equipment/Assassin Armour.tres" id="7_armour"]
+
+[resource]
+script = ExtResource("1_char")
+heroicAction = 2
+name = "Tester"
+image = ExtResource("2_art")
+avatar = ExtResource("3_avatar")
+description = "Test bench, currently for Shift and Repeat: an Assassin holding Dancer's Enchanted Swords (two-handed; Shift 1 before the dice, x2), with Force in backup. For dodge and push it held Force and the Target Shield with the Estoc in backup. 2 dodge dice (armour + swords), 1 black die Block/Resist on the armour for the V2 failed-dodge roll, and Backstab. Not a real class; only the standalone Encounter's demo party uses it."
+leftHandDefault = ExtResource("5_dancer")
+backupSlotDefault = ExtResource("4_force")
+armourDefault = ExtResource("7_armour")
+taunt = 8
+strengthTiers = PackedInt32Array(10, 16, 25, 34)
+dexterityTiers = PackedInt32Array(14, 22, 31, 40)
+intelligenceTiers = PackedInt32Array(11, 18, 27, 36)
+faithTiers = PackedInt32Array(9, 14, 22, 30)

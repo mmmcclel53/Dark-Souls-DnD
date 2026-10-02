@@ -84,10 +84,10 @@ public static class CombatPresenter
 	// ----- Enemy attacks (p25) -----
 
 	// Block or Resist: the defender rolls every equipped piece's dice against a fixed hit.
-	public static async Task<CombatResolver.AttackOutcome> EnemyAttacks(Enemy attacker, EnemyMove move, PlayerToken target, AttackSlash swing = null) {
+	// `armourOnly` is the V2 failed dodge: the armour slot's dice alone, not the full Block.
+	public static async Task<CombatResolver.AttackOutcome> EnemyAttacks(Enemy attacker, EnemyMove move, PlayerToken target, AttackSlash swing = null, bool armourOnly = false) {
 		Player player = target.player;
-		List<Dice> pool = CharacterActionBar.DefencePool(player, move.isMagic);
-		int modifier = CharacterActionBar.DefenceModifier(player, move.isMagic);
+		(List<Dice> pool, int modifier) = armourOnly ? player.GetArmourPool(move.isMagic) : player.GetDefensePool(move.isMagic);
 		RollReveal reveal = EncounterManager.rollReveal;
 		RollReveal.View view = new RollReveal.View {
 			actorArt = move.isMagic ? reveal?.resistIcon : reveal?.blockIcon,
@@ -119,8 +119,9 @@ public static class CombatPresenter
 		return outcome;
 	}
 
-	// Dodging is all or nothing: enough icons and the character is not hit at all, too few
-	// and the full damage lands with no defence roll (p25). The caller has paid the stamina.
+	// Enough icons and the character is not hit at all (p25). Too few and, under the V2
+	// rules, they still block with their armour's dice alone rather than taking the full
+	// damage: a second roll, on its own reveal. The caller has paid the stamina.
 	public static async Task<CombatResolver.AttackOutcome> EnemyAttacksDodging(Enemy attacker, EnemyMove move, PlayerToken target, AttackSlash swing = null) {
 		int pool = target.player?.GetDodge() ?? 0;
 		List<RollReveal.Face> faces = new List<RollReveal.Face>();
@@ -157,9 +158,9 @@ public static class CombatPresenter
 		};
 		view.recompute(view);
 		await Reveal(view);
-		await Land(swing, new[] { BlowFor(target, outcome) });
+		if (!dodged) return await EnemyAttacks(attacker, move, target, swing, armourOnly: true);
 
-		if (!dodged) CombatResolver.Apply(outcome, target);
+		await Land(swing, new[] { BlowFor(target, outcome) });
 		await Settle(swing);
 		return outcome;
 	}

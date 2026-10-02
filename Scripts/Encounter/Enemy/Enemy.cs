@@ -28,6 +28,9 @@ public partial class Enemy : TextureButton
 	private readonly HashSet<EncounterManager.StatusEffect> conditions = new HashSet<EncounterManager.StatusEffect>();
 
 	private Queue<EnemyMove> moveQueue = new Queue<EnemyMove>();
+	// The last node step this enemy took this activation: a push from its own node carries on
+	// in this direction (Pushing).
+	private Vector2I lastStep;
 	private EnemyMove activeMove;
 	private Node2D aggroPlayer;
 	private List<Node2D> nonAggroPlayers;
@@ -36,6 +39,7 @@ public partial class Enemy : TextureButton
 		this.aggroPlayer = aggroPlayer;
 		this.nonAggroPlayers = nonAggroPlayers;
 		moveQueue.Clear();
+		lastStep = Vector2I.Zero;
 		foreach (EnemyMove move in moves) {
 			moveQueue.Enqueue(move);
 		}
@@ -83,12 +87,25 @@ public partial class Enemy : TextureButton
 	private async void Walk(List<PathNode> planned) {
 		EncounterManager.isEnemyMoving = true;
 		Node2D self = (Node2D)GetParent();
+		PathNode previous = EncounterManager.pathGrid.NodeFromObj(self);
+
+		// p21: a Move with Push first clears the enemy's own node, back against the way it is
+		// going. No damage: a movement attack never hits the node it started on (p25).
+		if (activeMove != null && activeMove.isPush && planned.Count > 0) {
+			Vector2I back = -Pushing.Step(previous, planned[0]);
+			foreach (Node2D occupant in EncounterManager.GetPlayersInNode((GameNode)self.GetParent(), "Player")) {
+				await Pushing.Shove(occupant, back);
+			}
+		}
 
 		for (int i = 0; i < planned.Count; i++) {
 			if (!GodotObject.IsInstanceValid(self) || !IsInsideTree()) return;
 			if (isDead) break;
 			GameNode node = EnemyMovement.GameNodeAt(planned[i]);
 			bool last = i == planned.Count - 1;
+			Vector2I step = Pushing.Step(previous, planned[i]);
+			lastStep = step;
+			previous = planned[i];
 
 			if (last) {
 				EncounterManager.MovePlayer(self, node, (Control)self.GetParent());
@@ -98,7 +115,7 @@ public partial class Enemy : TextureButton
 				await TokenMotion.Travel(self, node, new Vector2(nodeSize / 4f, nodeSize / 4f));
 			}
 
-			await EnterNode(node, activeMove);
+			await EnterNode(node, activeMove, step);
 			if (isDead) break;
 			EncounterManager.ApplyNodeHazard(node, self);
 			if (last) await EncounterManager.ResolveOverflow(node, self);
@@ -164,11 +181,13 @@ public partial class Enemy : TextureButton
 		await SpotlightMove(new List<GameNode> { destination }, target, move);
 
 		Node2D self = (Node2D)GetParent();
+		PathNode from = EncounterManager.pathGrid.NodeFromObj(self);
 		if (!EncounterManager.MovePlayer(self, destination, (Control)self.GetParent())) return;
+		lastStep = Pushing.Step(from, EncounterManager.pathGrid.NodeFromObj(self));
 		await ToSignal(GetTree().CreateTimer(TokenMotion.STEP_SECONDS), SceneTreeTimer.SignalName.Timeout);
 		EncounterManager.ApplyNodeHazard(destination, self);
 		await EncounterManager.ResolveOverflow(destination, self);
-		await EnterNode(destination, move);
+		await EnterNode(destination, move, lastStep);
 	}
 
 	// Out of range misses entirely and has no effect (p25).
@@ -183,14 +202,18 @@ public partial class Enemy : TextureButton
 			await EncounterManager.spotlight.PreviewAttack(this, targetNode, EncounterManager.GetPlayerToken(target), !move.towardsAggro);
 		}
 
-		// The Node icon hits every character sharing the target's node (p25).
+		// The Node icon hits every character sharing the target's node (p25). An attack with
+		// Push shoves each character it hit once the roll is resolved (p25).
 		if (move.isAOE) {
 			foreach (Node2D occupant in EncounterManager.GetPlayersInNode(targetNode, "Player")) {
-				await Strike(occupant, move);
+				bool hit = await Strike(occupant, move);
 				if (isDead) return;
+				if (hit && move.isPush) await PushAway(occupant);
 			}
 		} else {
-			await Strike(target, move);
+			bool hit = await Strike(target, move);
+			if (isDead) return;
+			if (hit && move.isPush) await PushAway(target);
 		}
 	}
 
@@ -202,9 +225,10 @@ public partial class Enemy : TextureButton
 	// Every character targeted gets the Block-or-Dodge choice before the dice are rolled.
 	// The blade goes up first and stops short of the character; it stays there through the
 	// choice and the roll, and only comes down once the presenter knows the outcome.
-	private async Task Strike(Node2D playerObj, EnemyMove move) {
+	// Returns whether they were hit: only a successful dodge is not (p20).
+	private async Task<bool> Strike(Node2D playerObj, EnemyMove move) {
 		PlayerToken token = EncounterManager.GetPlayerToken(playerObj);
-		if (token == null) return;
+		if (token == null) return false;
 
 		AttackSlash swing = AttackSlash.Begin(this, token, AttackSlash.Style.ENEMY, AttackSlash.FormFor(move.isMagic, move.attackRange));
 		if (swing != null) await swing.Windup();
@@ -224,27 +248,30 @@ public partial class Enemy : TextureButton
 				// The Assassin's Backstab: attack the enemy just dodged.
 				await EncounterManager.characterTurn.OfferBackstab(token, this);
 			}
-		} else {
-			await CombatPresenter.EnemyAttacks(this, move, token, swing);
+			return outcome.hit;
 		}
+		await CombatPresenter.EnemyAttacks(this, move, token, swing);
+		return true;
 	}
 
 	// Movement attacks hit every character on each node the enemy moves into, and the push
 	// shoves them out of the way afterwards (p21, p25).
-	private async Task EnterNode(GameNode node, EnemyMove move) {
+	private async Task PushAway(Node2D playerObj) {
+		if (!GodotObject.IsInstanceValid(playerObj)) return;
+		await Pushing.Shove(playerObj, Pushing.Away((Node2D)GetParent(), playerObj, lastStep));
+	}
+
+	// Pushed straight on, the way the enemy came in (V2). A movement attack strikes first,
+	// and a character who dodges it is not hit, so is not pushed either.
+	private async Task EnterNode(GameNode node, EnemyMove move, Vector2I step) {
 		if (move == null || !move.isPush) return;
 
 		foreach (Node2D occupant in EncounterManager.GetPlayersInNode(node, "Player")) {
-			if (move.damage > 0) await Strike(occupant, move);
+			bool hit = true;
+			if (move.damage > 0) hit = await Strike(occupant, move);
 			if (isDead) return;
-			Push(occupant, node);
+			if (hit && GodotObject.IsInstanceValid(occupant)) await Pushing.Shove(occupant, step);
 		}
-	}
-
-	private void Push(Node2D playerObj, GameNode from) {
-		GameNode destination = EnemyMovement.PushDestination(EncounterManager.pathGrid.NodeFromObj(playerObj));
-		if (destination == null || destination == from) return;
-		EncounterManager.MovePlayer(playerObj, destination, from, true);
 	}
 
 	public void EndActivation() {
@@ -326,9 +353,10 @@ public partial class Enemy : TextureButton
 
 	}
 
-	// While an attack is armed a click picks this enemy; otherwise it is a click on its node.
+	// A click picks this enemy when the armed attack can hit it; otherwise it is a click on its
+	// node, which may be a Shift step.
 	public void OnClick() {
-		if (EncounterManager.characterTurn != null && EncounterManager.characterTurn.isTargeting) {
+		if (EncounterManager.characterTurn != null && EncounterManager.characterTurn.CanTarget(this)) {
 			EncounterManager.characterTurn.PickTarget(this);
 			return;
 		}
