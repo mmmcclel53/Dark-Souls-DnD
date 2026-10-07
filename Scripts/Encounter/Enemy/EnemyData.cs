@@ -8,7 +8,18 @@ public partial class EnemyData : Resource {
 	// ever 7x7, so any distance check against this always passes.
 	public const int UNLIMITED_RANGE = 99;
 
+	// What some gear asks about (Dark Armour, Hollow Soldier Shield, Sunset Shield, the Alonne
+	// armours). Going by name, agreed with Matt (Oct 2026). Stored as an ordinal: only append.
+	public enum Kind { NONE, HOLLOW, ALONNE }
+
+	// The set an enemy belongs to, which decides the world terrain it is met on
+	// (EncounterGenerator.FAMILY_BY_TERRAIN). Encounters never mix families (Matt, Oct 2026).
+	// Stored as an ordinal: only append.
+	public enum Family { NONE, DARKROOT, IRON_KEEP, HOLLOWS, TOMB_OF_GIANTS, PAINTED_WORLD, ANOR_LONDO }
+
 	[Export] public string enemyName = "";
+	[Export] public Family family = Family.NONE;
+	[Export] public Kind kind = Kind.NONE;
 	[Export] public Texture2D cardTexture;
 	[Export] public Texture2D avatarTexture;
 

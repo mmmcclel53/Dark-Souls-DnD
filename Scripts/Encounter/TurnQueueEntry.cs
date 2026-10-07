@@ -3,15 +3,20 @@ using Godot.Collections;
 
 // One enemy in the Enemy Activation bar. The board token is just an avatar now, so this is
 // where an enemy's threat, tier, health and conditions are actually read. The face is a
-// close crop of the card art, like the party pane's portraits; clicking it asks for the
-// whole card.
+// close crop of the card art, like the party pane's portraits; hovering it shows the whole
+// card and rings the enemy's token on the board, so the face can be matched to the piece.
 //
 // Polls its own enemy rather than being pushed at: health and conditions change from several
 // places (attacks, pushes, poison ticking at end of activation) and a missed refresh would
 // leave a dead enemy looking healthy.
 public partial class TurnQueueEntry : VBoxContainer
 {
-	[Signal] public delegate void CardRequestedEventHandler();
+	[Signal] public delegate void HoverStartedEventHandler();
+	[Signal] public delegate void HoverEndedEventHandler();
+
+	// A steady pale-gold rim on the hovered enemy's board token: still, so it is never
+	// mistaken for the pulsing red of a target or an attacker.
+	private static readonly Color HOVER_RIM = new Color(0.98f, 0.86f, 0.55f);
 
 	[Export] public Control face;
 	[Export] public TextureRect avatar;
@@ -34,21 +39,33 @@ public partial class TurnQueueEntry : VBoxContainer
 	public Enemy boundEnemy => enemy;
 	private int shownHealth = -1;
 	private int shownConditions = -1;
+	private TokenHighlight hoverRing;
 
 	public override void _Ready() {
 		if (face != null) {
-			face.GuiInput += OnFaceInput;
-			face.MouseEntered += () => NearestMarker.Hover(enemy);
-			face.MouseExited += () => NearestMarker.Unhover(enemy);
+			face.MouseEntered += OnHoverStarted;
+			face.MouseExited += OnHoverEnded;
 		}
 	}
 
-	private void OnFaceInput(InputEvent @event) {
-		if (@event is InputEventMouseButton click && click.Pressed
-			&& click.ButtonIndex == MouseButton.Left) {
-			face.AcceptEvent();
-			EmitSignal(SignalName.CardRequested);
-		}
+	// The bar is rebuilt freely, and a freed face never reports the mouse leaving.
+	public override void _ExitTree() {
+		if (hoverRing != null) OnHoverEnded();
+	}
+
+	private void OnHoverStarted() {
+		NearestMarker.Hover(enemy);
+		TokenHighlight.Detach(hoverRing);
+		hoverRing = TokenHighlight.Attach(enemy, HOVER_RIM);
+		if (hoverRing != null) hoverRing.pulseSpeed = 0f;
+		EmitSignal(SignalName.HoverStarted);
+	}
+
+	private void OnHoverEnded() {
+		NearestMarker.Unhover(enemy);
+		TokenHighlight.Detach(hoverRing);
+		hoverRing = null;
+		EmitSignal(SignalName.HoverEnded);
 	}
 
 	public void Bind(Enemy boundEnemy) {
@@ -60,8 +77,15 @@ public partial class TurnQueueEntry : VBoxContainer
 		if (threatLabel != null) threatLabel.Text = enemy.threatLevel.ToString();
 		if (threatBadge != null) threatBadge.Visible = true;
 
-		// Tier 2 and 3 get an ember rim; tier 1 is the plain frame.
-		if (tierRim != null) tierRim.Visible = enemy.tier > 1;
+		// Tier 2 and 3 get a coloured rim, matching the world map; tier 1 is the plain frame.
+		if (tierRim != null) {
+			tierRim.Visible = enemy.tier > 1;
+			if (tierRim.GetThemeStylebox("panel") is StyleBoxFlat rim) {
+				rim = (StyleBoxFlat)rim.Duplicate();
+				rim.BorderColor = Enemy.TierRimColour(enemy.tier);
+				tierRim.AddThemeStyleboxOverride("panel", rim);
+			}
+		}
 
 		shownHealth = -1;
 		shownConditions = -1;

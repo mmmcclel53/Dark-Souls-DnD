@@ -29,6 +29,9 @@ public partial class CharacterActionBar : HBoxContainer
 	[Signal] public delegate void DodgeStepEndedEventHandler();
 	[Signal] public delegate void HeroicChosenEventHandler();
 	[Signal] public delegate void BackstabPassedEventHandler();
+	[Signal] public delegate void EquipmentSwappedEventHandler();
+	[Signal] public delegate void StartGainChosenEventHandler(bool asHealth);
+	[Signal] public delegate void ChoiceMadeEventHandler(int option);
 
 	[Export] public Control crossAnchor;
 	[Export] public EquipmentCross cross;
@@ -70,7 +73,7 @@ public partial class CharacterActionBar : HBoxContainer
 	[Export] public float rowHeight = 32f;
 	[Export] public float compactRowHeight = 24f;
 
-	private enum Mode { IDLE, ACTIVATION, REACTION, DODGE_STEP, BACKSTAB }
+	private enum Mode { IDLE, ACTIVATION, REACTION, DODGE_STEP, BACKSTAB, START_CHOICE, CHOICE }
 
 	private Mode mode = Mode.IDLE;
 	private PlayerToken token;
@@ -92,6 +95,9 @@ public partial class CharacterActionBar : HBoxContainer
 	// whatever it was before comes back after.
 	private bool lockedForPush;
 	private bool enabledBeforePush;
+	// p22: at the start of an activation a backup weapon may be swapped into a hand. Clicking
+	// the backup slot arms the swap and lights the hands; clicking a hand makes it.
+	private bool swapArmed;
 
 	public override void _Ready() {
 		BuildRowStyles();
@@ -103,7 +109,11 @@ public partial class CharacterActionBar : HBoxContainer
 
 		if (endTurnButton != null) endTurnButton.Pressed += OnEndPressed;
 		endTurnFx = ButtonFx.Attach(endTurnButton, round: true);
-		if (cross != null) cross.HandPressed += OnHandPressed;
+		if (cross != null) {
+			cross.HandPressed += OnHandPressed;
+			cross.BackupPressed += OnBackupPressed;
+			cross.BackupCycled += ShowSwapArmed;
+		}
 		if (crossAnchor != null) {
 			crossAnchor.Resized += PlaceCross;
 			CallDeferred(nameof(PlaceCross));
@@ -140,6 +150,7 @@ public partial class CharacterActionBar : HBoxContainer
 
 	public void ShowIdle() {
 		mode = Mode.IDLE;
+		swapArmed = false;
 		token = null;
 		backstabber = null;
 		backstabReach = null;
@@ -176,7 +187,8 @@ public partial class CharacterActionBar : HBoxContainer
 
 		endurance?.ClearGhost();
 		if (endTurnButton != null) {
-			endTurnButton.Text = live && Committed ? "Done" : "End Turn";
+			string picking = EncounterManager.characterTurn?.endLabel;
+			endTurnButton.Text = live && picking != null ? picking : live && Committed ? "Done" : "End Turn";
 			EnableEndTurn(live);
 		}
 		SetPanelStyle(false);
@@ -201,6 +213,38 @@ public partial class CharacterActionBar : HBoxContainer
 
 		BuildHeader(raised);
 		BuildRows(viewed, raised, live);
+		if (!live || !CanSwapNow(token)) swapArmed = false;
+		ShowSwapArmed();
+	}
+
+	// ----- Backup swap (p22) -----
+
+	// "When a character starts their activation": until they first move or attack.
+	private static bool CanSwapNow(PlayerToken active) =>
+		active != null && !active.hasMoved && !active.hasAttacked
+		&& !(EncounterManager.characterTurn?.isCommitted ?? false);
+
+	private void OnBackupPressed() {
+		if (mode != Mode.ACTIVATION || token == null || shown != token.player || !CanSwapNow(token)) return;
+		if (token.player.GetBackupSlot() == null) return;
+		swapArmed = !swapArmed;
+		if (!swapArmed) cross?.SetRaised(raised);
+		ShowSwapArmed();
+	}
+
+	private void ShowSwapArmed() {
+		if (!swapArmed || cross == null) return;
+		cross.backup?.SetRaised(true);
+		cross.left?.SetRaised(true);
+		cross.right?.SetRaised(true);
+	}
+
+	private void SwapInto(int hand) {
+		swapArmed = false;
+		Player player = token.player;
+		player.SwapBackupIntoHand(player.shownBackup, hand == EquipmentCross.LEFT);
+		raised = hand == EquipmentCross.LEFT ? player.GetLeftHand() : player.GetRightHand();
+		EmitSignal(SignalName.EquipmentSwapped);
 	}
 
 	// Backstab: after a successful dodge the Assassin may attack the enemy dodged, for free.
@@ -298,6 +342,10 @@ public partial class CharacterActionBar : HBoxContainer
 
 	private void OnEndPressed() {
 		if (lockedForPush) return;
+		if (mode == Mode.CHOICE) {
+			EmitSignal(SignalName.ChoiceMade, -1);
+			return;
+		}
 		if (mode == Mode.DODGE_STEP) EmitSignal(SignalName.DodgeStepEnded);
 		else if (mode == Mode.BACKSTAB) EmitSignal(SignalName.BackstabPassed);
 		else EmitSignal(SignalName.EndActivationPressed);
@@ -307,6 +355,10 @@ public partial class CharacterActionBar : HBoxContainer
 	// character's spent weapons stay down.
 	private void OnHandPressed(int hand) {
 		if ((mode != Mode.IDLE && mode != Mode.ACTIVATION && mode != Mode.BACKSTAB) || cross == null) return;
+		if (swapArmed && mode == Mode.ACTIVATION && token != null && CanSwapNow(token)) {
+			SwapInto(hand);
+			return;
+		}
 		Weapon weapon = cross.WeaponIn(hand);
 		if (weapon == null) return;
 		if (mode == Mode.ACTIVATION && token?.player == shown && !CanSwing(token, weapon)) return;
@@ -359,6 +411,129 @@ public partial class CharacterActionBar : HBoxContainer
 		AddToken(TokenArt.Kind.HEROIC, player.heroicUsed, live && token.CanUseHeroicNow,
 			() => EmitSignal(SignalName.HeroicChosen), $"{Heroic.Name(heroic)}\n{Heroic.Effect(heroic)}");
 		AddToken(TokenArt.Kind.LUCK, player.luckUsed, false, null);
+		AddRingToken(player, Ring.Effect.DIVINE_BLESSING, player.divineBlessingUsed, live && token.CanUseDivineBlessing, UseDivineBlessing);
+	}
+
+	// A ring used from the bar shows beside the tokens, its art cut to a disc, while worn.
+	// Spent, it is darkened, as a spent token is flipped, until a rest.
+	private void AddRingToken(Player player, Ring.Effect effect, bool used, bool usable, System.Action use) {
+		Ring ring = player.GetRings().Find(r => r.effect == effect);
+		if (ring == null) return;
+		TextureButton button = new TextureButton {
+			TextureNormal = EquipmentSlot.CropOf(ring, RING_ART),
+			IgnoreTextureSize = true,
+			StretchMode = TextureButton.StretchModeEnum.KeepAspectCentered,
+			CustomMinimumSize = new Vector2(30, 30),
+			SizeFlagsVertical = SizeFlags.ShrinkCenter,
+			FocusMode = FocusModeEnum.None,
+			Disabled = !usable,
+			TooltipText = ring.name,
+			Material = PlayerToken.AggroMask,
+		};
+		if (used) button.Modulate = new Color(0.3f, 0.3f, 0.3f, 1f);
+		else if (!usable) button.Modulate = new Color(0.55f, 0.55f, 0.55f, 1f);
+		if (usable && use != null) button.Pressed += () => Callable.From(use).CallDeferred();
+		tokenRow.AddChild(button);
+	}
+
+	// Where the ring itself sits on a ring card, square, in card fractions.
+	private static readonly Rect2 RING_ART = new Rect2(0.25f, 0.33f, 0.56f, 0.37f);
+
+	private void UseDivineBlessing() {
+		if (mode != Mode.ACTIVATION || token == null || !token.CanUseDivineBlessing) return;
+		token.UseDivineBlessing();
+		ShowSelected();
+	}
+
+	// ----- A choice the gear offers -----
+
+	// A question some gear asks of a character, on their bar: one row per option and the End
+	// button as Skip (Sunset Shield, Sunlight Shield, Faraam Armour, Crimson Robes). Returns
+	// the option picked, or -1 for Skip. The bar then goes back to what it was showing.
+	public async Task<int> AskChoice(Player who, Texture2D icon, List<(Control content, string tooltip)> options, string skip) {
+		Mode before = mode;
+		PlayerToken was = token;
+		mode = Mode.CHOICE;
+		token = null;
+		ShowCharacter(who);
+		cross?.Show(who);
+		cross?.SetRaised(null);
+		ClearChildren(header);
+		if (header != null && icon != null) header.AddChild(Icon(icon, Colors.White, 28f));
+		ClearChildren(rows);
+		currentRowHeight = rowHeight;
+		for (int i = 0; i < options.Count; i++) {
+			Button row = Row(i == 0);
+			row.TooltipText = options[i].tooltip;
+			RowContent(row).AddChild(options[i].content);
+			int index = i;
+			row.Pressed += () => EmitSignal(SignalName.ChoiceMade, index);
+			rows?.AddChild(row);
+			if (i == 0) row.GrabFocus();
+		}
+		if (endTurnButton != null) {
+			endTurnButton.Text = skip ?? "";
+			EnableEndTurn(skip != null);
+		}
+		SetPanelStyle(false);
+		Dim(false);
+
+		Variant[] result = await ToSignal(this, SignalName.ChoiceMade);
+		mode = Mode.IDLE;
+		if (before == Mode.ACTIVATION && GodotObject.IsInstanceValid(was)) Refresh(was);
+		else ShowIdle();
+		return result.Length > 0 ? result[0].AsInt32() : -1;
+	}
+
+	public Control KeywordIcon(RuleIcons.Kind kind) => Keyword(kind, ChipSize, 0);
+
+	public Texture2D AggroArt => (aggroBadge as TextureRect)?.Texture;
+
+	// ----- Tiny Being's Ring -----
+
+	// The start of the wearer's activation: all the gain as stamina, or one of it as health.
+	// Black cubes are stamina back, and "−" before a red cube is the damage healed. Nothing else on
+	// the bar answers until one is picked.
+	public async Task<bool> AskStartGain(PlayerToken wearer, int gain) {
+		mode = Mode.START_CHOICE;
+		token = null;
+		ShowCharacter(wearer.player);
+		cross?.Show(wearer.player);
+		cross?.SetRaised(null);
+		ClearChildren(header);
+		Ring ring = wearer.player.GetRings().Find(r => r.effect == Ring.Effect.TINY_BEING);
+		if (header != null && ring != null) {
+			TextureRect art = Icon(EquipmentSlot.CropOf(ring, RING_ART), Colors.White, 28f);
+			art.Material = PlayerToken.AggroMask;
+			header.AddChild(art);
+		}
+		ClearChildren(rows);
+		currentRowHeight = rowHeight;
+
+		Button stamina = Row(true);
+		stamina.TooltipText = $"{gain} stamina";
+		HBoxContainer staminaContent = RowContent(stamina);
+		staminaContent.AddChild(CubeRow.Stamina(gain));
+		stamina.Pressed += () => EmitSignal(SignalName.StartGainChosen, false);
+		rows?.AddChild(stamina);
+
+		Button health = Row(false);
+		health.TooltipText = $"{gain - 1} stamina and 1 health";
+		HBoxContainer healthContent = RowContent(health);
+		if (gain > 1) healthContent.AddChild(CubeRow.Stamina(gain - 1));
+		healthContent.AddChild(Text("−", 18, dodgeColour));
+		healthContent.AddChild(CubeRow.Damage(1, 10f));
+		health.Pressed += () => EmitSignal(SignalName.StartGainChosen, true);
+		rows?.AddChild(health);
+
+		if (endTurnButton != null) endTurnButton.Disabled = true;
+		SetPanelStyle(false);
+		Dim(false);
+		stamina.GrabFocus();
+
+		Variant[] result = await ToSignal(this, SignalName.StartGainChosen);
+		mode = Mode.IDLE;
+		return result.Length > 0 && result[0].AsBool();
 	}
 
 	private void AddToken(TokenArt.Kind kind, bool used, bool usable, System.Action use, string tooltip = null) {
@@ -441,10 +616,15 @@ public partial class CharacterActionBar : HBoxContainer
 		// Shift sits where the card prints it: before the dice moves before the roll (p23).
 		if (move.ShiftBefore > 0) content.AddChild(Keyword(RuleIcons.Kind.SHIFT, ChipSize, move.ShiftBefore));
 		foreach (DiceChip chip in DiceChip.ForPool(pool, ChipSize)) content.AddChild(chip);
-		if (move.modifier != 0) content.AddChild(Text($"{move.modifier:+#;-#}", 16, parchment));
-		if (move.isMagic) content.AddChild(Icon(magicIcon, resistColour, 18f));
+		int modifier = move.modifier + terms.bonus;
+		if (modifier != 0) content.AddChild(Text($"{modifier:+#;-#}", 16, parchment));
+		if (terms.magic) content.AddChild(Icon(magicIcon, resistColour, 18f));
 		AddCondition(content, move.statusEffect, 18f);
+		foreach (EncounterManager.StatusEffect added in terms.conditions) {
+			if (added != move.statusEffect) AddCondition(content, added, 18f);
+		}
 		AddKeywords(content, move, terms);
+		AddEffects(content, move, owner);
 		if (terms.range != weapon.attackRange) {
 			content.AddChild(Badge(terms.range >= EnemyData.UNLIMITED_RANGE ? "∞" : terms.range.ToString(), gold));
 		}
@@ -472,6 +652,58 @@ public partial class CharacterActionBar : HBoxContainer
 		if (move.repeat > 1) into.AddChild(Keyword(RuleIcons.Kind.REPEAT, size, move.repeat));
 		if (move.ShiftAfter > 0) into.AddChild(Keyword(RuleIcons.Kind.SHIFT, size, move.ShiftAfter));
 	}
+
+	// What the option does besides its roll, as icons and numbers: health and stamina given
+	// (+N beside a red or black cube), defence dice granted, magic, health lost (red, and
+	// marked when it would kill), direct damage, moving the Aggro token.
+	private void AddEffects(Container into, PlayerMove move, PlayerToken owner) {
+		if (move.bonusEffects == null) return;
+		Color give = new Color(0.55f, 0.85f, 0.45f);
+		foreach (EquipmentEffect e in move.bonusEffects) {
+			if (e == null || Inert(e)) continue;
+			switch (e.type) {
+				case EquipmentEffect.EffectType.HEAL:
+					into.AddChild(Text($"+{e.magnitude}", 16, give));
+					into.AddChild(CubeRow.Damage(1, 10f));
+					break;
+				case EquipmentEffect.EffectType.GAIN_STAMINA:
+					into.AddChild(Text($"+{e.magnitude}", 16, give));
+					into.AddChild(CubeRow.Stamina(1));
+					break;
+				case EquipmentEffect.EffectType.DEFENSE_DICE:
+					bool magicOnly = e.defenseKind == EquipmentEffect.DefenseKind.MAGIC;
+					into.AddChild(Icon(magicOnly ? resistIcon : blockIcon, magicOnly ? resistColour : blockColour, 18f));
+					into.AddChild(DiceChip.Create(e.diceColour, Mathf.Max(1, e.magnitude), ChipSize));
+					break;
+				case EquipmentEffect.EffectType.GRANT_MAGIC:
+					into.AddChild(Icon(magicIcon, resistColour, 18f));
+					break;
+				case EquipmentEffect.EffectType.BONUS_DAMAGE when e.duration == EquipmentEffect.Duration.UNTIL_END_OF_ACTIVATION:
+					into.AddChild(Text($"+{e.magnitude}", 16, parchment));
+					break;
+				case EquipmentEffect.EffectType.LOSE_HEALTH:
+					bool lethal = owner != null && e.magnitude > owner.player.endurance.free;
+					into.AddChild(Text($"−{e.magnitude}", 16, lethal ? new Color(1f, 0.25f, 0.2f) : attackColour));
+					into.AddChild(CubeRow.Damage(1, 10f));
+					if (lethal) into.AddChild(Text("!", 18, new Color(1f, 0.25f, 0.2f)));
+					break;
+				case EquipmentEffect.EffectType.DIRECT_DAMAGE:
+					into.AddChild(Text($"{e.magnitude}", 16, attackColour));
+					into.AddChild(CubeRow.Damage(1, 10f));
+					break;
+				case EquipmentEffect.EffectType.MAY_MOVE_AGGRO:
+					TextureRect aggro = Icon(AggroArt, Colors.White, 18f);
+					aggro.Material = PlayerToken.AggroMask;
+					into.AddChild(aggro);
+					break;
+			}
+		}
+	}
+
+	// Effects whose trigger does not exist in the game yet: Embers, traps, a boss's weak arc.
+	private static bool Inert(EquipmentEffect e) =>
+		e.condition is EquipmentEffect.Condition.IF_EMBERED or EquipmentEffect.Condition.IF_TRAP_ACTIVATED
+			or EquipmentEffect.Condition.IF_ATTACKING_WEAK_ARC;
 
 	// "Push x2" is stored as a Push effect with its node count; plain Push is one node.
 	private static int PushNodes(PlayerMove move) {
@@ -525,7 +757,9 @@ public partial class CharacterActionBar : HBoxContainer
 		List<string> notes = new List<string> { $"Range {range}", $"{terms.cost} stamina" };
 
 		if (terms.boosted && owner != null) notes.Add(Heroic.Name(owner.pendingHeroic));
-		if (move.isMagic) notes.Add("magical");
+		if (terms.magic) notes.Add("magical");
+		foreach (EncounterManager.StatusEffect added in terms.conditions) notes.Add(added.ToString().ToLower());
+		if (terms.hollow) notes.Add("0 damage resets Luck");
 		if (terms.aoe) notes.Add("whole node");
 		if (move.isNotZeroRange) notes.Add("cannot hit range 0");
 		if (move.isIgnoreDefense) notes.Add("ignores Block");
@@ -536,12 +770,12 @@ public partial class CharacterActionBar : HBoxContainer
 		});
 		if (move.ShiftBefore > 0) notes.Add($"shift {move.ShiftBefore} before the roll");
 		if (move.ShiftAfter > 0) notes.Add($"shift {move.ShiftAfter} after the roll");
-		if (move.isPush) notes.Add(PushNodes(move) > 1 ? $"push {PushNodes(move)} nodes (pushes 1 for now)" : "push");
+		if (move.isPush) notes.Add(PushNodes(move) > 1 ? $"push {PushNodes(move)} nodes" : "push");
 		if (move.bonusEffects != null) {
 			foreach (EquipmentEffect effect in move.bonusEffects) {
 				if (effect == null || effect.type == EquipmentEffect.EffectType.PUSH) continue;
 				string text = CharacterSummaryPanel.DescribeEffect(effect);
-				if (!string.IsNullOrEmpty(text)) notes.Add($"{text} (not implemented)");
+				if (!string.IsNullOrEmpty(text)) notes.Add(Inert(effect) ? $"{text} (not in the game yet)" : text);
 			}
 		}
 
@@ -552,7 +786,7 @@ public partial class CharacterActionBar : HBoxContainer
 
 	// Takes the bar over for the defender until Block or Dodge is pressed, then hands it
 	// back to idle; the enemy's activation is suspended on the awaited result (p25).
-	public async Task<bool> AskReaction(Enemy attacker, EnemyMove move, PlayerToken target) {
+	public async Task<bool> AskReaction(Enemy attacker, EnemyMove move, PlayerToken target, List<RollReveal.Face> peek = null) {
 		mode = Mode.REACTION;
 		token = null;
 
@@ -561,7 +795,7 @@ public partial class CharacterActionBar : HBoxContainer
 		cross?.SetRaised(null);
 		cross?.SetDefending(DefendingGear(target.player, move.isMagic));
 		BuildReactionHeader(attacker, move);
-		BuildReactionRows(attacker, move, target);
+		BuildReactionRows(attacker, move, target, peek);
 
 		if (endTurnButton != null) endTurnButton.Disabled = true;
 		SetPanelStyle(true);
@@ -621,7 +855,7 @@ public partial class CharacterActionBar : HBoxContainer
 		return badge;
 	}
 
-	private void BuildReactionRows(Enemy attacker, EnemyMove move, PlayerToken target) {
+	private void BuildReactionRows(Enemy attacker, EnemyMove move, PlayerToken target, List<RollReveal.Face> peek) {
 		ClearChildren(rows);
 		if (rows == null) return;
 
@@ -649,10 +883,12 @@ public partial class CharacterActionBar : HBoxContainer
 
 		// Dodge: the pool against the difficulty, the stamina, the odds. Greyed when it
 		// cannot succeed or cannot be paid for — paying to fail is not a choice.
-		int dodgePool = player.GetDodge();
-		int cost = CombatResolver.DodgeStaminaCost(target);
-		float chance = DodgeChance(dodgePool, move.dodgeDifficulty);
-		bool possible = dodgePool >= move.dodgeDifficulty && target.CanSpend(cost);
+		int dodgePool = CombatResolver.DodgePool(target, attacker);
+		int cost = CombatResolver.DodgeStaminaCost(target, attacker);
+		// Wolf Ring: the dice are already rolled, so the odds are what they came up.
+		int icons = CombatPresenter.Icons(peek);
+		float chance = peek != null ? (icons >= move.dodgeDifficulty ? 1f : 0f) : DodgeChance(dodgePool, move.dodgeDifficulty);
+		bool possible = chance > 0f && dodgePool >= move.dodgeDifficulty && target.CanSpend(cost) && CombatResolver.CanDodge(target);
 
 		Button dodge = Row(false);
 		dodge.Disabled = !possible;
@@ -663,7 +899,8 @@ public partial class CharacterActionBar : HBoxContainer
 		dodgeColumns[1].AddChild(DiceChip.Create(DiceUtility.DICE_TYPE.DODGE, dodgePool, ChipSize));
 		dodgeColumns[1].AddChild(Badge(move.dodgeDifficulty.ToString(), possible ? gold : muted));
 		dodgeColumns[2].AddChild(CubeRow.Stamina(cost));
-		dodgeColumns[2].AddChild(Text($"{Mathf.RoundToInt(chance * 100f)}%", 16, possible ? parchment : muted));
+		if (peek != null) dodgeColumns[2].AddChild(Badge(icons.ToString(), possible ? dodgeColour : attackColour));
+		else dodgeColumns[2].AddChild(Text($"{Mathf.RoundToInt(chance * 100f)}%", 16, possible ? parchment : muted));
 		if (!possible) dodgeContent.Modulate = new Color(0.5f, 0.5f, 0.5f, 1f);
 		dodge.Pressed += () => EmitSignal(SignalName.ReactionResolved, true);
 		// A failed dodge still blocks with the armour's dice (V2), so that is what can land.

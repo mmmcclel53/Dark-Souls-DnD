@@ -12,6 +12,15 @@ public static class TokenMotion
 {
 	public const float STEP_SECONDS = 0.32f;
 	private const float LIFT = 1.14f;
+	// A heavy piece is not picked up so much as dragged: its own steps take longer and
+	// barely lift. Weight is presence over normal, 0 for a normal token and 1 from ×2.5.
+	private const float HEAVY_LIFT = 1.04f;
+	private const float SLOW_PER_PRESENCE = 0.35f;
+
+	public static float Weight(Node2D wrapper) => Mathf.Clamp((EncounterManager.Presence(wrapper) - 1f) / 1.5f, 0f, 1f);
+
+	public static float StepSeconds(Node2D wrapper) =>
+		STEP_SECONDS * (1f + SLOW_PER_PRESENCE * (EncounterManager.Presence(wrapper) - 1f));
 
 	private static readonly Dictionary<Control, Tween> travelling = new Dictionary<Control, Tween>();
 	private static readonly Dictionary<Control, Tween> lifting = new Dictionary<Control, Tween>();
@@ -32,24 +41,34 @@ public static class TokenMotion
 		Vector2 delta = wrapper.GetGlobalTransform().AffineInverse().BasisXform(fromGlobal - wrapper.GlobalPosition);
 		if (delta.Length() < 0.01f) return;
 
+		// The mover takes its own pace; anyone re-packed around it slides at the normal one.
+		float seconds = lift ? StepSeconds(wrapper) : STEP_SECONDS;
 		button.Position = delta;
 		Tween tween = button.CreateTween();
-		tween.TweenProperty(button, "position", Vector2.Zero, STEP_SECONDS)
+		tween.TweenProperty(button, "position", Vector2.Zero, seconds)
 			.SetTrans(stumble ? Tween.TransitionType.Back : Tween.TransitionType.Cubic)
 			.SetEase(stumble ? Tween.EaseType.Out : Tween.EaseType.InOut);
 		travelling[button] = tween;
 		tween.Finished += () => travelling.Remove(button);
 
-		if (lift) Lift(button, STEP_SECONDS);
+		if (lift) Lift(button, seconds, LiftFor(wrapper));
 	}
 
 	// A step across a node the token does not stop on: the wrapper itself travels, so
 	// nothing on the way is re-packed. Both ends are recomputed from their nodes each
-	// frame, so a zoom mid-step does not throw it off.
-	public static async Task Travel(Node2D wrapper, GameNode to, Vector2 localTarget) {
+	// frame, so a zoom mid-step does not throw it off. It travels at the size it has alone,
+	// centred, so a big enemy squeezed onto a crowded node grows back as it walks off.
+	public static async Task Travel(Node2D wrapper, GameNode to) {
 		if (wrapper == null || !GodotObject.IsInstanceValid(wrapper) || to == null) return;
 		if (wrapper.GetParent() is not Control from) return;
 		Vector2 fromLocal = wrapper.Position;
+		float nodeSize = to.Size.X;
+		float scale = nodeSize / (EncounterManager.TOKEN_ART_SIZE * 2f) * EncounterManager.Presence(wrapper);
+		Vector2 localTarget = Vector2.One * (nodeSize - EncounterManager.TOKEN_ART_SIZE * scale) * 0.5f;
+		float seconds = StepSeconds(wrapper);
+		if (!Mathf.IsEqualApprox(wrapper.Scale.X, scale)) {
+			wrapper.CreateTween().TweenProperty(wrapper, "scale", new Vector2(scale, scale), seconds);
+		}
 
 		Tween tween = wrapper.CreateTween();
 		tween.TweenMethod(Callable.From<float>(t => {
@@ -57,10 +76,10 @@ public static class TokenMotion
 			Vector2 a = from.GetGlobalTransform() * fromLocal;
 			Vector2 b = to.GetGlobalTransform() * localTarget;
 			wrapper.GlobalPosition = a.Lerp(b, t);
-		}), 0f, 1f, STEP_SECONDS).SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.InOut);
+		}), 0f, 1f, seconds).SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.InOut);
 
 		Control button = wrapper.GetChildOrNull<Control>(0);
-		if (button != null) Lift(button, STEP_SECONDS);
+		if (button != null) Lift(button, seconds, LiftFor(wrapper));
 		await ToSignal(tween);
 	}
 
@@ -79,13 +98,15 @@ public static class TokenMotion
 		running.Remove(button);
 	}
 
+	private static float LiftFor(Node2D wrapper) => Mathf.Lerp(LIFT, HEAVY_LIFT, Weight(wrapper));
+
 	// Up on the way out, down on the way in, about the token's centre.
-	private static void Lift(Control button, float seconds) {
+	private static void Lift(Control button, float seconds, float height) {
 		Stop(lifting, button);
 		button.PivotOffset = button.Size * 0.5f;
 		button.Scale = Vector2.One;
 		Tween tween = button.CreateTween();
-		tween.TweenProperty(button, "scale", new Vector2(LIFT, LIFT), seconds * 0.5f).SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.Out);
+		tween.TweenProperty(button, "scale", new Vector2(height, height), seconds * 0.5f).SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.Out);
 		tween.TweenProperty(button, "scale", Vector2.One, seconds * 0.5f).SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.In);
 		lifting[button] = tween;
 		tween.Finished += () => lifting.Remove(button);

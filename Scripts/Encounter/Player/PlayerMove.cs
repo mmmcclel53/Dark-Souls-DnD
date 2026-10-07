@@ -37,6 +37,27 @@ public partial class PlayerMove : Resource {
     public int ShiftAfter => Mathf.Min(shiftAfter, bonusMovement);
     public int Uses => Mathf.Max(1, repeat);
 
+    public EquipmentEffect Effect(EquipmentEffect.EffectType type) {
+        if (bonusEffects == null) return null;
+        foreach (EquipmentEffect e in bonusEffects) if (e != null && e.type == type) return e;
+        return null;
+    }
+
+    public bool HasEffect(EquipmentEffect.EffectType type) => Effect(type) != null;
+
+    // An option that heals, refreshes, shields or empowers instead of attacking: no dice and
+    // nothing to inflict, only effects on characters (Heal, Replenishment, Magic Barrier,
+    // Great Magic Weapon). It picks characters, not an enemy.
+    public bool IsSupport => (damage == null || damage.Count == 0) && modifier == 0
+        && statusEffect == EncounterManager.StatusEffect.NONE && !isPush && bonusEffects != null && bonusEffects.Count > 0
+        && !HasEffect(EquipmentEffect.EffectType.DIRECT_DAMAGE) && bonusMovement == 0;
+
+    // Rapport: no roll, the chosen enemy simply suffers the damage.
+    public bool IsDirectDamage => HasEffect(EquipmentEffect.EffectType.DIRECT_DAMAGE);
+
+    // Nodes a Push moves the model: "Push x2" is a Push effect of 2.
+    public int PushNodes => !isPush ? 0 : Mathf.Max(1, Effect(EquipmentEffect.EffectType.PUSH)?.magnitude ?? 1);
+
     // An option that is only a Shift (Carthus Curved Sword's, Lucerne's): nothing to roll or
     // inflict, so it moves and never asks for a target.
     public bool IsMovementOnly => bonusMovement > 0 && (damage == null || damage.Count == 0) && modifier == 0

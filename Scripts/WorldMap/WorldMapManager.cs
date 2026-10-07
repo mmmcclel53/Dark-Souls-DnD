@@ -21,6 +21,7 @@ public static class WorldMapManager {
 	public static bool HasPendingEncounter => !string.IsNullOrEmpty(PendingEncounterNodeId);
 
 	private static HashSet<string> clearedNodes = new HashSet<string>();
+	private static Dictionary<string, EncounterPlan> plans = new Dictionary<string, EncounterPlan>();
 	private static string loadedCampaignFile = "";
 
 	public static void Reset() {
@@ -29,6 +30,7 @@ public static class WorldMapManager {
 		LastBonfireId = "";
 		PendingEncounterNodeId = "";
 		clearedNodes.Clear();
+		plans.Clear();
 		loadedCampaignFile = "";
 	}
 
@@ -55,9 +57,37 @@ public static class WorldMapManager {
 		if (MapData.GetNode(LastBonfireId) == null)
 			LastBonfireId = CurrentNodeId;
 
+		bool rolled = LoadPlans(save);
 		WriteToSave();
+		// Straight to disk, so quitting before the next rest cannot re-roll them.
+		if (rolled && save != null && CampaignManager.SaveSlot > 0)
+			save.SaveToSlot(CampaignManager.SaveSlot);
 		return true;
 	}
+
+	// Plans come from the save. Any encounter without one (a new campaign, or a save from
+	// before encounters were fixed) is rolled now and kept from then on.
+	private static bool LoadPlans(SaveGame save) {
+		plans.Clear();
+		foreach (EncounterPlan plan in save?.encounterPlans ?? new EncounterPlan[0]) {
+			if (plan != null && MapData.GetNode(plan.worldNode) != null) plans[plan.worldNode] = plan;
+		}
+
+		var rng = new RandomNumberGenerator();
+		rng.Randomize();
+		bool rolled = false;
+		foreach (WorldNodeData node in MapData.nodes) {
+			if (node.encounterType != WorldEncounterType.ENCOUNTER || plans.ContainsKey(node.id)) continue;
+			plans[node.id] = EncounterGenerator.Roll(node, rng);
+			rolled = true;
+		}
+		return rolled;
+	}
+
+	public static EncounterPlan GetPlan(string nodeId) =>
+		!string.IsNullOrEmpty(nodeId) && plans.TryGetValue(nodeId, out var plan) ? plan : null;
+
+	public static EncounterPlan GetPendingPlan() => GetPlan(PendingEncounterNodeId);
 
 	public static bool IsCleared(string nodeId) => clearedNodes.Contains(nodeId);
 
@@ -121,6 +151,7 @@ public static class WorldMapManager {
 		save.worldCurrentNode = CurrentNodeId;
 		save.worldLastBonfire = LastBonfireId;
 		save.worldClearedNodes = clearedNodes.ToArray();
+		save.encounterPlans = plans.Values.ToArray();
 	}
 
 	public static string[] ListCampaignFiles() {

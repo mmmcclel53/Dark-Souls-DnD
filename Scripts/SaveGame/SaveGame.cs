@@ -21,6 +21,8 @@ public partial class SaveGame : Resource
     [Export] public string worldCurrentNode = "";
     [Export] public string worldLastBonfire = "";
     [Export] public string[] worldClearedNodes = new string[0];
+    // Every encounter on the map, rolled once (EncounterGenerator) so a re-fight is the same fight.
+    [Export] public EncounterPlan[] encounterPlans = new EncounterPlan[0];
 
     // Souls (p19). The cache is the party's shared pool. On a wipe it is dropped on the
     // node where the character died and has to be walked back to; a second death before

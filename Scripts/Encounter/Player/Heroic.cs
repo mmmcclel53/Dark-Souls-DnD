@@ -63,6 +63,8 @@ public static class Heroic
 
 	private static Dice blackDie;
 	private static Dice blueDie;
+	private static Dice orangeDie;
 	public static Dice BlackDie => blackDie ??= GD.Load<Dice>("res://Resources/Prefabs/Dice/Black Dice.tres");
 	public static Dice BlueDie => blueDie ??= GD.Load<Dice>("res://Resources/Prefabs/Dice/Blue Dice.tres");
+	public static Dice OrangeDie => orangeDie ??= GD.Load<Dice>("res://Resources/Prefabs/Dice/Orange Dice.tres");
 }

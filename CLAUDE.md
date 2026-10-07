@@ -26,7 +26,7 @@ Scripts/
     NearestMarker.cs       — Decides which character wears the Nearest marker (hover / spotlight)
     GameNode.cs            — Individual grid tile; flags for entrance/enemy-spawn/disabled
     HUD/
-      EquipmentCross.cs    — The DS-style equipment cross floating left of the action bar
+      EquipmentCross.cs    — The DS-style equipment cross floating left of the action bar; the backup slot is a carousel
       EquipmentSlot.cs     — One slot of it: fixed crop of the printed card, glow, spent veil
       CircleAvatar.cs      — Face in a gold ring with damage rising as a red fill (shader)
       RollReveal.cs        — Centre-screen modal: dice tumble, land, then the arithmetic; click to continue
@@ -48,7 +48,7 @@ Scripts/
       EnemyMovement.cs     — Turns a Move icon into a node list (towards/away, distance, push)
       EnemyData.cs         — Per-enemy data card as a Resource (stats + moves + art)
       EnemyMove.cs         — Enemy action definition (direction, damage, flags)
-      EnemyCardViewer.cs   — Full-size printed card over everything, opened from the activation bar
+      EnemyCardViewer.cs   — Full-size printed card beside the board while a face in the activation bar is hovered
       Pathfinding/
         Pathfinding.cs     — A* algorithm (static)
         PathGrid.cs        — Grid wrapper used by pathfinding
@@ -74,6 +74,8 @@ Scripts/
     Equipment.cs           — Interface: name, image, type, rarity, stat reqs
     Weapon.cs              — Weapon resource (attacks, defense dice, upgrade slots)
     Armour.cs              — Armour resource (defense dice, upgrade slots)
+    Ring.cs                — Ring resource: an armour upgrade naming its one effect (Tools/onboard_rings.py)
+    Gem.cs                 — Gem resource: a weapon upgrade naming its effect (Tools/onboard_gems.py)
     Dice/
       Dice.cs              — Dice definition (type, possible values)
       DiceUtility.cs       — Roll helper
@@ -107,6 +109,10 @@ Scripts/
   SaveGame/
     SaveGame.cs            — Campaign save data resource
   SoulCache.cs             — Party soul pool + the pile a wipe leaves behind
+  WorldMap/
+    EncounterGenerator.cs  — Rolls each map encounter once: health band per level, terrain family, tiers, spawn nodes
+    EncounterPlan.cs       — One fixed encounter as saved: tile + its EncounterSpawns; Toughest for the map icon
+    EncounterSpawn.cs      — One enemy of a plan: EnemyData path, tier, spawn slot
 ```
 
 ## Board Game Rules Reference
@@ -144,9 +150,7 @@ Concrete numbers and rules confirmed while analysing the equipment `.tres` data.
 - **Action economy** (p22): a character makes up to **one attack with each weapon in a hand slot** — so two one-handers means two attacks in an activation, and a two-hander means one. Movement is one block, before or after the attacking.
 - **Stamina is recovered capacity, not a pool**: there is no stamina number. What a character can spend is whatever the endurance bar still has uncovered, so an undamaged character with a clean bar can spend up to 10 in a single activation. The +2 at activation start *removes black cubes*, so it is a recovery rate, not income to bank. Burst is available immediately; the +2 governs only the long-run average, so sustained damage ≈ `attackDamage × min(1, 2/cost)` while a one-off spike can far exceed it.
 - **Stamina and damage compete for the same boxes**: every point spent is a box that can no longer absorb a hit, and spending competes with running and dodging. Spending your bar full does not kill you, but it leaves no room, so the next point of damage does (see Death above).
-- **Upgrade slots** (`upgradeSlots`):
-  - *Weapon slot* — each grants **+1 damage OR +1 black die** (avg 1.167) to the weapon's attacks.
-  - *Armour slot* — each grants **+1 stamina OR +1 health at the start of every activation** (persistent regen; stamina slots effectively raise the +2 income).
+- **Upgrade slots** (`upgradeSlots`) hold upgrade **cards** (p12): rings on armour, gems on weapons. Each card has its own effect. An early guess here that a slot itself gave "+1 damage or +1 black die" / "+1 stamina or +1 health" was wrong and is not implemented. Both are done: see Rings and Gems.
 - **Status effects** (`EncounterManager.StatusEffect` = `BLEED=0, POISON=1, FROST=2, STAGGER=3, NONE=4`):
   - Applied to **any model hit by an attack carrying a condition icon** — enemies inflict them on characters just as weapons inflict them on enemies. Auto-applied on **any** hit, regardless of whether damage gets past Block/Resist. **No immunity.**
   - A model can carry multiple *different* conditions at once, but a single condition does **not** stack (no double BLEED).
@@ -165,6 +169,8 @@ States: `INACTIVE`, `PICK_ENTRANCE`, `ENEMY_MOVE`, `CHARACTER_TURN`, `ENCOUNTER_
 `action` is a one-shot command; `EncounterManager.phase` is the sticky companion holding the current phase, alongside `activeEnemyIndex`, `activeCharacterIndex` and `round`. The HUD reads those; only `ActionListener` writes them.
 
 `_Process` reads `action`, **clears it to `INACTIVE` before dispatching**, then acts. That ordering matters: an activation with nothing to do finishes synchronously and queues the next step from inside the handler, and clearing afterwards would stamp `INACTIVE` back over it and hang the loop.
+
+**Placement and order (p19).** During `PICK_ENTRANCE` the selected character goes on the next entrance clicked: the first in the party, then the next unplaced, and a portrait click picks someone else. The order they are placed in is the activation order for this encounter, since `EncounterManager.players` is filled in that order and `activeCharacterIndex` starts at 0. Whoever is placed first led the way in and takes the Aggro token at once, so the first enemy phase has a holder. The order is chosen afresh every encounter (Matt's call), so the book's First Activation token is deliberately not implemented.
 
 Rules p19: every enemy activates in threat order, then exactly one character. Enemy movement is an awaited walk (`Enemy.Walk`, one eased step per node) rather than something that returns at once, so the loop is driven by the `Enemy.ActivationFinished` signal rather than running straight through. `Enemy.ProcessNextMove` skips any behaviour it cannot execute rather than stalling, so an activation always terminates and the signal always arrives. The character phase then waits on the action bar's End Turn button (`CharacterActionBar.EndActivationPressed`).
 
@@ -323,7 +329,7 @@ Each character has three tokens on their board: **Estus Flask**, **Heroic Action
 
 ### Test Bench
 Running `Encounter.tscn` on its own (no campaign party) uses its `demoParty` and `enemies`, and starting gear skips the stat check there. Both are set up to test dodge and push:
-- **Party: `Tester`** (`Resources/Prefabs/Player/Tester/Tester.tres`), not a real class. ⚠️ **Currently swapped to test Shift and Repeat:** **Dancer's Enchanted Swords** (two-handed, Shift 1 before the dice, x2) in the hands and Force in backup. The dodge/push loadout it is described with below is Force + Target Shield in the hands and the Estoc in backup. An Assassin holding **Force** (option 1: 0 stamina, range 2, no dice, Push, so it shows a 0-damage hit still pushes) and the **Target Shield**, with the **Estoc** in backup and **Assassin Armour**. That gives 2 dodge dice (armour + shield), 1 black die Block/Resist on the armour for the V2 failed-dodge roll, and Backstab. No class can equip a Push weapon at starting stats (Force needs Intelligence 12; the best start is 11), which is why this exists.
+- **Party: `Tester`** (`Resources/Prefabs/Player/Tester/Tester.tres`), not a real class. ⚠️ **Currently swapped to test Shift, Repeat and the backup swap:** **Dancer's Enchanted Swords** (two-handed, Shift 1 before the dice, x2) in the hands, and **Force** and the **Estoc** in backup (via `Character.extraBackupDefaults`), so the carousel has two weapons and a two-hander can be swapped both ways. The dodge/push loadout it is described with below is Force + Target Shield in the hands and the Estoc in backup. An Assassin holding **Force** (option 1: 0 stamina, range 2, no dice, Push, so it shows a 0-damage hit still pushes) and the **Target Shield**, with the **Estoc** in backup and **Assassin Armour**. That gives 2 dodge dice (armour + shield), 1 black die Block/Resist on the armour for the V2 failed-dodge roll, and Backstab. No class can equip a Push weapon at starting stats (Force needs Intelligence 12; the best start is 11), which is why this exists.
 - **Enemies:** **Skeleton Soldier** (Move 1 with Push for 2, dodge difficulty 1, 1 health: movement push and dodging it), **Silver Knight Swordsman** (Move 2, then a 5-damage Push attack at range 0, dodge difficulty 2: attack push and failed dodges), **Sentinel** (Move with Push for 0 damage, 10 health: starting-node push).
 
 To go back to a normal standalone run, set `demoParty` to a real class (it was the Knight) and `enemies` back to two Hollow Soldiers.
@@ -352,7 +358,7 @@ Each entry carries what the token used to: a 3:4 portrait cropped from the card 
 
 `TurnQueue` is still a pure mirror of the turn loop, but the entries **poll** their enemy: health and conditions change from attacks, pushes and poison ticking at end of activation, and a missed push-refresh would leave a dead enemy looking healthy.
 
-End Turn lives on `CharacterActionBar`, not here, so the bar stays free of controls. Clicking a face opens `EnemyCardViewer` (a `CanvasLayer` at 15 inside `TurnQueue.tscn`, above the portrait pane) with the full printed card; any click or Escape closes it. There is no written-out inspect dialog any more; the card is the only enemy readout.
+End Turn lives on `CharacterActionBar`, not here, so the bar stays free of controls. **Hovering** a face (Matt, Oct 2026; it used to be a click) shows `EnemyCardViewer` (a `CanvasLayer` at 15 inside `TurnQueue.tscn`) with the full printed card in the right-hand 30% of the screen, beside the board. It also puts a steady pale-gold `TokenHighlight` (`pulseSpeed = 0`, so it never reads as a target's pulsing red) on that enemy's board token, and shows its Nearest marker as before. The viewer takes no input and dims nothing, or it would steal the hover and hide the ringed token. Hovering the enemy's token on the board shows the card too (`EnemyCardViewer.current`, since tokens hold no reference to the bar; `Enemy._ExitTree` closes it if one dies under the cursor). Leaving the face closes it, and so does the entry leaving the tree (`TurnQueueEntry._ExitTree`), because the bar rebuilds freely and a freed face never reports the mouse leaving. There is no written-out inspect dialog any more; the card is the only enemy readout.
 
 ### Party Pane
 The pane is now a small BG3-style strip (60×80 portraits, 68×90 when active): the active character's full readout lives on the action bar, so the strip only says who is in the party, how hurt they are and whose turn it is. `BoardCamera`'s insets in `Encounter.tscn` shrank with it.
@@ -394,6 +400,18 @@ The 7×7 grid is a square lattice **turned 45°**: grid `(x, y)` sits `(x + y) -
 
 Measured against the art (which the scene draws `flip_h`), a lattice step is **0.12162** of the board square and the lattice centre is **(0.49396, 0.49601)**. Each `GameNode` is anchored to those fractions with a box one step wide, so the engine keeps the grid on the printed circles at any window size; the highlight `TextureButton` inside is inset to 14% so the marker reads smaller than the cell, and needs `ignore_texture_size` or the 36px sprite sets a floor on how small a node can get.
 
+**Presence** (Matt, Oct 2026): a beefier enemy stands larger. Its size is tiered health ^ 0.3 times a normal half-node token (`Enemy.Presence`, `PRESENCE_EXPONENT`): ×1.6 at 5 health, ×2 at 10, ×2.5 at 20, ×3 at 40. It is capped at ×4 (`MAX_PRESENCE`), a disc two lattice steps across. That cap is set by the bosses to come: neighbouring nodes sit √2 steps away, so even a capped token clears their circles. `Presence` reads the card and tier, not `maxHealth`, because the token is scaled before `_Ready`.
+
+`FixPositioning` owns every model's position **and** scale. Below ×3 (`OVERLAP_PRESENCE`) nothing overlaps (Matt). Each model gets the diamond of points nearer its node than any neighbour, one node width from the centre each way. `Pack` lays the models out by their real sizes (in a triangle, a triangle with the big one at the front, or a row with it in the middle) and keeps whichever needs least shrinking. When they cannot fit, all of them shrink together, so a big enemy is at full size whenever it stands alone. With equal tokens the triangle is the old quarters layout. From ×3 up (bosses), the boss takes the middle at full size and the others stand along its front edge, over it. That overlap is deliberate, for the boss-arc mechanic to come. The biggest model is drawn first.
+
+`Enemy._HasPoint` is the art's disc, because a big token's square corners lie over the neighbouring nodes and would steal their clicks (`OnClick` passes a click to the enemy's *own* node). The generator gives each 8+ health enemy (`BIG_PRESENCE` 1.8) a spawn node of its own while nodes are spare. On the world map the toughest enemy's disc grows the same way, compressed to radius 20–28.
+
+**Looming** (from ×1.5, i.e. 5 health), all scaled by `TokenMotion.Weight` (0 at ×1, 1 from ×2.5):
+- **Shadow** (`LoomingShadow`): a child of the enemy's button with `ShowBehindParent`, so it travels, leans, hides and frees with the token. It is a dark violet-black pool and a fog of soft puffs that well up from under the token's edge, drift outwards, swell and thin away, each on its own slow cycle (Matt preferred fog to the first version's tendrils). The token's printed rim covers its inner part, so everything has to reach well past `r` to be seen.
+- **Heavy walk** (`TokenMotion.StepSeconds`): a heavy enemy's own steps take up to 0.35 × (presence − 1) longer and barely lift (`HEAVY_LIFT`); models re-packed around it keep the normal pace. `Travel` walks at the enemy's alone size, centred, so one squeezed onto a crowded node grows back as it walks off.
+- **Footfalls** (`Footfall.Land`, after each walk step and a leap): a squashed dust ring and motes, plus a board jolt of 1–3.5px.
+- **Heavy blows**: `ScreenPunch.Hit(damage, presence)` jolts harder and longer by the attacker's size. From ×2 even a 1–2 damage hit punches (`PlayerToken.HEAVY_BLOW_PRESENCE`). The token shake on impact grows by √presence. The attacker's presence reaches `PlayerToken.ApplyDamage` through `CombatResolver.Apply(…, attackerPresence)`.
+
 The square board `BoardCamera` fits is what makes those fractions safe — without a square board the lattice would shear. The models on the nodes are **not** anchored, so `PathGrid.RescaleModels` re-scales them (via `EncounterManager.ScaleToken`, half a node each) and re-packs them on every resize.
 
 **Zoom and pan** live on `Board View` (`BoardCamera`), a clipping `Control` covering the whole Stage under the title bar, with the `Encounter` node inside it. At rest the board is a square fitted into the *safe rect* — the space between the Turn Queue, the Action Bar and the two side insets — so no HUD covers it. `BoardCamera` sets the board's `Size`, `Scale` and `Position` itself (the `Encounter` node is not anchored), which leaves the grid's fractions, `RescaleModels` and clicks unaffected. Zoom runs 1×–3× about the cursor and the board then runs under the HUD like the world map; the pan is clamped so some of the board always stays under the centre of the safe rect. Left-drag pans only when it starts off a button, so node and token clicks keep working; right/middle-drag pan from anywhere; `R` or the title bar's Reset View resets. Anything that moves a model in global space must go through the node's transform (`node.GetGlobalTransform() * localPoint`) — adding a local offset to a `GlobalPosition` is wrong once the board is scaled, which is what the enemy's old frame-by-frame walk used to do. `TokenMotion.Travel` recomputes both ends from their nodes every frame for that reason. `ActionListener` extends `Control` (it sits on one) so it can be the camera's target.
@@ -413,7 +431,88 @@ The Action Bar is an `HBoxContainer`: a `Cross Anchor` (IGNORE, sized to the cro
 A* is implemented in `Pathfinding.cs` using `Heap<PathNode>` for the open set. `PathGrid` (a Node in the scene) initializes the walkability grid from `GameNode.isDisabled` flags. Known issue: `openSet.UpdateItem` is commented out, which can produce suboptimal paths when a node's cost improves mid-search.
 
 ### Equipment System
-`Equipment` is a C# interface with shared properties. `Weapon` and `Armour` are `[GlobalClass]` Resources implementing it. `PlayerMove` defines individual attack options within a weapon (stamina cost, dice array, range, flags). Characters can hold: 1 armour, 2 hand slots, 1 backup slot.
+`Equipment` is a C# interface with shared properties. `Weapon` and `Armour` are `[GlobalClass]` Resources implementing it. `PlayerMove` defines individual attack options within a weapon (stamina cost, dice array, range, flags). Characters can hold: 1 armour, 2 hand slots, and a backup slot that holds every weapon not in a hand (p12), at most `Player.MAX_WEAPONS` (3) weapons in all.
+
+**Backup slot.** `Player.backupIds` is a list. `backupUpgradeIds` holds two per backup weapon in the same order, so upgrades travel with the weapon. The old single `backupSlotId` is only read, once, to migrate an old save into the list. `Player.shownBackup` is which one the cross and the loadout are showing: a view, not saved. `GetBackupSlot()` returns that one, so the single-slot UI kept working. Both show it as a carousel with arrows either side and dots for how many. The loadout's carousel has one more stop, an empty place to add a weapon while there is room. Filling an empty hand is refused when the character already carries three (`EquipmentModal.SlotAccepts`).
+
+**Swap (p22).** During their own activation, until they first move or attack (`CharacterActionBar.CanSwapNow`, and not mid-Shift/Repeat), a character may click the backup slot (it and both hands light), then a hand. `Player.SwapBackupIntoHand` puts the backup weapon in that hand and what the hand held into the backup slot in its place. A two-hander coming in sends the other hand's weapon to backup, and filling the spare hand of a held two-hander puts the two-hander away (p12). The weapon count never changes. An armed attack is dropped, since its weapon may have gone.
+
+### Rings
+The 16 rings (Matt typed out 18 from the cards, Oct 2026; two were cut, below) are `Ring` resources under `Resources/Prefabs/Equipment/Rings/<Name>/`, written with their card art by `Tools/onboard_rings.py`, which holds the list and the requirements. Covetous Gold Serpent Ring, Life Ring and Binoculars are deliberately left out, and so are **Bellowing Dragoncrest** and **Great Swamp**, which only ever helped the Sorcerer's and Pyromancer's Heroic Actions (Matt: no class-specific rings). Matt moved all five cards' art to a "not implemented" folder; the two cut rings' `Ring.Effect` values stay in the enum, marked unused, so no saved ordinal shifts. A ring is worn in an armour upgrade slot (`Player.armourUpgradeIds`); `Player.GetRings()` only counts the slots the armour actually has. Equipping needs the ring's own stat requirements (the inventory greys it out otherwise). Each ring names one `Ring.Effect` (an ordinal in the `.tres`, so only append), and the code it changes asks `Player.HasRing` / `RingCount` right there:
+
+| Ring | Where | Notes |
+|---|---|---|
+| Blue Tearstone | `CombatResolver.Apply(…, PlayerToken)` | 1 stamina after an enemy attack actually deals damage (not Poison) |
+| Carthus Milkring | `CombatResolver.DodgeStaminaCost` | dodging costs 0, Frostbite included |
+| Chloranthy | `PlayerToken.StartGain` | 4 instead of 2 at activation start, for the wearer and anyone on their node (Matt: replaces the 2) |
+| Covetous Silver Serpent | `ActionListener` win payout | +1 soul per ring worn; boss wins still pay nothing |
+| Dark Wood Grain | `CharacterTurn.OfferDodgeStep` | the dodge step may be 2 nodes for its 1 stamina (Matt) |
+| Divine Blessing | action bar, beside the tokens | once per rest, in the wearer's activation: all damage and conditions off. Spent like a token (`Player.divineBlessingUsed`, refreshed by `RefreshTokens` on a rest) and shown darkened; the card was edited to say "once per rest, use this card to" in place of "permanently discard", and its Faith requirement raised from 22 to 30 (Matt) |
+| Dusk Crown | `AttackTerms.For` | magic attacks cost 2 less; 1 self-damage once per attack (`PlayerToken.SufferOwnDamage`, which cannot kill: only enemy attacks and conditions do) |
+| Hornet | `AttackTerms.For` | +1 orange die and −2 on every attack, Backstab included |
+| Knight Slayer's | `CharacterTurn.KnightSlayer` | 1 stamina when the roll beats Block/Resist by 3+; once per attack, even on a Node attack |
+| Magic Stoneplate | `Player.AddRingDefence` | +1 black die to Resist, in the armour-only (failed dodge) roll too |
+| Obscuring | `CombatResolver.DodgePool` | +2 dodge dice against an attacker 2+ nodes away (range distance) |
+| Red Tearstone | `AttackTerms.For` | +1 damage while 4+ damage is on the bar |
+| Ring of Favour | `PlayerToken.EndActivation` | 1 stamina when 2+ attack rolls were made in the activation (`attackRolls`: each Repeat roll counts, a Node attack is one, Luck is not a new roll, Backstab is outside it) |
+| Sun Princess | `PlayerToken.EndActivation` | 1 health at the end of the activation, before Poison ticks |
+| Tiny Being's | `CharacterTurn.Begin` → `CharacterActionBar.AskStartGain` | with damage on the bar, the start gain waits (`pendingStartGain`) on a choice: all stamina, or one of it as health (Matt: asked each activation) |
+| Wolf | `Enemy.Strike` → `DodgePrompt.Ask(peek)` | the dodge dice are rolled before Block/Dodge is asked; the Dodge row shows the icons, Dodge is greyed if they fall short, and choosing it uses that same roll (Matt: peek, then choose) |
+
+**Rarity** (Claude's ranking, agreed with Matt, Oct 2026; in `onboard_rings.py` / `onboard_gems.py`). Rings: Legendary Chloranthy, Wolf, Divine Blessing; Epic Carthus Milkring, Sun Princess; Rare Dusk Crown, Obscuring; Uncommon Blue Tearstone, Knight Slayer's, Ring of Favour, Covetous Silver Serpent, Magic Stoneplate; Common Red Tearstone, Tiny Being's, Hornet, Dark Wood Grain. Gems: Epic Titanite Scale, Faron Flashsword, Blue Titanite; Rare Simple, Raw, Carthus Flame Arc, Crystal Magic Weapon; Uncommon Blood, Blessed, Crystal, Heavy, Sharp; Common Titanite Shard, Lightning, Hollow, Poison. Rarity only drives the frame colour and the inventory filter until treasure exists. The tiers run Common → Uncommon → Rare → Epic → Legendary: Epic and Legendary swapped names (Matt, Oct 2026), not ordinals, so every saved item kept its tier.
+
+The ring bonus on an attack is `AttackTerms.bonus`, added to the roll and shown in the row's modifier and in the roll reveal; the rings' dice are `AttackTerms.extraDice` as before. A ring shown on the bar (Divine Blessing, the Tiny Being choice) uses its card art cut to a disc (`CharacterActionBar.RING_ART`, `PlayerToken.AggroMask`).
+
+### Gems
+The 16 gems Matt typed out (Oct 2026) are `Gem` resources (rarities under Rings) under `Resources/Prefabs/Equipment/Gems/<Name>/`, written with their card art by `Tools/onboard_gems.py`. A gem sits in a weapon's upgrade slot (`leftHandUpgradeIds` / `rightHandUpgradeIds`, two per weapon in backup), moves with its weapon on a swap, and only counts on a **held** weapon and only up to its `upgradeSlots` (`Player.GemsOn`). Several gems share one `Gem.Effect`.
+
+All of it lives in `AttackTerms.For`, applied **first** so the Heroic boosts and rings see the attack as the gems made it. Gems with the same effect stack.
+- **+1 black die** (Blessed, Crystal, Heavy, Sharp) → `extraDice`. **+1 damage** (Titanite Shard) and **+2 damage** (Titanite Scale, `DAMAGE_TWO`) → `bonus`. Three printed values were changed by Matt (Oct 2026), so the cards were edited to match: the Scale reads **+2 damage** and needs **Str 20 / Dex 20** (it was +1 with no requirements, which made it beat every black-die gem for free), and Raw Gem costs **+1 stamina** instead of +2 (otherwise the Scale made it pointless) and needs **Str 15** (a brute's gem, for flavour more than balance). `Tools/CardEdits/edit_cards.py` does it with no computer font: each new digit is a printed one lifted from a card of the same face, size and scan resolution (Raw Gem's "2", Titanite Shard's "1", Red Tearstone Ring's "20", Great Swamp Ring's "15", Carthus Milkring's "30"; Divine Blessing's new words are its own letters), the old digit comes off over restored paper grain, and the new one sits on the old baseline in the card's own ink with its source's spacing. `onboard_gems.py` uses anything in `Tools/CardEdits/` in place of the board game folder's card, so a re-run keeps the edits.
+- **Magic** (Lightning; Blue Titanite with a black die; Carthus Flame Arc and Crystal Magic Weapon with +1 damage) → `AttackTerms.magic`. That is what rolls against Resist (`ResolveAgainstEnemy(…, magic)`), shows the magic icon on the row and the Resist badge in the reveal, casts the orb stroke, and counts as a magic attack for Spell Fury, Explosive Firepower and the Dusk Crown Ring.
+- **Faron Flashsword**: an option whose range comes out at 0 gets range 1 and is magic. Applied before Berserk Charge, which then no longer sees it as range 0.
+- **Blood / Poison** → `AttackTerms.conditions`, applied after the option's own condition and the damage (`CombatPresenter.ApplyAdded`), so a bleed attack still consumes and reapplies. Both apply when the option has its own condition (Matt).
+- **Raw**: +2 damage and +1 stamina (edited card; on top of Stagger; a 0-cost Heroic boost still zeroes it).
+- **Simple**: −1 stamina on every option tied at the weapon's highest printed cost (Matt).
+- **Hollow**: an attack that dealt 0 damage to everything it hit resets the Luck token, automatically (`CharacterTurn.AfterRoll`, beside Knight Slayer). Each Repeat roll is checked on its own.
+
+The summary panel's attack ranges (`Player.GetBestAttackPool`) do not include gems yet.
+
+### Equipment Effects
+The weapon and armour effects (`EquipmentEffect`, Oct 2026) are wired, read off the printed cards where the spreadsheet transcription was lossy. Only what is **held** counts (`Player.Passives()`: the armour and both hands, each with the item it is on).
+
+**Weapon options** (`PlayerMove.bonusEffects`):
+- **Support options** (`PlayerMove.IsSupport`: no dice, nothing inflicted, only effects on characters: Heal, Great Heal, Replenishment, Magic Barrier, Great Magic Weapon, Dragon Tooth's and Saint Bident's [0]...) pick characters instead of an enemy (`CharacterTurn.CastSupport` → `PickCharacters`). "Within range" is the option's or weapon's range from the caster. One / up to two characters are clicked; "all" options light everyone in range and one click casts; Great Heal's [4] picks a node; Bountiful Sunlight's [3] excludes the caster; Sunlight Straight Sword's "party bonus" reaches the whole party (Matt). A support option **is** that weapon's attack and locks movement like one (Matt). Its row or the End button (Cancel) backs out before it is paid.
+- **Riders** on an attack (`CharacterTurn.Riders`): the attacker's own heal/stamina (Smough's Hammer), Lothric's Holy Sword's stamina to a character within 1 (picked), the Mace moving the Aggro token (picked, or Skip), Vordt's Great Hammer giving its wielder Bleed. Bewitched Alonne Sword's "You lose 4 Health" (`PlayerToken.LoseHealth`) is not damage (no Bleed) but **can kill** (Matt); its row marks it with "!" when it would.
+- **Rapport** (`DIRECT_DAMAGE`): only an enemy sharing its node with another; no roll, no Block, 3 damage (`CombatPresenter.DirectDamage`). Force's "Push x2" pushes twice (`PlayerMove.PushNodes`).
+- Party defence buffs live on `Player.defenceBuffs` and are cleared when the next character activation begins. Great Magic Weapon sets `PlayerToken.magicThisActivation` / `bonusThisActivation`, read by `AttackTerms`.
+- Healing from any of a character's equipment (spells, rings, armour) goes through `PlayerToken.GearHeal`, which is where Cleric Armour's +1 lives.
+
+**Passives** (armour and held weapons): Havel's Armour (no Walk, no dodge), the four cannot-dodge items (`CombatResolver.CanDodge`), Dancer Armour (Walk 2 nodes) and Catarina Armour (Run 2 stamina) in `PlayerToken.NextStepCost`, Shadow Armour (dodge step 2 nodes), dodge costs (`CombatResolver.DodgeStaminaCost(dodger, attacker)`: Black Leather and Alonne-vs-Alonne free, Eastern 2), Dark Armour (+1 dodge die vs Hollow), Mask of the Child (3 stamina at start; Chloranthy's 4 wins), Steel Armour (+1 black Block and Resist with a ring in), Black Knight Armour (ring requirements −2, `Player.RingRequirementCut`, in the inventory's check), Xanthous Robes (magic attacks −1) and Black Iron Armour (Node attacks −1) in `AttackTerms`, Hollow Soldier Shield (+1 vs Hollow, per target in the presenter), Armour of Thorns (1 damage to an enemy in your node after a Block/Resist roll against it, `CombatPresenter.Thorns`), Lothric Knight Armour (end of activation: 1 health per enemy on your node), the three Heroic-triggered robes/armour (`PlayerToken.OnHeroicUsed`; Crimson Robes asks which condition, `CharacterTurn.CrimsonRobes`, except mid-roll for Stand Fast, where the worst goes).
+
+**Asked on the bar** (`CharacterActionBar.AskChoice`, a row per option and Skip): Sunset Shield's push of a Hollow that attacked from your node (`Enemy.SunsetShield`), Sunlight Shield taking an ally's damage on its node (the bearer suffers it; the condition stays with who was hit), Faraam Armour taking Aggro at the end of another character's activation, once per encounter (`ActionListener.OfferFaraam`, so `EndCharacterActivation` is async with a re-entry guard), Crimson Robes' choice.
+
+**Two-handers** (p12) are now enforced: the loadout refuses a second weapon beside a two-hander, and the swap stows one, except for the eight small shields that "can be equipped in one hand while you have a two-handed weapon in your other hand" (`Weapon.SitsBesideTwoHander`, from `BYPASS_TWO_HAND_CHECK`).
+
+**Enemy types**: `EnemyData.kind` (`NONE`, `HOLLOW`, `ALONNE`), by name (Matt): Hollow Soldier, Large Hollow Soldier, Hollow Crossbow, Firebomb Hollow, Phalanx Hollow; the three Alonne knights.
+
+**Data fixed from the cards** (hand edits to the `.tres`; `Tools/onboard_equipment.py` would undo them, and says so at its top): Rapport is `DIRECT_DAMAGE` 3 to `ONE_ENEMY` with no modifier; Great Heal's [4] is `ONE_NODE`; Bountiful Sunlight's [3] is the appended `ALL_OTHER_CHARACTERS`. Several stored types read oddly but are handled as their cards say: Xanthous Robes' `LOSE_STAMINA` is a cost reduction, Armour of Thorns' `BONUS_DAMAGE IF_BLOCKING` is the thorns damage, `DODGE_STAMINA_MOD` magnitude 0 means free.
+
+**Inert, waiting on systems that do not exist**: Abyss Greatsword (If Embered), Adventurer's Armour (If Trap Activated), Painting Guardian Armour (weak arc). Their tooltips say "(not in the game yet)".
+
+### Fixed Encounters
+Every world map encounter is rolled **once** and kept in the save (`SaveGame.encounterPlans`), so going back after a wipe or a rest is the same fight: the same enemies, tiers, spawn nodes and tile (Matt, Oct 2026). `WorldMapManager.EnsureLoaded` rolls any `ENCOUNTER` node without a plan and writes the save to disk straight away. A new campaign does this in `CharacterSelect` before its first save, and an old save gets its plans the first time it is loaded. Boss nodes get no plan yet.
+
+`EncounterGenerator` rules (Matt's):
+- **Level = total tiered health** (`EncounterSpawn.Health`, i.e. `Enemy.TierHealthBonus`): L1 1–5, L2 6–10, L3 11–20, L4 21–40.
+- **Tiers allowed**: L1 tier 1 only, L2 up to 2, L3 and L4 up to 3.
+- **1–6 enemies, at most 2 of one card** (tiers of the same card count together). Each pick favours a card not yet in the encounter, three to one.
+- **One family per encounter, chosen by terrain** (`EnemyData.family`, `FAMILY_BY_TERRAIN`): Grass → Darkroot, Volcano → Iron Keep (Alonne + Ironclad), Sand → Hollows, Mountain → Tomb of Giants (skeletons + Necromancer), Snow → Painted World, City → Anor Londo (Silver Knights + Sentinel). Any other terrain picks a family at random. Necromancer and Crystal Lizard are in the pool without their unimplemented abilities.
+- **Placement**: after the printed encounter cards, enemies stand together on a few of the tile's 4 spawn nodes (at most 3 each) rather than one to a node. `spawnSlot` indexes the tile's `isEnemySpawn` nodes in scene order.
+- Rejection sampling, 4000 tries; if nothing fits the band it keeps the closest roll and warns. A probe of 9,300 rolls over the demo map had no misses. A lone enemy is allowed at any level (Matt), as on some printed cards: a Large Hollow Soldier can be a Level 1 fight, a Sentinel a Level 2 one.
+
+`ActionListener.SpawnEnemies` spawns the pending plan (`WorldMapManager.GetPendingPlan`), setting `Enemy.tier` before the token enters the tree, and puts the plan's tile on `boardArt`. Only Tile 2 has its grid mapped, so every plan names `Tile 2`. The `enemies` export is only for standalone runs.
+
+On the map (`WorldMapNode.DrawEncounter`) an encounter shows its toughest enemy (`EncounterPlan.Toughest`: most tiered health, ties to higher threat). The avatar is cut to a disc, inside a rim coloured by tier (`Enemy.TierRimColour`: bronze, ember, crimson), with the level icon over the bottom of the ring. The activation bar's tier rim now uses the same colours.
 
 ### Scene Navigation
 Scenes are swapped by instantiating the next scene, adding it to root, then freeing the first child. Prefer `GetTree().ChangeSceneToPacked()` for new scene transitions — it's cleaner and avoids root-child-index assumptions.
@@ -433,12 +532,13 @@ Scenes are swapped by instantiating the next scene, adding it to root, then free
 
 - `CharacterSheet.cs`: `_Ready()` always loads the Assassin, ignoring the `[Export] character` property
 - `Pathfinding.cs`: `openSet.UpdateItem` is commented out — may produce suboptimal paths
+- Weapon and armour effects were verified by build and a runtime probe (walk/run/dodge costs, cannot-dodge, Steel Armour, Black Knight, Force's two pushes, two-hander and Buckler swaps and loadout rule, which options count as support), not yet by playing through them; the board picking, the Skip prompts (Sunset, Sunlight, Faraam, Crimson), the Mace and Rapport are untested in play
 - Shift and Repeat were verified by build, a load check of `shiftAfter` / `IsMovementOnly` and code review only, not yet by playing through them
-- Characters cannot swap backup ↔ hand slots during their activation (p22)
-- The first character activation should be the players' choice of character (p19); `activeCharacterIndex` just cycles from index 0
+- Fixed encounters were verified by build, a 9,300-roll probe of the generator, a save round trip of a plan and a screenshot of the map icons. Spawning a plan in the Encounter scene has not been played through yet
 - Boss encounters award no souls — p19's formula needs sparks, which are cut, so boss rewards need their own rule
 - Souls can be earned but never spent — treasure and levelling do not consume them
-- The First Activation token (p19) is unimplemented; `activeCharacterIndex` always starts at 0 rather than rotating between encounters
+- Rings were verified by build, an import check and a runtime probe of their terms, defence dice, dodge cost and the Red Tearstone threshold, not yet by playing through them. Gems were verified the same way (a runtime probe of Raw, Simple, Blood, Heavy, Faron and Hollow on Dancer's Enchanted Swords and of a backup weapon), not yet by playing through them. The summary panel's attack ranges ignore gems
+- Placement order, starting Aggro, the backup carousel and the swap were verified by build, a runtime check of `SwapBackupIntoHand` (one-hander and two-hander both ways) and code review only, not yet by playing through them
 - Characters are not placed on the Bonfire tile on a wipe; the result panel just returns to the Bonfire scene
 - "Push x2" (a Push effect with magnitude 2, e.g. Force's second option) still pushes one node; the row shows x2 and the tooltip says so
 - The over-full-node push (p10) auto-picks its destination; p21 gives the players that choice. Attack and movement pushes follow the V2 direction rule instead
@@ -448,6 +548,8 @@ Scenes are swapped by instantiating the next scene, adding it to root, then free
 - Only five classes have a `Character` resource (Herald, Assassin, Knight, Deprived, Cleric). Mercenary, Pyromancer, Sorcerer, Thief and Warrior have art folders but no class resource, so their Heroic Actions are coded but cannot be played until the resources exist. Set `heroicAction` on each when made
 - Heroic Actions, Estus and Luck were verified by build, a load check and code review only, not yet by playing through them
 - The dodge step, the roll reveal and its thrown cube dice, the attack stroke (`AttackSlash`), the outcome banners, the held-attack zoom, the spotlight pulse, the cursor policy and every board effect under `Fx/` were verified by build and code review only, not yet by playing through them
+- Presence, the no-overlap packing, the shadow, footfalls, heavy walk and heavy blows were verified by build and screenshots of a probe board (a ×3.4 stand-in boss, a crowded tier-3 Sentinel, singles); the walk, footfalls and blows have not been watched in play
+- **Boss backlog** (Matt, Oct 2026), for when bosses exist: a larger activation-bar portrait and a long boss health bar under the title as in the games; a boss intro banner with the name and a low vignette; the boss arcs (which side of a boss a character stands on), which the ×3+ overlap is there for
 - `WorldMapManager.ReportPartyDeath` still respawns **every** encounter including bosses, where resting spares them
 
 ### Enemy data (`Resources/Prefabs/Enemies/*/<Name>.tres`)
@@ -470,8 +572,9 @@ Godot rewrites these `.tres` files the first time it loads one, stripping every 
 default and retyping the `moves` array. That is lossless *because* `EnemyMove.statusEffect` is initialised to
 `NONE`, so a stripped value reloads as `NONE` rather than `BLEED = 0`. Keep that initialiser.
 
-Tier is still a per-instance export defaulting to 1; nothing selects it per encounter yet. That needs an
-encounter definition resource pairing an `EnemyData` with a tier and a count.
+**Tier scaling** (Matt, Oct 2026; this project's own rule). Each tier above 1 adds 1 to every attack's damage (`Enemy.TierDamageBonus`, through `CombatResolver.AttackStrength`, so every readout shows it; a 0-damage movement push stays 0) and scales health to `max(⌈health × (1 + 0.5 × (tier − 1))⌉, 2 × tier − 1)` (`Enemy.TierHealthBonus`): ×1.5 at tier 2 and ×2 at tier 3, with a floor so a 1-health enemy still grows. 1 / 5 / 10 health become 3 / 8 / 15 at tier 2 and 5 / 10 / 20 at tier 3. Block and Resist do **not** change: Block comes off every swing, so +2 turned a Sentinel into ~50 swings. Tiers are meant for later in the campaign.
+
+Tier is a per-instance export defaulting to 1. Campaign encounters set it from their saved plan (see Fixed Encounters).
 
 Two card abilities are transcribed nowhere because nothing models them yet:
 

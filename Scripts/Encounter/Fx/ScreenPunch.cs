@@ -29,11 +29,13 @@ public partial class ScreenPunch : CanvasLayer
 		AddChild(vignette);
 	}
 
-	// Damage of 3 is a punch; 5 and up is the full weight of it.
-	public void Hit(int damage) {
+	// Damage of 3 is a punch; 5 and up is the full weight of it. `presence` is the attacker's
+	// size: a big enemy's blow jolts the board harder and longer (×2.5 at the ×4 cap).
+	public void Hit(int damage, float presence = 1f) {
 		float strength = Mathf.Clamp((damage - 2f) / 3f, 0.35f, 1f);
-		FlashEdges(0.45f + 0.55f * strength);
-		BoardFx.camera?.Shake(4f + 6f * strength, shakeSeconds);
+		float heft = 1f + 0.5f * Mathf.Max(presence - 1f, 0f);
+		FlashEdges(Mathf.Min(1f, (0.45f + 0.55f * strength) * (0.85f + 0.15f * heft)));
+		BoardFx.camera?.Shake((4f + 6f * strength) * heft, shakeSeconds * (1f + 0.25f * (heft - 1f)));
 	}
 
 	// The lighter version, for the moment the dice show what is coming: edges only, no jolt.

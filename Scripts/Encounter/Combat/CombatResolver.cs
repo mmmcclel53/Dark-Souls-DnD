@@ -60,10 +60,11 @@ public static class CombatResolver
 	// ----- Resolution -----
 
 	// A character's attack against one enemy, given an already-made roll.
-	public static AttackOutcome ResolveAgainstEnemy(int attackRoll, PlayerMove move, Enemy target) {
+	// `magic` is the attack's after gems; null means the option as printed.
+	public static AttackOutcome ResolveAgainstEnemy(int attackRoll, PlayerMove move, Enemy target, bool? magic = null) {
 		int mitigation = move.isIgnoreDefense
 			? 0
-			: (move.isMagic ? target.magicalDefense : target.physicalDefense);
+			: ((magic ?? move.isMagic) ? target.magicalDefense : target.physicalDefense);
 
 		int damage = Mathf.Max(0, attackRoll - mitigation);
 		return new AttackOutcome(attackRoll, mitigation, damage, true, move.statusEffect);
@@ -76,9 +77,13 @@ public static class CombatResolver
 		return new AttackOutcome(strength, defenceRoll, damage, true, move.statusEffect);
 	}
 
-	// Stagger on the attacker knocks 1 off its attack damage values (p21).
+	// The attacker's tier adds to its attack damage values; Stagger knocks 1 off them (p21).
+	// A 0-damage movement push stays harmless at any tier.
 	public static int AttackStrength(EnemyMove move, Enemy attacker) {
 		int strength = move.damage;
+		if (attacker != null && strength > 0) {
+			strength += attacker.TierDamageBonus;
+		}
 		if (attacker != null && attacker.HasCondition(EncounterManager.StatusEffect.STAGGER)) {
 			strength = Mathf.Max(0, strength - 1);
 		}
@@ -119,10 +124,37 @@ public static class CombatResolver
 		target.ApplyCondition(outcome.condition);
 	}
 
-	public static void Apply(AttackOutcome outcome, PlayerToken target) {
+	public static void Apply(AttackOutcome outcome, PlayerToken target, float attackerPresence = 1f) {
 		if (!outcome.hit || !GodotObject.IsInstanceValid(target)) return;
-		if (outcome.damage > 0) target.ApplyDamage(outcome.damage);
+		int before = target.player.endurance.damageTaken;
+		if (outcome.damage > 0) target.ApplyDamage(outcome.damage, attackerPresence);
 		target.ApplyCondition(outcome.condition);
+		// Blue Tearstone Ring: damage suffered from an enemy attack gives 1 stamina back.
+		bool hurt = target.player.endurance.damageTaken > before;
+		if (hurt && !target.player.endurance.isDead && target.player.HasRing(Ring.Effect.BLUE_TEARSTONE)) target.RecoverStamina(1);
+	}
+
+	// The dodge dice: armour and hands, and the Obscuring Ring's 2 more against an attacker
+	// 2 or more nodes away (the same distance as range).
+	public static int DodgePool(PlayerToken target, Enemy attacker) {
+		Player player = target?.player;
+		if (player == null) return 0;
+		int pool = player.GetDodge();
+		if (attacker != null && player.HasRing(Ring.Effect.OBSCURING)
+			&& EnemyMovement.Distance((Node2D)attacker.GetParent(), (Node2D)target.GetParent()) >= 2) pool += 2;
+		// Dark Armour: +1 die against a Hollow.
+		if (attacker?.data?.kind == EnemyData.Kind.HOLLOW) {
+			pool += player.Passive(EquipmentEffect.EffectType.DODGE_DICE, EquipmentEffect.Condition.IF_ATTACKER_HOLLOW)?.magnitude ?? 0;
+		}
+		return pool;
+	}
+
+	// Tower Shield, Havel's and Stone Greatshield, Smough's Armour: "cannot dodge"; Havel's
+	// Armour: "cannot dodge or walk".
+	public static bool CanDodge(PlayerToken target) {
+		Player player = target?.player;
+		return player != null && !player.HasPassive(EquipmentEffect.EffectType.CANNOT_DODGE)
+			&& !player.HasPassive(EquipmentEffect.EffectType.CANNOT_MOVE);
 	}
 
 	// ----- Dodging (p25) -----
@@ -163,8 +195,19 @@ public static class CombatResolver
 	}
 
 	// Frostbite adds 1 to each walk, run or dodge (p21).
-	public static int DodgeStaminaCost(PlayerToken dodger) {
-		int cost = 1;
+	// A dodge's stamina. Free with the Carthus Milkring or Black Leather Armour, and with the
+	// Alonne armours against an Alonne, Frostbite included ("without spending stamina").
+	// Eastern Armour: 2 instead of 1.
+	public static int DodgeStaminaCost(PlayerToken dodger, Enemy attacker = null) {
+		Player player = dodger?.player;
+		if (player != null) {
+			if (player.HasRing(Ring.Effect.CARTHUS_MILKRING)) return 0;
+			EquipmentEffect always = player.Passive(EquipmentEffect.EffectType.DODGE_STAMINA_MOD);
+			if (always != null && always.magnitude == 0) return 0;
+			if (attacker?.data?.kind == EnemyData.Kind.ALONNE
+				&& player.HasPassive(EquipmentEffect.EffectType.DODGE_STAMINA_MOD, EquipmentEffect.Condition.IF_ATTACKER_ALONNE)) return 0;
+		}
+		int cost = 1 + (player?.Passive(EquipmentEffect.EffectType.DODGE_STAMINA_MOD)?.magnitude ?? 0);
 		if (dodger != null && dodger.HasCondition(EncounterManager.StatusEffect.FROST)) cost += 1;
 		return cost;
 	}

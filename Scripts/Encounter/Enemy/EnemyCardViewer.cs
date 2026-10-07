@@ -1,7 +1,8 @@
 using Godot;
 
-// The printed data card, large, over everything. Opened from the Enemy Activation bar;
-// any click or Escape puts it away. The inspect dialog still owns the written-out version.
+// The printed data card, large, beside the board, for as long as an enemy's face in the
+// Enemy Activation bar, or its token on the board, is hovered. It takes no input and dims nothing, so the hover stays
+// on the face and the ringed token on the board stays in view.
 public partial class EnemyCardViewer : CanvasLayer
 {
 
@@ -12,12 +13,20 @@ public partial class EnemyCardViewer : CanvasLayer
 	// Card height as a fraction of the screen; the width follows the card's own aspect.
 	[Export] public float heightFraction = 0.45f;
 
+	// The one in the encounter, for the board tokens, which have no reference to the bar.
+	public static EnemyCardViewer current;
+
 	private Tween fade;
 
+	public override void _ExitTree() {
+		if (current == this) current = null;
+	}
+
 	public override void _Ready() {
+		current = this;
 		if (overlay == null) return;
 		overlay.Visible = false;
-		overlay.GuiInput += OnOverlayInput;
+		overlay.MouseFilter = Control.MouseFilterEnum.Ignore;
 	}
 
 	public void ShowCard(EnemyData data) {
@@ -45,19 +54,5 @@ public partial class EnemyCardViewer : CanvasLayer
 		fade = CreateTween();
 		fade.TweenProperty(overlay, "modulate:a", alpha, fadeTime);
 		return fade;
-	}
-
-	private void OnOverlayInput(InputEvent @event) {
-		if (@event is InputEventMouseButton click && click.Pressed) {
-			overlay.AcceptEvent();
-			Close();
-		}
-	}
-
-	public override void _UnhandledInput(InputEvent @event) {
-		if (overlay != null && overlay.Visible && @event.IsActionPressed("ui_cancel")) {
-			GetViewport().SetInputAsHandled();
-			Close();
-		}
 	}
 }

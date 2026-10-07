@@ -34,6 +34,8 @@ statusEffect = 4
 [resource]
 script = ExtResource("4_data")
 enemyName = "Phalanx Hollow"
+family = 5
+kind = 1
 cardTexture = ExtResource("2_card")
 avatarTexture = ExtResource("3_avatar")
 threatLevel = 4

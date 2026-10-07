@@ -115,15 +115,31 @@ public partial class PlayerToken : TextureButton
 		if (nearestBadge != null) nearestBadge.Visible = nearest;
 	}
 
+	// Tiny Being's Ring: the start-of-activation gain waiting on the wearer's choice of all
+	// stamina or one of it as health. 0 when nothing is waiting.
+	public int pendingStartGain { get; private set; }
+	// Attack rolls made in this activation, for the Ring of Favour.
+	public int attackRolls;
+
 	// Rules p22: a character gains 2 Stamina and the Aggro token when they activate.
 	public void BeginActivation() {
-		int recovered = Mathf.Min(2, endurance.staminaSpent);
-		endurance.GainStamina(2);
-		BoardFloat.Number(this, recovered, BoardFloat.STAMINA);
+		int gain = StartGain();
+		if (player.HasRing(Ring.Effect.TINY_BEING) && endurance.damageTaken > 0) {
+			pendingStartGain = gain;
+		} else {
+			pendingStartGain = 0;
+			int recovered = Mathf.Min(gain, endurance.staminaSpent);
+			endurance.GainStamina(gain);
+			BoardFloat.Number(this, recovered, BoardFloat.STAMINA);
+		}
 		EncounterManager.SetAggroHolder(this);
+		attackRolls = 0;
 
 		hasWalked = false;
+		walkLeft = WalkNodes();
 		hasMoved = false;
+		magicThisActivation = false;
+		bonusThisActivation = 0;
 		hasAttacked = false;
 		movementLocked = false;
 		usedWeapons.Clear();
@@ -133,11 +149,74 @@ public partial class PlayerToken : TextureButton
 		SetActivating(true);
 	}
 
-	// The first node is a free Walk, every later one is a Run at 1 stamina. Frostbite adds 1
-	// to each, including the walk (p21/p22).
+	// Mask of the Child: 3 instead of 2. Chloranthy Ring: 4 instead of 2, for the wearer and
+	// anyone on the wearer's node. Both say "instead of 2", so the larger stands.
+	private int StartGain() {
+		int gain = player.HasPassive(EquipmentEffect.EffectType.GAIN_STAMINA, EquipmentEffect.Condition.ON_START_ACTIVATION) ? 3 : 2;
+		if (player.HasRing(Ring.Effect.CHLORANTHY)) return 4;
+		if (GetParent()?.GetParent() is Control node) {
+			foreach (Node2D model in EncounterManager.GetPlayersInNode(node, "Player")) {
+				if (EncounterManager.GetPlayerToken(model)?.player?.HasRing(Ring.Effect.CHLORANTHY) ?? false) return 4;
+			}
+		}
+		return gain;
+	}
+
+	// Health that one of this character's equipment cards gives (a spell, a ring, armour).
+	// Cleric Armour: "they gain +1 health".
+	public void GearHeal(PlayerToken target, int amount) {
+		if (target == null || amount <= 0) return;
+		if (player.HasPassive(EquipmentEffect.EffectType.HEAL, EquipmentEffect.Condition.IF_GAIN_HEALTH_ACTIVATED)) amount += 1;
+		target.Heal(amount);
+	}
+
+	// Gear that answers this character using their Heroic Action (Gold-Hemmed Black Robes,
+	// Embraced Armour of Favor; Crimson Robes is asked for in CharacterTurn, as it is a choice).
+	public void OnHeroicUsed() {
+		if (player.HasPassive(EquipmentEffect.EffectType.GAIN_STAMINA, EquipmentEffect.Condition.IF_HEROIC_ABILITY_ACTIVATED)) RecoverStamina(1);
+		if (player.HasPassive(EquipmentEffect.EffectType.HEAL, EquipmentEffect.Condition.IF_HEROIC_ABILITY_ACTIVATED)) GearHeal(this, 1);
+	}
+
+	// Losing health (Bewitched Alonne Sword): not damage, so no Bleed, but it can overflow the
+	// bar and kill (Matt).
+	public void LoseHealth(int health) {
+		if (health <= 0) return;
+		int applied = endurance.TakeDamage(health);
+		BoardFloat.Number(this, -applied, BoardFloat.DAMAGE);
+		CheckDeath();
+	}
+
+	// Tiny Being's Ring: the waiting gain, as all stamina or one of it as health.
+	public void TakeStartGain(bool asHealth) {
+		int gain = pendingStartGain;
+		pendingStartGain = 0;
+		if (gain <= 0) return;
+		if (asHealth) {
+			RecoverStamina(gain - 1);
+			GearHeal(this, 1);
+		} else {
+			RecoverStamina(gain);
+		}
+	}
+
+	// Nodes of the free Walk left this activation. Dancer Armour walks 2; Havel's Armour
+	// cannot walk at all, so every step is a Run.
+	private int walkLeft;
+
+	// Great Magic Weapon: this activation's attacks are magic, and maybe +1 damage.
+	public bool magicThisActivation;
+	public int bonusThisActivation;
+
+	private int WalkNodes() {
+		if (player.HasPassive(EquipmentEffect.EffectType.CANNOT_MOVE)) return 0;
+		return 1 + (player.Passive(EquipmentEffect.EffectType.BONUS_MOVEMENT)?.magnitude ?? 0);
+	}
+
+	// The Walk is free, every other node is a Run at 1 stamina (Catarina Armour: 2). Frostbite
+	// adds 1 to each, including the walk (p21/p22).
 	public int NextStepCost() {
 		if (freeSteps > 0) return 0;
-		int cost = hasWalked ? 1 : 0;
+		int cost = walkLeft > 0 ? 0 : 1 + (player.Passive(EquipmentEffect.EffectType.RUN_COST_MOD)?.magnitude ?? 0);
 		if (HasCondition(EncounterManager.StatusEffect.FROST)) cost += 1;
 		return cost;
 	}
@@ -155,6 +234,7 @@ public partial class PlayerToken : TextureButton
 		}
 		if (!SpendStamina(NextStepCost())) return false;
 
+		if (walkLeft > 0) walkLeft--;
 		hasWalked = true;
 		hasMoved = true;
 		return true;
@@ -183,11 +263,44 @@ public partial class PlayerToken : TextureButton
 		pendingHeroic = Heroic.Kind.NONE;
 	}
 
+	// The rings that pay out at the end of an activation do so before Poison ticks.
 	public void EndActivation() {
 		pendingHeroic = Heroic.Kind.NONE;
 		freeSteps = 0;
+		pendingStartGain = 0;
 		SetActivating(false);
+		magicThisActivation = false;
+		bonusThisActivation = 0;
+		if (player.HasRing(Ring.Effect.SUN_PRINCESS)) GearHeal(this, 1);
+		// Lothric Knight Armour: 1 health for each enemy on this node.
+		if (player.HasPassive(EquipmentEffect.EffectType.HEAL, EquipmentEffect.Condition.ON_END_ACTIVATION) && GetParent()?.GetParent() is Control here) {
+			int enemies = 0;
+			foreach (Node2D model in EncounterManager.GetPlayersInNode(here, "Enemy")) if (EncounterManager.GetEnemy(model) != null) enemies++;
+			GearHeal(this, enemies);
+		}
+		if (player.HasRing(Ring.Effect.RING_OF_FAVOUR) && attackRolls >= 2) RecoverStamina(1);
 		ClearVolatileConditions();
+	}
+
+	// Divine Blessing: once per rest, in the wearer's own activation, every red cube and
+	// every condition comes off. Like Estus, only offered with something to take off.
+	public bool CanUseDivineBlessing => player.HasRing(Ring.Effect.DIVINE_BLESSING) && !player.divineBlessingUsed
+		&& (endurance.damageTaken > 0 || conditions.Count > 0);
+
+	public void UseDivineBlessing() {
+		if (!CanUseDivineBlessing) return;
+		player.divineBlessingUsed = true;
+		Heal(endurance.damageTaken);
+		conditions.Clear();
+	}
+
+	// Damage the character does to themselves (Dusk Crown Ring). Only an enemy attack or a
+	// condition kills (Matt's ruling), so this stops at a full bar.
+	public void SufferOwnDamage(int damage) {
+		if (damage <= 0) return;
+		if (conditions.Remove(EncounterManager.StatusEffect.BLEED)) damage += 2;
+		int applied = endurance.TakeDamage(Mathf.Min(damage, endurance.free));
+		BoardFloat.Number(this, -applied, BoardFloat.DAMAGE);
 	}
 
 	// The Estus Flask clears the whole endurance bar, stamina and damage alike, as a rest
@@ -210,7 +323,10 @@ public partial class PlayerToken : TextureButton
 		return endurance.SpendStamina(stamina);
 	}
 
-	public void ApplyDamage(int damage) {
+	private const float HEAVY_BLOW_PRESENCE = 2f;
+
+	// `presence` is the attacker's size, when an enemy's blow is what lands (ScreenPunch).
+	public void ApplyDamage(int damage, float presence = 1f) {
 		if (damage <= 0) return;
 
 		// Bleed adds 2 to the damage suffered, then comes off (p21).
@@ -219,7 +335,8 @@ public partial class PlayerToken : TextureButton
 		}
 		int applied = endurance.TakeDamage(damage);
 		BoardFloat.Number(this, -applied, BoardFloat.DAMAGE);
-		if (applied >= 3) BoardFx.punch?.Hit(applied);
+		// A big enemy's blow is felt even when it is light.
+		if (applied >= 3 || (applied > 0 && presence >= HEAVY_BLOW_PRESENCE)) BoardFx.punch?.Hit(applied, presence);
 		CheckDeath();
 	}
 
@@ -298,7 +415,36 @@ public partial class PlayerToken : TextureButton
 		EncounterManager.deathGridIndex = EncounterManager.GridIndexOf((Node2D)GetParent());
 	}
 
+	// The board token of a party member, when they are on the board.
+	public static PlayerToken Of(Player player) {
+		foreach (Node2D model in EncounterManager.players) {
+			PlayerToken token = EncounterManager.GetPlayerToken(model);
+			if (token != null && token.player == player) return token;
+		}
+		return null;
+	}
+
+	// Faraam Armour: "once per encounter". The token is made fresh each encounter.
+	public bool faraamUsed;
+
+	// Crimson Robes (after the Heroic Action), when there is no asking: the condition that
+	// hurts most goes.
+	public void RemoveWorstCondition() {
+		foreach (EncounterManager.StatusEffect c in new[] { EncounterManager.StatusEffect.POISON, EncounterManager.StatusEffect.BLEED,
+				EncounterManager.StatusEffect.STAGGER, EncounterManager.StatusEffect.FROST }) {
+			if (conditions.Remove(c)) return;
+		}
+	}
+
+	public System.Collections.Generic.List<EncounterManager.StatusEffect> Conditions() =>
+		new System.Collections.Generic.List<EncounterManager.StatusEffect>(conditions);
+
 	public void OnClick() {
+		// A heal or a rider is choosing characters: the click is a pick, not a move.
+		if (EncounterManager.characterTurn != null && EncounterManager.characterTurn.isPicking) {
+			EncounterManager.characterTurn.OnCharacterPicked(this);
+			return;
+		}
 		EncounterManager.selectedPlayer = this;
 		(GetParent()?.GetParent() as GameNode)?.Press();
 	}

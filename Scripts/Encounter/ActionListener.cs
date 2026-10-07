@@ -19,8 +19,11 @@ public partial class ActionListener : Control
 	// Every enemy shares one scene; the resource assigned at spawn is what makes it a
 	// Hollow Soldier rather than a Sentinel.
 	[Export] public PackedScene enemyScene;
+	// Standalone runs only: a campaign encounter spawns its saved EncounterPlan instead.
 	[Export] public Array<EnemyData> enemies;
 	[Export] public Node nodesParent;
+	// The printed tile under the grid; a plan names its own.
+	[Export] public TextureRect boardArt;
 	[Export] public PathGrid pathGrid;
 	[Export] public TurnQueue turnQueue;
 	[Export] public CharacterTurn characterTurn;
@@ -29,6 +32,12 @@ public partial class ActionListener : Control
 	[Export] public Color soulDropColour = new Color(0.95f, 0.85f, 0.35f, 0.5f);
 
 	private int playersSpawned = 0;
+	// Placement (p19): the selected character goes on the next entrance clicked. The order they
+	// are placed in is the activation order for this encounter (Matt's call: chosen afresh
+	// every encounter, so there is no First Activation token), and whoever is placed first led
+	// the way in and starts with the Aggro token.
+	private int placing = 0;
+	private readonly HashSet<int> placed = new HashSet<int>();
 	private Player[] fallbackParty;
 	private List<GameNode> entrances = new List<GameNode>();
 	private CharacterPortraitPane portraitPane;
@@ -60,6 +69,11 @@ public partial class ActionListener : Control
 	    // Where a pushed model goes is asked mid-attack, on either side's turn.
 	    if (EncounterManager.pushPrompt != null && EncounterManager.pushPrompt.isChoosingNode) {
 	        EncounterManager.pushPrompt.OnNodeClicked(node);
+	        return;
+	    }
+	    // A heal or a rider choosing characters takes a node click as a pick.
+	    if (characterTurn != null && characterTurn.isPicking) {
+	        characterTurn.OnPickNode(node);
 	        return;
 	    }
 	    // A dodge's free step happens inside the enemy phase, so it is asked before the phase.
@@ -134,6 +148,7 @@ public partial class ActionListener : Control
 	private void SelectCharacter(int index) {
 	    Player[] party = GetParty();
 	    if (index < 0 || index >= party.Length) return;
+	    if (EncounterManager.phase == EncounterManager.Action.PICK_ENTRANCE && !placed.Contains(index)) placing = index;
 	    characterTurn?.actionBar?.Select(party[index]);
 	    portraitPane?.SetSelectedIndex(index);
 	}
@@ -163,26 +178,37 @@ public partial class ActionListener : Control
 	        }
 	    }
 
-	    // Spawn randomly
-	    foreach (EnemyData enemyData in enemies) {
-	        int i = random.Next(enemyNodes.Count);
-	        Control node = enemyNodes[i];
-			Node2D enemy = (Node2D)enemyScene.Instantiate();
-			// Must be set before the node enters the tree, since _Ready builds the
-			// token's visuals from it.
-			Enemy spawned = enemy.GetChild<Enemy>(0);
-			spawned.data = enemyData;
-			spawned.ActivationFinished += OnEnemyActivationFinished;
-
-			EncounterManager.ScaleToken(enemy, node.Size.X);
-			EncounterManager.MovePlayer(enemy, node, null);
-	        EncounterManager.enemies.Add(enemy);
+	    EncounterPlan plan = WorldMapManager.GetPendingPlan();
+	    if (plan != null && enemyNodes.Count > 0) {
+	        if (boardArt != null && ResourceLoader.Exists(plan.TilePath)) boardArt.Texture = ResourceLoader.Load<Texture2D>(plan.TilePath);
+	        foreach (EncounterSpawn spawn in plan.spawns) {
+	            if (spawn.Data == null) continue;
+	            SpawnEnemy(spawn.Data, spawn.tier, enemyNodes[spawn.spawnSlot % enemyNodes.Count]);
+	        }
+	    } else {
+	        foreach (EnemyData enemyData in enemies) {
+	            SpawnEnemy(enemyData, 1, enemyNodes[random.Next(enemyNodes.Count)]);
+	        }
 	    }
 
 	    EncounterManager.enemies = EncounterManager.enemies.OrderByDescending(e => e.GetChild<Enemy>(0).threatLevel).ToList();
 	    EncounterManager.action = EncounterManager.Action.PICK_ENTRANCE;
 	    EncounterManager.phase = EncounterManager.Action.PICK_ENTRANCE;
 	    RestoreSoulDrop();
+	}
+
+	private void SpawnEnemy(EnemyData enemyData, int tier, Control node) {
+		Node2D enemy = (Node2D)enemyScene.Instantiate();
+		// Must be set before the node enters the tree, since _Ready builds the
+		// token's visuals and health from them.
+		Enemy spawned = enemy.GetChild<Enemy>(0);
+		spawned.data = enemyData;
+		spawned.tier = tier;
+		spawned.ActivationFinished += OnEnemyActivationFinished;
+
+		EncounterManager.ScaleToken(enemy, node.Size.X);
+		EncounterManager.MovePlayer(enemy, node, null);
+		EncounterManager.enemies.Add(enemy);
 	}
 
 	// Souls dropped here by an earlier wipe reappear on the node they fell on.
@@ -206,14 +232,24 @@ public partial class ActionListener : Control
 	public void SpawnPlayer(Control entrance) {
 	    Player[] party = GetParty();
 	    if (playersSpawned >= party.Length) return;
+	    int index = placed.Contains(placing) || placing < 0 || placing >= party.Length ? NextUnplaced(party) : placing;
+	    if (index < 0) return;
+
 		Node2D player = (Node2D)playerScene.Instantiate();
+		PlayerToken token = player.GetChild<PlayerToken>(0);
 		// Assigned before the node enters the tree, since _Ready builds the token from it.
-		player.GetChild<PlayerToken>(0).player = party[playersSpawned];
+		token.player = party[index];
 
 		EncounterManager.ScaleToken(player, entrance.Size.X);
 		EncounterManager.MovePlayer(player, entrance, null);
 	    EncounterManager.players.Add(player);
+	    placed.Add(index);
 	    playersSpawned++;
+	    if (playersSpawned == 1) EncounterManager.SetAggroHolder(token);
+
+	    // The next to place comes up on the bar and the pane; a portrait click changes it.
+	    int next = NextUnplaced(party);
+	    if (next >= 0) SelectCharacter(next);
 
 	    if (playersSpawned == party.Length) {
 	        foreach (Node e in entrances) {
@@ -222,6 +258,13 @@ public partial class ActionListener : Control
 	        EncounterManager.action = EncounterManager.Action.ENEMY_MOVE;
 	        EncounterManager.phase = EncounterManager.Action.ENEMY_MOVE;
 	    }
+	}
+
+	private int NextUnplaced(Player[] party) {
+	    for (int i = 0; i < party.Length; i++) {
+	        if (!placed.Contains(i)) return i;
+	    }
+	    return -1;
 	}
 
 	// The campaign party when there is one, otherwise a throwaway party built from
@@ -244,7 +287,11 @@ public partial class ActionListener : Control
 	            Player p = new Player(c.name, c);
 	            p.leftHandId   = MintAndId(c.leftHandDefault);
 	            p.rightHandId  = MintAndId(c.rightHandDefault);
-	            p.backupSlotId = MintAndId(c.backupSlotDefault);
+	            p.backupIds = Player.OneBackup(MintAndId(c.backupSlotDefault));
+	            foreach (Weapon extra in c.extraBackupDefaults) {
+	                string id = MintAndId(extra);
+	                if (!string.IsNullOrEmpty(id)) p.backupIds = Player.Append(p.backupIds, id);
+	            }
 	            p.armourId     = MintAndId(c.armourDefault);
 	            fallbackParty[i] = p;
 	        }
@@ -323,17 +370,26 @@ public partial class ActionListener : Control
 	    }
 	    if (phaseBanner != null) await phaseBanner.Show($"{token.player?.name}'s Turn", adventurerBannerGlow);
 	    if (!GodotObject.IsInstanceValid(token)) return;
+	    // Magic Barrier and the like last "until the next character activation".
+	    foreach (Player member in GetParty()) member.defenceBuffs.Clear();
 	    token.BeginActivation();
 	    portraitPane?.SetSelectedIndex(EncounterManager.activeCharacterIndex);
 	    characterTurn?.Begin(token);
 	}
 
 	// Wired to the HUD's End Activation button; the character phase waits on the player.
-	public void EndCharacterActivation() {
-	    if (EncounterManager.phase != EncounterManager.Action.CHARACTER_TURN) return;
+	// Async for Faraam Armour, whose wearer is asked as another character's activation ends.
+	private bool endingActivation;
+
+	public async void EndCharacterActivation() {
+	    if (EncounterManager.phase != EncounterManager.Action.CHARACTER_TURN || endingActivation) return;
+	    endingActivation = true;
 
 	    characterTurn?.End();
-	    ActiveCharacter()?.EndActivation();
+	    PlayerToken ended = ActiveCharacter();
+	    ended?.EndActivation();
+	    await OfferFaraam(ended);
+	    endingActivation = false;
 
 	    if (EncounterManager.players.Count > 0) {
 	        EncounterManager.activeCharacterIndex =
@@ -344,6 +400,28 @@ public partial class ActionListener : Control
 	    if (CheckEncounterOver()) return;
 	    EncounterManager.phase = EncounterManager.Action.ENEMY_MOVE;
 	    EncounterManager.action = EncounterManager.Action.ENEMY_MOVE;
+	}
+
+	// Faraam Armour: "once per encounter at the end of another character's activation, you
+	// may take the Aggro token".
+	private async System.Threading.Tasks.Task OfferFaraam(PlayerToken ended) {
+	    CharacterActionBar bar = characterTurn?.actionBar;
+	    if (bar == null || EncounterManager.partyDefeated) return;
+	    foreach (Node2D model in EncounterManager.players) {
+	        PlayerToken wearer = EncounterManager.GetPlayerToken(model);
+	        if (wearer == null || wearer == ended || wearer.faraamUsed) continue;
+	        if (!wearer.player.HasPassive(EquipmentEffect.EffectType.MAY_TAKE_AGGRO, EquipmentEffect.Condition.ON_END_ACTIVATION)) continue;
+	        TextureRect aggro = new TextureRect {
+	            Texture = bar.AggroArt, CustomMinimumSize = new Vector2(22, 22), Material = PlayerToken.AggroMask,
+	            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+	            MouseFilter = MouseFilterEnum.Ignore,
+	        };
+	        int choice = await bar.AskChoice(wearer.player, null, new List<(Control, string)> { (aggro, "Take the Aggro token") }, "Skip");
+	        if (choice != 0 || !GodotObject.IsInstanceValid(wearer)) continue;
+	        wearer.faraamUsed = true;
+	        EncounterManager.SetAggroHolder(wearer);
+	        return;
+	    }
 	}
 
 	// The last enemy dying ends the encounter there and then, not at End Activation.
@@ -428,6 +506,10 @@ public partial class ActionListener : Control
 	    if (node != null && node.encounterType == WorldEncounterType.BOSS) return null;
 
 	    int earned = EncounterManager.players.Count * SoulCache.SOULS_PER_CHARACTER;
+	    // Covetous Silver Serpent Ring: 1 more soul for each worn.
+	    foreach (Node2D playerObj in EncounterManager.players) {
+	        earned += EncounterManager.GetPlayerToken(playerObj)?.player?.RingCount(Ring.Effect.COVETOUS_SILVER_SERPENT) ?? 0;
+	    }
 	    SoulCache.Award(earned);
 	    return earned;
 	}

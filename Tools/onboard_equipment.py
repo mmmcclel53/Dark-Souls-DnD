@@ -1,3 +1,7 @@
+# ⚠️ Three items were corrected by hand from their printed cards (Oct 2026) and a re-run of
+# this script would undo it: Rapport (DIRECT_DAMAGE 3 to ONE_ENEMY, no modifier; the sheet's
+# "Damage +3" is not a roll bonus), Great Heal's [4] (scope ONE_NODE, not ALL_CHARACTERS) and
+# Bountiful Sunlight's [3] (scope ALL_OTHER_CHARACTERS). Re-apply them if you re-run.
 #!/usr/bin/env python3
 # Onboards weapon/armor CSV rows into Godot .tres resources (one folder + image + .tres each).
 import csv, os, re, sys, shutil, random, string

@@ -14,7 +14,44 @@ public partial class Enemy : TextureButton
 	public int threatLevel => data.threatLevel;
 	public Array<EnemyMove> moves => data.moves;
 
-	// Tier scaling is applied per instance so the shared EnemyData resource is never mutated.
+	// Tier scaling (Matt, Oct 2026): each tier above 1 adds 1 to attack damage and half the
+	// card's health, rounded up, with a floor of 2 × tier − 1 so a 1-health enemy still grows
+	// (3 at tier 2, 5 at tier 3). Block and Resist are left alone: they drive fight length far
+	// more than health does. Applied per instance so the shared EnemyData resource is never mutated.
+	public int TierDamageBonus => tier - 1;
+
+	public static int TierHealthBonus(int health, int tier) {
+		if (tier <= 1) {
+			return 0;
+		}
+		int scaled = Mathf.CeilToInt(health * (1f + 0.5f * (tier - 1)));
+		return Mathf.Max(scaled, 2 * tier - 1) - health;
+	}
+
+	// Presence: a beefier enemy stands larger on the board, as health ^ 0.3 times a normal
+	// token (Matt, Oct 2026): 5 health is ×1.6, 10 is ×2, 20 is ×2.5, 40 is ×3. Capped at ×4,
+	// a disc two lattice steps across, which still clears every neighbouring node's circle
+	// (they sit √2 steps away), so a boss fills its node without covering the next.
+	public const float PRESENCE_EXPONENT = 0.3f;
+	public const float MAX_PRESENCE = 4f;
+
+	public static float PresenceFor(int health) =>
+		Mathf.Clamp(Mathf.Pow(Mathf.Max(health, 1), PRESENCE_EXPONENT), 1f, MAX_PRESENCE);
+
+	// From the card and tier rather than maxHealth, because the token is scaled before _Ready.
+	public float Presence => data == null ? 1f : PresenceFor(data.health + TierHealthBonus(data.health, tier));
+
+	// The art is round, so only the disc is the enemy: a big token's square corners lie over
+	// the neighbouring nodes and must not take their clicks.
+	public override bool _HasPoint(Vector2 point) => point.DistanceTo(Size * 0.5f) <= Mathf.Min(Size.X, Size.Y) * 0.5f;
+
+	// The rim an enemy's face wears, by tier: worn bronze, ember, crimson.
+	public static Color TierRimColour(int tier) {
+		if (tier >= 3) return new Color(0.78f, 0.08f, 0.1f);
+		if (tier == 2) return new Color(0.851f, 0.4f, 0.169f);
+		return new Color(0.66f, 0.58f, 0.42f);
+	}
+
 	public int maxHealth { get; private set; }
 	public int physicalDefense { get; private set; }
 	public int magicalDefense { get; private set; }
@@ -109,17 +146,17 @@ public partial class Enemy : TextureButton
 
 			if (last) {
 				EncounterManager.MovePlayer(self, node, (Control)self.GetParent());
-				await ToSignal(GetTree().CreateTimer(TokenMotion.STEP_SECONDS), SceneTreeTimer.SignalName.Timeout);
+				await ToSignal(GetTree().CreateTimer(TokenMotion.StepSeconds(self)), SceneTreeTimer.SignalName.Timeout);
 			} else {
-				float nodeSize = node.Size.X;
-				await TokenMotion.Travel(self, node, new Vector2(nodeSize / 4f, nodeSize / 4f));
+				await TokenMotion.Travel(self, node);
 			}
+			Footfall.Land(self);
 
 			await EnterNode(node, activeMove, step);
 			if (isDead) break;
 			EncounterManager.ApplyNodeHazard(node, self);
 			if (last) await EncounterManager.ResolveOverflow(node, self);
-			else await ToSignal(GetTree().CreateTimer(stepPauseSeconds), SceneTreeTimer.SignalName.Timeout);
+			else await ToSignal(GetTree().CreateTimer(stepPauseSeconds * TokenMotion.StepSeconds(self) / TokenMotion.STEP_SECONDS), SceneTreeTimer.SignalName.Timeout);
 		}
 
 		EncounterManager.isEnemyMoving = false;
@@ -184,7 +221,8 @@ public partial class Enemy : TextureButton
 		PathNode from = EncounterManager.pathGrid.NodeFromObj(self);
 		if (!EncounterManager.MovePlayer(self, destination, (Control)self.GetParent())) return;
 		lastStep = Pushing.Step(from, EncounterManager.pathGrid.NodeFromObj(self));
-		await ToSignal(GetTree().CreateTimer(TokenMotion.STEP_SECONDS), SceneTreeTimer.SignalName.Timeout);
+		await ToSignal(GetTree().CreateTimer(TokenMotion.StepSeconds(self)), SceneTreeTimer.SignalName.Timeout);
+		Footfall.Land(self);
 		EncounterManager.ApplyNodeHazard(destination, self);
 		await EncounterManager.ResolveOverflow(destination, self);
 		await EnterNode(destination, move, lastStep);
@@ -233,25 +271,46 @@ public partial class Enemy : TextureButton
 		AttackSlash swing = AttackSlash.Begin(this, token, AttackSlash.Style.ENEMY, AttackSlash.FormFor(move.isMagic, move.attackRange));
 		if (swing != null) await swing.Windup();
 
-		int dodgeCost = CombatResolver.DodgeStaminaCost(token);
+		int dodgeCost = CombatResolver.DodgeStaminaCost(token, this);
+		bool canDodge = CombatResolver.CanDodge(token) && token.CanSpend(dodgeCost);
+
+		// Wolf Ring: the dodge dice are rolled first, so the choice is made seeing them.
+		List<RollReveal.Face> peek = token.player.HasRing(Ring.Effect.WOLF) && canDodge
+			? CombatPresenter.RollDodge(token, this) : null;
 
 		bool dodge = false;
 		if (EncounterManager.dodgePrompt != null && token.CanSpend(dodgeCost)) {
-			dodge = await EncounterManager.dodgePrompt.Ask(this, move, token);
+			dodge = await EncounterManager.dodgePrompt.Ask(this, move, token, peek);
 		}
 
 		if (dodge && token.SpendStamina(dodgeCost)) {
-			CombatResolver.AttackOutcome outcome = await CombatPresenter.EnemyAttacksDodging(this, move, token, swing);
+			CombatResolver.AttackOutcome outcome = await CombatPresenter.EnemyAttacksDodging(this, move, token, swing, peek);
 			// A successful dodge lets the character move one node (p22); this waits on it.
 			if (!outcome.hit && EncounterManager.characterTurn != null) {
 				await EncounterManager.characterTurn.OfferDodgeStep(token);
 				// The Assassin's Backstab: attack the enemy just dodged.
 				await EncounterManager.characterTurn.OfferBackstab(token, this);
 			}
+			await SunsetShield(token);
 			return outcome.hit;
 		}
 		await CombatPresenter.EnemyAttacks(this, move, token, swing);
+		await SunsetShield(token);
 		return true;
+	}
+
+	// Sunset Shield: "after a Hollow on your node attacks you, you may push that Hollow",
+	// straight on away from the bearer.
+	private async Task SunsetShield(PlayerToken token) {
+		if (isDead || data?.kind != EnemyData.Kind.HOLLOW || !GodotObject.IsInstanceValid(token)) return;
+		if (!token.player.HasPassive(EquipmentEffect.EffectType.PUSH, EquipmentEffect.Condition.IF_ATTACKER_HOLLOW)) return;
+		if (GetParent()?.GetParent() != token.GetParent()?.GetParent()) return;
+		CharacterActionBar bar = EncounterManager.characterTurn?.actionBar;
+		if (bar == null) return;
+		int choice = await bar.AskChoice(token.player, data?.GetPortrait(),
+			new List<(Control, string)> { (bar.KeywordIcon(RuleIcons.Kind.PUSH), $"Push the {data.enemyName}") }, "Skip");
+		if (choice != 0 || isDead || !GodotObject.IsInstanceValid(token)) return;
+		await Pushing.Shove((Node2D)GetParent(), Pushing.Away((Node2D)token.GetParent(), (Node2D)GetParent(), token.lastStep));
 	}
 
 	// Movement attacks hit every character on each node the enemy moves into, and the push
@@ -333,8 +392,8 @@ public partial class Enemy : TextureButton
 
 	public override void _Ready() {
 		Pressed += OnClick;
-		MouseEntered += () => NearestMarker.Hover(this);
-		MouseExited += () => NearestMarker.Unhover(this);
+		MouseEntered += OnHoverStarted;
+		MouseExited += OnHoverEnded;
 
 		TextureNormal = data.avatarTexture;
 
@@ -342,15 +401,35 @@ public partial class Enemy : TextureButton
 		physicalDefense = data.physicalDefense;
 		magicalDefense = data.magicalDefense;
 
-		if (tier > 1) {
-			maxHealth = (int)Mathf.Ceil(maxHealth * 1.5);
-			physicalDefense += tier;
-			magicalDefense += tier;
-		}
+		maxHealth += TierHealthBonus(data.health, tier);
 		currentHealth = maxHealth;
+
+		if (Presence >= LoomingShadow.MIN_PRESENCE) {
+			AddChild(new LoomingShadow { weight = Mathf.Clamp((Presence - 1f) / 1.5f, 0f, 1f) });
+		}
 
 		SetActivating(false);
 
+	}
+
+	// Hovering the token shows its card, as hovering its face in the activation bar does.
+	private bool hovered;
+
+	private void OnHoverStarted() {
+		hovered = true;
+		NearestMarker.Hover(this);
+		EnemyCardViewer.current?.ShowCard(data);
+	}
+
+	private void OnHoverEnded() {
+		hovered = false;
+		NearestMarker.Unhover(this);
+		EnemyCardViewer.current?.Close();
+	}
+
+	// Killed under the cursor: a freed token never reports the mouse leaving.
+	public override void _ExitTree() {
+		if (hovered) OnHoverEnded();
 	}
 
 	// A click picks this enemy when the armed attack can hit it; otherwise it is a click on its

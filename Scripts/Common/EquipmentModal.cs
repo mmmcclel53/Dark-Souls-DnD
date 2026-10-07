@@ -35,8 +35,8 @@ public partial class EquipmentModal : CanvasLayer
             case Equipment.Rarity.COMMON:    return new Color(0.86f, 0.86f, 0.86f);
             case Equipment.Rarity.UNCOMMON:  return new Color(0.40f, 0.80f, 0.40f);
             case Equipment.Rarity.RARE:      return new Color(0.35f, 0.65f, 1.00f);
-            case Equipment.Rarity.LEGENDARY: return new Color(0.75f, 0.35f, 0.95f);
-            case Equipment.Rarity.EPIC:      return new Color(0.90f, 0.65f, 0.15f);
+            case Equipment.Rarity.EPIC:      return new Color(0.75f, 0.35f, 0.95f);
+            case Equipment.Rarity.LEGENDARY: return new Color(0.90f, 0.65f, 0.15f);
             default:                         return new Color(0.86f, 0.86f, 0.86f);
         }
     }
@@ -387,9 +387,20 @@ public partial class EquipmentModal : CanvasLayer
         e.background = null;                        // no more character-art backdrop
         var vbox = WrapColumn(e, "LOADOUT");
 
-        // Backup on top, as on the equipment cross: it swaps down into a hand.
-        vbox.AddChild(BuildSlotCard("BACKUP", 72, 30, out e.backupSlotButton,
-                                    out e.backupUpgrade1Button, out e.backupUpgrade2Button));
+        // Backup on top, as on the equipment cross: it swaps down into a hand. It holds every
+        // weapon not in a hand (p12), so arrows either side step through them, and on to an
+        // empty place to add one while the character carries fewer than three.
+        var backupRow = new HBoxContainer();
+        backupRow.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        backupRow.AddThemeConstantOverride("separation", 4);
+        vbox.AddChild(backupRow);
+        e.backupPrev = MakePagerButton("‹");
+        backupRow.AddChild(e.backupPrev);
+        backupRow.AddChild(BuildSlotCard("BACKUP", 72, 30, out e.backupSlotButton,
+                                         out e.backupUpgrade1Button, out e.backupUpgrade2Button));
+        e.backupNext = MakePagerButton("›");
+        backupRow.AddChild(e.backupNext);
+        e.backupDots = AddLabel(vbox, "", 12, HorizontalAlignment.Center, GOLD_DIM);
 
         // Weapons side by side.
         var hands = new HBoxContainer();
@@ -443,17 +454,33 @@ public partial class EquipmentModal : CanvasLayer
         return card;
     }
 
+    private static Button MakePagerButton(string glyph) {
+        var b = new Button { Text = glyph, Flat = true, FocusMode = Control.FocusModeEnum.None };
+        b.CustomMinimumSize = new Vector2(22, 0);
+        b.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+        b.AddThemeFontSizeOverride("font_size", 26);
+        b.AddThemeColorOverride("font_color", GOLD_DIM);
+        return b;
+    }
+
     // Container-friendly slot button with an inset framed border. Hiding the button hides its frame.
     private static TextureButton MakeSlotButton(int size) {
         var b = new TextureButton();
         b.IgnoreTextureSize = true;
         b.StretchMode = TextureButton.StretchModeEnum.KeepAspectCentered;
         b.CustomMinimumSize = new Vector2(size, size);
-        var border = new Panel();
-        border.MouseFilter = Control.MouseFilterEnum.Ignore;
-        border.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
-        border.AddThemeStyleboxOverride("panel", SlotFrameStyle());
-        b.AddChild(border);
+        // The dark fill goes behind the card art and only the gold edge over it: a child draws
+        // on top of its button, so one filled frame laid the 85% black over every card.
+        var fill = new Panel { MouseFilter = Control.MouseFilterEnum.Ignore, ShowBehindParent = true };
+        fill.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        fill.AddThemeStyleboxOverride("panel", SlotFrameStyle());
+        b.AddChild(fill);
+        var edge = new Panel { MouseFilter = Control.MouseFilterEnum.Ignore };
+        edge.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        StyleBoxFlat outline = SlotFrameStyle();
+        outline.DrawCenter = false;
+        edge.AddThemeStyleboxOverride("panel", outline);
+        b.AddChild(edge);
         return b;
     }
 
@@ -814,6 +841,16 @@ public partial class EquipmentModal : CanvasLayer
 
     public static bool SlotAccepts(SlotKind slot, Equipment item, Player p) {
         if (item == null) return false;
+        // p12: a two-hander needs the other hand empty, except for a shield that sits beside one.
+        if (p != null && item is Weapon w && (slot == SlotKind.LeftHand || slot == SlotKind.RightHand)) {
+            Weapon other = slot == SlotKind.LeftHand ? p.GetRightHand() : p.GetLeftHand();
+            if (other != null && w.numHands > 1 && !other.SitsBesideTwoHander) return false;
+            if (other != null && other.numHands > 1 && !w.SitsBesideTwoHander) return false;
+        }
+        // p12: three weapons at most. Filling an empty hand adds one; replacing does not.
+        if (p != null && !p.HasRoomForWeapon()
+            && ((slot == SlotKind.LeftHand && string.IsNullOrEmpty(p.leftHandId))
+                || (slot == SlotKind.RightHand && string.IsNullOrEmpty(p.rightHandId)))) return false;
         switch (slot) {
             case SlotKind.Armour:
                 return item.type == Equipment.EquipmentType.Armour;
@@ -848,7 +885,10 @@ public partial class EquipmentModal : CanvasLayer
             case Equipment.EquipmentType.Shield:
             case Equipment.EquipmentType.Spell:
             case Equipment.EquipmentType.Item:
-                return SlotKind.LeftHand;
+                foreach (SlotKind hand in new[] { SlotKind.LeftHand, SlotKind.RightHand }) {
+                    if (SlotAccepts(hand, item, p)) return hand;
+                }
+                return SlotKind.None;
             case Equipment.EquipmentType.Gem:
                 return SlotKind.LeftHandUpgrade1;
             case Equipment.EquipmentType.Ring:
@@ -865,8 +905,8 @@ public partial class EquipmentModal : CanvasLayer
             case SlotKind.LeftHand:  return p.GetLeftHand();
             case SlotKind.RightHand: return p.GetRightHand();
             case SlotKind.Armour:    return p.GetArmour();
-            case SlotKind.BackupUpgrade1:    return UpgradeAt(p.backupUpgradeIds, 0);
-            case SlotKind.BackupUpgrade2:    return UpgradeAt(p.backupUpgradeIds, 1);
+            case SlotKind.BackupUpgrade1:    return GameManager.GetInstance(p.BackupUpgradeId(0));
+            case SlotKind.BackupUpgrade2:    return GameManager.GetInstance(p.BackupUpgradeId(1));
             case SlotKind.LeftHandUpgrade1:  return UpgradeAt(p.leftHandUpgradeIds, 0);
             case SlotKind.LeftHandUpgrade2:  return UpgradeAt(p.leftHandUpgradeIds, 1);
             case SlotKind.RightHandUpgrade1: return UpgradeAt(p.rightHandUpgradeIds, 0);
@@ -881,12 +921,12 @@ public partial class EquipmentModal : CanvasLayer
         if (p == null) return;
         string id = item?.id ?? "";
         switch (slot) {
-            case SlotKind.Backup:    p.backupSlotId = id; break;
+            case SlotKind.Backup:    p.SetShownBackup(id); break;
             case SlotKind.LeftHand:  p.leftHandId   = id; break;
             case SlotKind.RightHand: p.rightHandId  = id; break;
             case SlotKind.Armour:    p.armourId     = id; break;
-            case SlotKind.BackupUpgrade1:    SetUpgradeAt(ref p.backupUpgradeIds, 0, id); break;
-            case SlotKind.BackupUpgrade2:    SetUpgradeAt(ref p.backupUpgradeIds, 1, id); break;
+            case SlotKind.BackupUpgrade1:    p.SetBackupUpgrade(0, id); break;
+            case SlotKind.BackupUpgrade2:    p.SetBackupUpgrade(1, id); break;
             case SlotKind.LeftHandUpgrade1:  SetUpgradeAt(ref p.leftHandUpgradeIds, 0, id); break;
             case SlotKind.LeftHandUpgrade2:  SetUpgradeAt(ref p.leftHandUpgradeIds, 1, id); break;
             case SlotKind.RightHandUpgrade1: SetUpgradeAt(ref p.rightHandUpgradeIds, 0, id); break;

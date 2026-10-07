@@ -225,7 +225,11 @@ public partial class CharacterSelect : Control
 			if (c == null) continue;
 			p.leftHandId    = MintAndId(c.leftHandDefault);
 			p.rightHandId   = MintAndId(c.rightHandDefault);
-			p.backupSlotId  = MintAndId(c.backupSlotDefault);
+			p.backupIds     = Player.OneBackup(MintAndId(c.backupSlotDefault));
+			foreach (Weapon extra in c.extraBackupDefaults) {
+				string id = MintAndId(extra);
+				if (!string.IsNullOrEmpty(id)) p.backupIds = Player.Append(p.backupIds, id);
+			}
 			p.armourId      = MintAndId(c.armourDefault);
 		}
 
@@ -244,9 +248,11 @@ public partial class CharacterSelect : Control
 		int slot = 1;
 		while (slot <= 4 && SaveGame.SlotExists(slot)) slot++;
 		if (slot > 4) slot = 1;
-		save.SaveToSlot(slot);
 
 		CampaignManager.StartNew(save.players, slot, save);
+		// Loading the map rolls every encounter into the save, so they are fixed from the start.
+		WorldMapManager.EnsureLoaded();
+		save.SaveToSlot(slot);
 		GetTree().ChangeSceneToPacked(ResourceLoader.Load<PackedScene>("res://Scenes/Bonfire.tscn"));
 	}
 

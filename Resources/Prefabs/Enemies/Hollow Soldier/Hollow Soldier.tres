@@ -16,6 +16,8 @@ damage = 4
 [resource]
 script = ExtResource("4_data")
 enemyName = "Hollow Soldier"
+family = 3
+kind = 1
 cardTexture = ExtResource("2_card")
 avatarTexture = ExtResource("3_avatar")
 threatLevel = 5

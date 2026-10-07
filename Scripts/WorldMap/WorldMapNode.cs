@@ -89,7 +89,7 @@ public partial class WorldMapNode : Control {
 		if (data.encounterType == WorldEncounterType.BONFIRE)
 			DrawBonfire(c);
 		else if (data.encounterType == WorldEncounterType.ENCOUNTER)
-			DrawLevelIcon(c);
+			DrawEncounter(c);
 
 		if (data.encounterType == WorldEncounterType.ENCOUNTER && cleared)
 			DrawClearedBadge(c + new Vector2(HEX_RADIUS * 0.52f, -HEX_RADIUS * 0.62f));
@@ -174,25 +174,70 @@ public partial class WorldMapNode : Control {
 		DrawColoredPolygon(inner, new Color(1f, 0.85f, 0.3f));
 	}
 
-	private void DrawLevelIcon(Vector2 c) {
+	// The encounter's toughest enemy in a ring coloured by its tier, with the level icon
+	// sitting over the bottom of the ring. Without a plan, just the level icon.
+	private void DrawEncounter(Vector2 c) {
+		EncounterSpawn toughest = WorldMapManager.GetPlan(data.id)?.Toughest;
+		Texture2D avatar = toughest?.Data?.avatarTexture;
+		if (avatar == null) {
+			DrawLevelIcon(c, new Vector2(72f, 72f));
+			return;
+		}
+
+		// Beefier enemies loom larger here too, on the board's presence scale but compressed
+		// to fit the hex: radius 20 for a normal face, up to 28 from ×2.5 presence.
+		float presence = Enemy.PresenceFor(toughest.Health);
+		float radius = Mathf.Lerp(20f, 28f, Mathf.Clamp((presence - 1f) / 1.5f, 0f, 1f));
+		const float RIM = 3.5f;
+		Vector2 centre = c + new Vector2(0, -10f);
+		Color tint = cleared ? new Color(0.55f, 0.55f, 0.55f, 0.75f) : Colors.White;
+
+		DrawCircle(centre, radius + RIM * 0.5f, new Color(0.06f, 0.05f, 0.05f, cleared ? 0.6f : 0.95f));
+		DrawAvatarDisc(avatar, centre, radius, tint);
+		Color rim = Enemy.TierRimColour(toughest.tier);
+		if (cleared) rim = rim.Lerp(new Color(0.45f, 0.45f, 0.45f), 0.7f);
+		DrawArc(centre, radius, 0, Mathf.Tau, 48, rim, RIM, true);
+
+		DrawLevelIcon(centre + new Vector2(0, radius), new Vector2(58f, 40f));
+	}
+
+	// The avatar art is a printed round token with its own gold rim; this keeps the face and
+	// cuts it to a disc, so the tier rim replaces the printed one.
+	private void DrawAvatarDisc(Texture2D texture, Vector2 centre, float radius, Color tint) {
+		const int SEGMENTS = 40;
+		const float UV_RADIUS = 0.44f;
+		var points = new Vector2[SEGMENTS];
+		var uvs = new Vector2[SEGMENTS];
+		var colours = new Color[SEGMENTS];
+		for (int i = 0; i < SEGMENTS; i++) {
+			Vector2 dir = Vector2.FromAngle(Mathf.Tau * i / SEGMENTS);
+			points[i] = centre + dir * radius;
+			uvs[i] = new Vector2(0.5f, 0.5f) + dir * UV_RADIUS;
+			colours[i] = tint;
+		}
+		DrawPolygon(points, colours, uvs, texture);
+	}
+
+	private void DrawLevelIcon(Vector2 c, Vector2 box) {
 		Texture2D icon = levelIcons[Mathf.Clamp(data.level, 1, 4) - 1];
 		if (icon != null) {
 			// Aspect-fit into the icon box so non-square source art isn't skewed.
-			const float ICON_BOX = 72f;
 			float texW = icon.GetWidth(), texH = icon.GetHeight();
-			float fit = Mathf.Min(ICON_BOX / texW, ICON_BOX / texH);
+			float fit = Mathf.Min(box.X / texW, box.Y / texH);
 			Vector2 size = new Vector2(texW * fit, texH * fit);
 			Color tint = cleared ? new Color(0.6f, 0.6f, 0.6f, 0.7f) : Colors.White;
 			DrawTextureRect(icon, new Rect2(c - size / 2f, size), false, tint);
 			return;
 		}
 		// Placeholder if a level icon PNG is missing.
+		float r = Mathf.Min(box.X, box.Y) * 0.36f;
 		Color ring = cleared ? new Color(0.45f, 0.45f, 0.45f) : new Color(0.75f, 0.12f, 0.08f);
-		DrawCircle(c, 26f, new Color(0.08f, 0.08f, 0.1f, 0.9f));
-		DrawArc(c, 26f, 0, Mathf.Tau, 32, ring, 3f);
+		DrawCircle(c, r, new Color(0.08f, 0.08f, 0.1f, 0.9f));
+		DrawArc(c, r, 0, Mathf.Tau, 32, ring, 3f);
 		var font = GetThemeDefaultFont();
-		DrawString(font, c + new Vector2(-24f, 9f), data.level.ToString(),
-			HorizontalAlignment.Center, 48f, 26, cleared ? new Color(0.7f, 0.7f, 0.7f) : Colors.White);
+		int fontSize = Mathf.RoundToInt(r);
+		DrawString(font, c + new Vector2(-r, fontSize * 0.35f), data.level.ToString(),
+			HorizontalAlignment.Center, r * 2f, fontSize, cleared ? new Color(0.7f, 0.7f, 0.7f) : Colors.White);
 	}
 
 	private void DrawClearedBadge(Vector2 c) {

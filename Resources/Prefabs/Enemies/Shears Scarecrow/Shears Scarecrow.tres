@@ -60,6 +60,7 @@ statusEffect = 4
 [resource]
 script = ExtResource("4_data")
 enemyName = "Shears Scarecrow"
+family = 1
 cardTexture = ExtResource("2_card")
 avatarTexture = ExtResource("3_avatar")
 threatLevel = 8

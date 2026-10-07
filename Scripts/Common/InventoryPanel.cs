@@ -168,10 +168,12 @@ public partial class InventoryPanel : Control
 
     private static bool MeetsRequirements(Equipment e, Player p) {
         if (p == null) return true;
-        return p.strength >= e.strengthReq
-            && p.dexterity >= e.dexterityReq
-            && p.intelligence >= e.intelligenceReq
-            && p.faith >= e.faithReq;
+        // Black Knight Armour lowers what its upgrades (rings) ask for.
+        int cut = e is Ring ? p.RingRequirementCut() : 0;
+        return p.strength >= e.strengthReq - cut
+            && p.dexterity >= e.dexterityReq - cut
+            && p.intelligence >= e.intelligenceReq - cut
+            && p.faith >= e.faithReq - cut;
     }
 
     private static int MaxDamage(Equipment e, bool magic) {
@@ -204,7 +206,7 @@ public partial class InventoryPanel : Control
 
     private static void CollectEquippedIds(Player p, HashSet<string> outIds) {
         if (p == null) return;
-        AddNonEmpty(outIds, p.backupSlotId);
+        foreach (string id in p.BackupIds()) AddNonEmpty(outIds, id);
         AddNonEmpty(outIds, p.leftHandId);
         AddNonEmpty(outIds, p.rightHandId);
         AddNonEmpty(outIds, p.armourId);

@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 public static partial class EncounterManager {
 
@@ -21,7 +22,8 @@ public static partial class EncounterManager {
     public const int MAX_MODELS_PER_NODE = 3;
 
     // PlayerToken.tscn and Enemy.tscn both draw their art at this size. A token is scaled
-    // to half a node so three of them fit side by side, which is what FixPositioning packs.
+    // to half a node so three of them fit side by side, which is what FixPositioning packs,
+    // and an enemy is then scaled up by its Presence.
     public const float TOKEN_ART_SIZE = 360f;
 
     public static int gridSize = 7;
@@ -210,24 +212,110 @@ public static partial class EncounterManager {
     // a fraction of the board, so this has to be redone whenever the board resizes.
     public static void ScaleToken(Node2D model, float nodeSize) {
         if (model == null || nodeSize <= 0f) return;
-        float scale = nodeSize / (TOKEN_ART_SIZE * 2f);
+        float scale = nodeSize / (TOKEN_ART_SIZE * 2f) * Presence(model);
         model.Scale = new Vector2(scale, scale);
     }
 
-    // Up to three models share a node, packed into the quarters of it (p10).
+    public static float Presence(Node2D model) =>
+        model != null && model.GetChildCount() > 0 && model.GetChild(0) is Enemy enemy ? enemy.Presence : 1f;
+
+    // Only something this large (a boss) may overlap what shares its node; it takes the middle
+    // and the others stand along its front edge. That overlap is where a boss's arcs will come in.
+    public const float OVERLAP_PRESENCE = 3f;
+
+    // A model's area on the board: the diamond of points nearer its node than any neighbour,
+    // reaching one node width from the centre each way (the grid is a lattice turned 45°).
+    // Kept a touch inside it, and models a touch apart, so tokens never touch.
+    private const float REACH = 0.96f;
+    private const float GAP = 1.06f;
+
+    // Up to three models share a node (p10). Below boss size none overlap: they are packed
+    // by their real sizes into the node's diamond, and only if they cannot fit do they all
+    // shrink together, so a big enemy is at its full size whenever it stands alone.
     public static void FixPositioning(Control node) {
         float nodeSize = node.Size.X;
-        List<Node2D> allPlayers = GetAllPlayersInNode(node);
-        if (allPlayers.Count == 1) {
-            allPlayers[0].Position = new Vector2(nodeSize/4,nodeSize/4);
-        } else if (allPlayers.Count == 2) {
-            allPlayers[0].Position = new Vector2(0,nodeSize/4);
-            allPlayers[1].Position = new Vector2(nodeSize/2,nodeSize/4);
-        } else if (allPlayers.Count == 3) {
-            allPlayers[0].Position = new Vector2(0,0);
-            allPlayers[1].Position = new Vector2(nodeSize/2,0);
-            allPlayers[2].Position = new Vector2(nodeSize/4,nodeSize/2);
+        List<Node2D> models = GetAllPlayersInNode(node);
+        if (models.Count == 0) return;
+        models = models.OrderByDescending(Presence).ToList();
+
+        // The biggest is drawn first, so anything that does overlap stands over it.
+        int first = models.Min(m => m.GetIndex());
+        for (int i = 0; i < models.Count; i++) node.MoveChild(models[i], first + i);
+
+        float baseScale = nodeSize / (TOKEN_ART_SIZE * 2f);
+        if (Presence(models[0]) >= OVERLAP_PRESENCE) {
+            Place(models[0], Vector2.Zero, baseScale * Presence(models[0]), nodeSize);
+            Vector2[] front = models.Count == 2
+                ? new[] { new Vector2(0f, 0.35f) }
+                : new[] { new Vector2(-0.25f, 0.35f), new Vector2(0.25f, 0.35f), new Vector2(0f, -0.35f) };
+            for (int i = 1; i < models.Count && i - 1 < front.Length; i++) {
+                Place(models[i], front[i - 1], baseScale * Presence(models[i]), nodeSize);
+            }
+            return;
         }
+
+        float[] radii = models.Select(m => 0.25f * Presence(m)).ToArray();
+        (Vector2[] centres, float shrink) = Pack(radii);
+        for (int i = 0; i < models.Count; i++) {
+            Place(models[i], centres[i], baseScale * Presence(models[i]) * shrink, nodeSize);
+        }
+    }
+
+    // Centres (from the node's centre, in node widths) for discs of these radii, and how much
+    // they all have to shrink to fit. Tries each arrangement and keeps the roomiest; with
+    // equal tokens the first, the triangle, is the old quarters layout.
+    private static (Vector2[] centres, float shrink) Pack(float[] radii) {
+        Vector2[] best = null;
+        float bestShrink = -1f;
+        foreach (Vector2[] layout in Layouts(radii.Length)) {
+            float spread = 0f;
+            for (int i = 0; i < layout.Length; i++) {
+                for (int j = i + 1; j < layout.Length; j++) {
+                    spread = Mathf.Max(spread, (radii[i] + radii[j]) * GAP / layout[i].DistanceTo(layout[j]));
+                }
+            }
+            float shrink = 1f;
+            for (int i = 0; i < layout.Length; i++) {
+                Vector2 at = layout[i] * spread;
+                float reach = Mathf.Abs(at.X) + Mathf.Abs(at.Y) + radii[i] * Mathf.Sqrt2;
+                shrink = Mathf.Min(shrink, REACH / reach);
+            }
+            if (shrink > bestShrink + 0.001f) {
+                bestShrink = shrink;
+                best = layout.Select(b => b * spread * shrink).ToArray();
+            }
+        }
+        return (best, bestShrink);
+    }
+
+    // Directions for each model, in the order the models are sorted (biggest first).
+    private static IEnumerable<Vector2[]> Layouts(int count) {
+        Vector2 left = new Vector2(-1f, 0f), right = new Vector2(1f, 0f);
+        switch (count) {
+            case 1:
+                yield return new[] { Vector2.Zero };
+                break;
+            case 2:
+                yield return new[] { left, right };
+                break;
+            case 3:
+                Vector2 topLeft = new Vector2(-1f, -1f), topRight = new Vector2(1f, -1f), bottom = new Vector2(0f, 1f);
+                yield return new[] { topLeft, topRight, bottom };
+                yield return new[] { bottom, topLeft, topRight };
+                yield return new[] { Vector2.Zero, left, right };
+                break;
+            default:
+                // Over-full for the moment before the push prompt resolves it.
+                Vector2[] square = { new Vector2(-1f, -1f), new Vector2(1f, -1f), new Vector2(-1f, 1f), new Vector2(1f, 1f) };
+                yield return Enumerable.Range(0, count).Select(i => square[i % 4] * (1f + i / 4)).ToArray();
+                break;
+        }
+    }
+
+    // `at` is from the node's centre in node widths.
+    private static void Place(Node2D model, Vector2 at, float scale, float nodeSize) {
+        model.Scale = new Vector2(scale, scale);
+        model.Position = (new Vector2(0.5f, 0.5f) + at) * nodeSize - Vector2.One * (TOKEN_ART_SIZE * scale * 0.5f);
     }
 
     // The wrappers are placed at once; the pieces are seen to travel. Everyone this may

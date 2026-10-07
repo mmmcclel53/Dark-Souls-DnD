@@ -13,6 +13,10 @@ public partial class CharacterEquipmentPanel : Control
     [Export] public TextureButton backupSlotButton;
     [Export] public TextureButton backupUpgrade1Button;
     [Export] public TextureButton backupUpgrade2Button;
+    // Step through the backup weapons; the dots say how many and which is on show.
+    public Button backupPrev;
+    public Button backupNext;
+    public Label backupDots;
 
     [Export] public TextureButton leftHandButton;
     [Export] public TextureButton leftHandUpgrade1Button;
@@ -45,6 +49,16 @@ public partial class CharacterEquipmentPanel : Control
         Wire(armourUpgrade1Button, EquipmentModal.SlotKind.ArmourUpgrade1);
         Wire(armourUpgrade2Button, EquipmentModal.SlotKind.ArmourUpgrade2);
         if (selectionHighlight != null) selectionHighlight.Visible = false;
+        if (backupPrev != null) backupPrev.Pressed += () => CycleBackup(-1);
+        if (backupNext != null) backupNext.Pressed += () => CycleBackup(1);
+    }
+
+    // Stepping is choosing the Backup card, so the inventory and comparison follow it.
+    private void CycleBackup(int direction) {
+        if (player == null) return;
+        player.CycleBackup(direction, includeEmpty: true);
+        Refresh();
+        EmitSignal(SignalName.SlotSelected, (int)EquipmentModal.SlotKind.Backup);
     }
 
     private void Wire(TextureButton btn, EquipmentModal.SlotKind kind) {
@@ -79,6 +93,7 @@ public partial class CharacterEquipmentPanel : Control
             return;
         }
 
+        player.ClampShownBackup(includeEmpty: true);
         var backup = player.GetBackupSlot();
         var left   = player.GetLeftHand();
         var right  = player.GetRightHand();
@@ -89,12 +104,24 @@ public partial class CharacterEquipmentPanel : Control
         SetIcon(rightHandButton,  right?.image);
         SetIcon(armourButton,     armour?.image);
 
-        ApplyUpgradeVisibility(backup, backupUpgrade1Button, backupUpgrade2Button, player.backupUpgradeIds);
+        ApplyUpgradeVisibility(backup, backupUpgrade1Button, backupUpgrade2Button, player.ShownBackupUpgrades());
         ApplyUpgradeVisibility(left,   leftHandUpgrade1Button, leftHandUpgrade2Button, player.leftHandUpgradeIds);
         ApplyUpgradeVisibility(right,  rightHandUpgrade1Button, rightHandUpgrade2Button, player.rightHandUpgradeIds);
         ApplyUpgradeVisibility(armour, armourUpgrade1Button, armourUpgrade2Button, player.armourUpgradeIds);
 
+        RefreshBackupPager();
         ApplySelectionModulate();
+    }
+
+    private void RefreshBackupPager() {
+        int stops = player.BackupStops(includeEmpty: true);
+        bool paged = stops > 1;
+        if (backupPrev != null) backupPrev.Visible = paged;
+        if (backupNext != null) backupNext.Visible = paged;
+        if (backupDots == null) return;
+        string dots = "";
+        for (int i = 0; i < stops; i++) dots += i == player.shownBackup ? "●" : "○";
+        backupDots.Text = paged ? dots : "";
     }
 
     private void ApplyUpgradeVisibility(Equipment baseItem, TextureButton up1, TextureButton up2, string[] upgradeIds) {

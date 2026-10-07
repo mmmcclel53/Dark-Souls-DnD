@@ -46,7 +46,8 @@ public partial class TurnQueue : Control
 			TurnQueueEntry entry = entryScene.Instantiate<TurnQueueEntry>();
 			entriesContainer.AddChild(entry);
 			entry.Bind(enemy);
-			entry.CardRequested += () => cardViewer?.ShowCard(enemy.data);
+			entry.HoverStarted += () => cardViewer?.ShowCard(enemy.data);
+			entry.HoverEnded += () => cardViewer?.Close();
 			enemyEntries.Add(entry);
 		}
 

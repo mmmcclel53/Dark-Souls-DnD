@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Gem" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Equipment/Gem.cs" id="1_gem"]
+[ext_resource type="Texture2D" path="res://Resources/Prefabs/Equipment/Gems/Titanite Scale/Titanite Scale.png" id="2_art"]
+
+[resource]
+script = ExtResource("1_gem")
+name = "Titanite Scale"
+image = ExtResource("2_art")
+type = 5
+rarity = 4
+isUpgrade = true
+effect = 12
+strengthReq = 20
+dexterityReq = 20
+intelligenceReq = 0
+faithReq = 0

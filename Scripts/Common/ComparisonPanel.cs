@@ -171,7 +171,7 @@ public partial class ComparisonPanel : PanelContainer
         upgradeIdx = -1;
         upgradeArr = null;
         switch (slot) {
-            case EquipmentModal.SlotKind.Backup:    return p.backupSlotId;
+            case EquipmentModal.SlotKind.Backup:    return p.GetBackupSlot()?.id ?? "";
             case EquipmentModal.SlotKind.LeftHand:  return p.leftHandId;
             case EquipmentModal.SlotKind.RightHand: return p.rightHandId;
             case EquipmentModal.SlotKind.Armour:    return p.armourId;
@@ -189,7 +189,7 @@ public partial class ComparisonPanel : PanelContainer
 
     private static void RestoreFromSnapshot(Player p, EquipmentModal.SlotKind slot, string prevId, int upgradeIdx, string[] upgradeArr) {
         switch (slot) {
-            case EquipmentModal.SlotKind.Backup:    p.backupSlotId = prevId; return;
+            case EquipmentModal.SlotKind.Backup:    p.SetShownBackup(prevId); return;
             case EquipmentModal.SlotKind.LeftHand:  p.leftHandId   = prevId; return;
             case EquipmentModal.SlotKind.RightHand: p.rightHandId  = prevId; return;
             case EquipmentModal.SlotKind.Armour:    p.armourId     = prevId; return;

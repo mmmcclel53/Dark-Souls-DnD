@@ -21,6 +21,7 @@ statusEffect = 3
 [resource]
 script = ExtResource("4_data")
 enemyName = "Mushroom Parent"
+family = 1
 cardTexture = ExtResource("2_card")
 avatarTexture = ExtResource("3_avatar")
 threatLevel = 1

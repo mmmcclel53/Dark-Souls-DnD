@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Godot;
 using System.Threading.Tasks;
 
@@ -25,11 +26,12 @@ public partial class DodgePrompt : Control
 	private TokenHighlight attackerRing;
 	private TokenHighlight defenderRing;
 
-	public async Task<bool> Ask(Enemy attacker, EnemyMove move, PlayerToken target) {
+	// `peek`: the Wolf Ring's dodge dice, already rolled and shown before the choice.
+	public async Task<bool> Ask(Enemy attacker, EnemyMove move, PlayerToken target, List<RollReveal.Face> peek = null) {
 		Highlight(attacker, target);
 
 		// With no bar to ask, the character blocks: the safe default that always rolls.
-		bool dodge = actionBar != null && await actionBar.AskReaction(attacker, move, target);
+		bool dodge = actionBar != null && await actionBar.AskReaction(attacker, move, target, peek);
 
 		ClearHighlight();
 		return dodge;

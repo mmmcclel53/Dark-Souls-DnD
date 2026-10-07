@@ -14,6 +14,9 @@ public partial class Character : Resource
 
     [ExportGroup("Equipment")]
     [Export] public Weapon backupSlotDefault;
+    // More weapons starting in the backup slot (p12 lets it hold several). No class starts
+    // with any; the test bench's Tester does, to show the backup carousel.
+    [Export] public Godot.Collections.Array<Weapon> extraBackupDefaults = new();
     [Export] public Weapon leftHandDefault;
     [Export] public Weapon rightHandDefault;
     [Export] public Armour armourDefault;

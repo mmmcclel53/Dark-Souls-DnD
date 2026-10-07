@@ -7,14 +7,14 @@
 
 [sub_resource type="Resource" id="EE0"]
 script = ExtResource("4_x")
-type = 1
+type = 26
 magnitude = 3
 condition = 2
+scope = 2
 
 [sub_resource type="Resource" id="PM0"]
 script = ExtResource("3_x")
 staminaCost = 3
-modifier = 3
 attackRange = 2
 repeat = 1
 bonusEffects = Array[Object]([SubResource("EE0")])

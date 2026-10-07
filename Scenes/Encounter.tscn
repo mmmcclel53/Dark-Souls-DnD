@@ -120,7 +120,7 @@ bottomHud = NodePath("../HUD/Action Bar")
 leftInset = 104.0
 rightInset = 104.0
 
-[node name="Encounter" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View" node_paths=PackedStringArray("nodesParent", "pathGrid", "turnQueue", "characterTurn", "resultPanel", "titleBar")]
+[node name="Encounter" type="Control" parent="CanvasLayer/AspectRatioContainer/UI/Stage/Board View" node_paths=PackedStringArray("nodesParent", "pathGrid", "turnQueue", "characterTurn", "resultPanel", "titleBar", "boardArt")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_right = 600.0
@@ -134,6 +134,7 @@ demoParty = Array[Object]([ExtResource("90_tester")])
 enemyScene = ExtResource("7_3kqhr")
 enemies = Array[Object]([ExtResource("91_skeleton"), ExtResource("92_swordsman"), ExtResource("93_sentinel")])
 nodesParent = NodePath("Grid")
+boardArt = NodePath("Map")
 pathGrid = NodePath("Grid")
 titleBar = NodePath("../../../Title Panel")
 

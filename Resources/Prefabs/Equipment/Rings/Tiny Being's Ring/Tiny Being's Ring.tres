@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Ring" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Equipment/Ring.cs" id="1_ring"]
+[ext_resource type="Texture2D" path="res://Resources/Prefabs/Equipment/Rings/Tiny Being's Ring/Tiny Being's Ring.png" id="2_art"]
+
+[resource]
+script = ExtResource("1_ring")
+name = "Tiny Being's Ring"
+image = ExtResource("2_art")
+type = 4
+rarity = 1
+isUpgrade = true
+effect = 17
+strengthReq = 0
+dexterityReq = 0
+intelligenceReq = 0
+faithReq = 20

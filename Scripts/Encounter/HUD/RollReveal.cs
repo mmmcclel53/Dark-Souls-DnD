@@ -219,6 +219,11 @@ public partial class RollReveal : CanvasLayer
 
 	private async Task ThrowHeroicDie(View view, TextureButton heroic) {
 		view.heroicOwner.heroicUsed = true;
+		// The armour that answers a Heroic Action; Crimson Robes cannot ask mid-roll, so it
+		// takes the worst condition off.
+		PlayerToken standing = PlayerToken.Of(view.heroicOwner);
+		standing?.OnHeroicUsed();
+		if (standing != null && view.heroicOwner.HasPassive(EquipmentEffect.EffectType.REMOVE_STATUS, EquipmentEffect.Condition.IF_HEROIC_ABILITY_ACTIVATED)) standing.RemoveWorstCondition();
 		heroic.Disabled = true;
 		heroic.TextureNormal = TokenArt.Used(TokenArt.Kind.HEROIC);
 		PopIn.Scale(heroic, 1.5f, 0.3f);

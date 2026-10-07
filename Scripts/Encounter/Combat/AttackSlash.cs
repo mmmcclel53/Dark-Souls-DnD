@@ -300,7 +300,9 @@ public partial class AttackSlash : Node2D
 
 		switch (blow.result) {
 			case Result.HIT:
-				Shake(target, 0.1f * Mathf.Clamp(0.6f + 0.2f * blow.damage, 0.6f, 1.6f));
+				// A big attacker's blow rocks its target harder, as the square root of its size.
+				float heft = attacker is Enemy enemy ? Mathf.Sqrt(enemy.Presence) : 1f;
+				Shake(target, 0.1f * heft * Mathf.Clamp(0.6f + 0.2f * blow.damage, 0.6f, 1.6f));
 				Tint(target, HIT_TINT, 0.45f);
 				break;
 			case Result.BLOCKED:

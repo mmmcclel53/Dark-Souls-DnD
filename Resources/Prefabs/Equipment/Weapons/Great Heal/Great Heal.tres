@@ -22,7 +22,7 @@ bonusEffects = Array[Object]([SubResource("EE0")])
 script = ExtResource("4_x")
 type = 7
 magnitude = 6
-scope = 7
+scope = 3
 
 [sub_resource type="Resource" id="PM2"]
 script = ExtResource("3_x")

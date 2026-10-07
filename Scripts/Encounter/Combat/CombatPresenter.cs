@@ -25,46 +25,67 @@ public static class CombatPresenter
 
 	// ----- Character attacks (p22) -----
 
-	public static async Task<CombatResolver.AttackOutcome> CharacterAttacks(PlayerToken attacker, PlayerMove move, Weapon weapon, Enemy target, IEnumerable<Dice> extraDice = null) {
-		RollReveal.View view = AttackView(weapon, move, Roll(WithExtra(move.damage, extraDice)), attacker?.player);
+	// `terms` is the attack as made: its extra dice, bonus, magic and added conditions.
+	public static async Task<CombatResolver.AttackOutcome> CharacterAttacks(PlayerToken attacker, PlayerMove move, Weapon weapon, Enemy target, AttackTerms terms) {
+		RollReveal.View view = AttackView(weapon, move, Roll(WithExtra(move.damage, terms.extraDice)), attacker?.player, terms.bonus);
 		CombatResolver.AttackOutcome outcome = default;
 		view.recompute = v => {
-			v.total = Sum(v.faces) + move.modifier;
-			outcome = CombatResolver.ResolveAgainstEnemy(v.total, move, target);
+			v.total = Sum(v.faces) + move.modifier + terms.bonus;
+			outcome = CombatResolver.ResolveAgainstEnemy(v.total + VersusKind(terms, target), move, target, terms.magic);
 			v.lines.Clear();
-			v.lines.Add(EnemyLine(target, move, outcome));
+			v.lines.Add(EnemyLine(target, terms.magic, outcome));
 		};
 		view.recompute(view);
 
-		AttackSlash swing = AttackSlash.Begin(attacker, target, AttackSlash.Style.CHARACTER, FormFor(move, weapon));
+		AttackSlash swing = AttackSlash.Begin(attacker, target, AttackSlash.Style.CHARACTER, FormFor(terms, weapon));
 		await Windup(swing);
 		await Reveal(view);
 		await Land(swing, new[] { BlowFor(target, outcome) });
 
 		CombatResolver.Apply(outcome, target);
+		ApplyAdded(terms, target);
 		await Settle(swing);
 		return outcome;
 	}
 
+	// Rapport: no dice and no Block, the enemy simply suffers the damage. The stroke still
+	// lands on it.
+	public static async Task DirectDamage(PlayerToken attacker, Weapon weapon, Enemy target, AttackTerms terms, int damage) {
+		AttackSlash swing = AttackSlash.Begin(attacker, target, AttackSlash.Style.CHARACTER, FormFor(terms, weapon));
+		await Windup(swing);
+		await Land(swing, new[] { new AttackSlash.Blow(target, AttackSlash.Result.HIT, damage) });
+		if (GodotObject.IsInstanceValid(target)) target.ApplyDamage(damage);
+		await Settle(swing);
+	}
+
+	private static int VersusKind(AttackTerms terms, Enemy target) =>
+		target?.data?.kind == EnemyData.Kind.HOLLOW ? terms.vsHollow : 0;
+
+	// The gems' conditions, after the option's own: every attack on an enemy hits.
+	private static void ApplyAdded(AttackTerms terms, Enemy target) {
+		if (terms.conditions == null || !GodotObject.IsInstanceValid(target)) return;
+		foreach (EncounterManager.StatusEffect condition in terms.conditions) target.ApplyCondition(condition);
+	}
+
 	// The Node icon: one roll, compared separately against each enemy on the node (p23).
 	// One stroke across the node, and an impact on each enemy it reaches.
-	public static async Task<List<CombatResolver.AttackOutcome>> CharacterAttacksNode(PlayerToken attacker, PlayerMove move, Weapon weapon, GameNode node, List<Enemy> targets, IEnumerable<Dice> extraDice = null) {
-		RollReveal.View view = AttackView(weapon, move, Roll(WithExtra(move.damage, extraDice)), attacker?.player);
+	public static async Task<List<CombatResolver.AttackOutcome>> CharacterAttacksNode(PlayerToken attacker, PlayerMove move, Weapon weapon, GameNode node, List<Enemy> targets, AttackTerms terms) {
+		RollReveal.View view = AttackView(weapon, move, Roll(WithExtra(move.damage, terms.extraDice)), attacker?.player, terms.bonus);
 		List<(Enemy target, CombatResolver.AttackOutcome outcome)> results = new List<(Enemy, CombatResolver.AttackOutcome)>();
 		view.recompute = v => {
-			v.total = Sum(v.faces) + move.modifier;
+			v.total = Sum(v.faces) + move.modifier + terms.bonus;
 			results.Clear();
 			v.lines.Clear();
 			foreach (Enemy target in targets) {
 				if (!GodotObject.IsInstanceValid(target)) continue;
-				CombatResolver.AttackOutcome outcome = CombatResolver.ResolveAgainstEnemy(v.total, move, target);
+				CombatResolver.AttackOutcome outcome = CombatResolver.ResolveAgainstEnemy(v.total + VersusKind(terms, target), move, target, terms.magic);
 				results.Add((target, outcome));
-				v.lines.Add(EnemyLine(target, move, outcome));
+				v.lines.Add(EnemyLine(target, terms.magic, outcome));
 			}
 		};
 		view.recompute(view);
 
-		AttackSlash swing = AttackSlash.Begin(attacker, node, AttackSlash.Style.CHARACTER, FormFor(move, weapon));
+		AttackSlash swing = AttackSlash.Begin(attacker, node, AttackSlash.Style.CHARACTER, FormFor(terms, weapon));
 		await Windup(swing);
 		await Reveal(view);
 
@@ -75,6 +96,7 @@ public static class CombatPresenter
 		List<CombatResolver.AttackOutcome> outcomes = new List<CombatResolver.AttackOutcome>();
 		foreach ((Enemy target, CombatResolver.AttackOutcome outcome) in results) {
 			CombatResolver.Apply(outcome, target);
+			ApplyAdded(terms, target);
 			outcomes.Add(outcome);
 		}
 		await Settle(swing);
@@ -114,18 +136,60 @@ public static class CombatPresenter
 		await Reveal(view);
 		await Land(swing, new[] { BlowFor(target, outcome) });
 
-		CombatResolver.Apply(outcome, target);
+		// Sunlight Shield: a character on the target's node may take the damage instead.
+		PlayerToken shield = await SunlightShield(target, outcome.damage);
+		if (shield != null) {
+			CombatResolver.Apply(new CombatResolver.AttackOutcome(outcome.roll, outcome.mitigation, 0, outcome.hit, outcome.condition), target);
+			shield.ApplyDamage(outcome.damage, attacker.Presence);
+		} else {
+			CombatResolver.Apply(outcome, target, attacker.Presence);
+		}
+		Thorns(target, attacker);
 		await Settle(swing);
 		return outcome;
+	}
+
+	// Sunlight Shield: "when a character in your node would suffer damage, you can suffer the
+	// damage instead". The bearer is asked; the hit's condition stays with who was hit.
+	private static async Task<PlayerToken> SunlightShield(PlayerToken target, int damage) {
+		if (damage <= 0 || !GodotObject.IsInstanceValid(target)) return null;
+		CharacterActionBar bar = EncounterManager.characterTurn?.actionBar;
+		if (bar == null || target.GetParent()?.GetParent() is not Control node) return null;
+		foreach (Node2D model in EncounterManager.GetPlayersInNode(node, "Player")) {
+			PlayerToken bearer = EncounterManager.GetPlayerToken(model);
+			if (bearer == null || bearer == target || !bearer.player.HasPassive(EquipmentEffect.EffectType.REDIRECT_DAMAGE, EquipmentEffect.Condition.IF_ALLY_DAMAGED_SAME_NODE)) continue;
+			int choice = await bar.AskChoice(bearer.player, ShieldArt(bearer.player),
+				new List<(Control, string)> { (CubeRow.Damage(damage, 10f), $"Suffer {damage} damage instead of {target.player.name}") }, "Skip");
+			if (choice == 0) return bearer;
+		}
+		return null;
+	}
+
+	private static Texture2D ShieldArt(Player player) {
+		foreach (Weapon w in new[] { player.GetLeftHand(), player.GetRightHand() }) {
+			if (w?.passives == null) continue;
+			foreach (EquipmentEffect e in w.passives) {
+				if (e != null && e.type == EquipmentEffect.EffectType.REDIRECT_DAMAGE) return EquipmentSlot.CropOf(w, EquipmentSlot.DefaultRegionFor(w));
+			}
+		}
+		return null;
+	}
+
+	// Armour of Thorns: after a Block or Resist roll against an enemy in your node, it suffers
+	// 1 damage. The V2 failed dodge's armour roll is a Block or Resist roll too.
+	private static void Thorns(PlayerToken defender, Enemy attacker) {
+		if (!GodotObject.IsInstanceValid(defender) || !GodotObject.IsInstanceValid(attacker) || attacker.isDead) return;
+		EquipmentEffect thorns = defender.player.Passive(EquipmentEffect.EffectType.BONUS_DAMAGE, EquipmentEffect.Condition.IF_BLOCKING);
+		if (thorns == null || attacker.GetParent()?.GetParent() != defender.GetParent()?.GetParent()) return;
+		attacker.ApplyDamage(Mathf.Max(1, thorns.magnitude));
 	}
 
 	// Enough icons and the character is not hit at all (p25). Too few and, under the V2
 	// rules, they still block with their armour's dice alone rather than taking the full
 	// damage: a second roll, on its own reveal. The caller has paid the stamina.
-	public static async Task<CombatResolver.AttackOutcome> EnemyAttacksDodging(Enemy attacker, EnemyMove move, PlayerToken target, AttackSlash swing = null) {
-		int pool = target.player?.GetDodge() ?? 0;
-		List<RollReveal.Face> faces = new List<RollReveal.Face>();
-		for (int i = 0; i < pool; i++) faces.Add(RollOne(DodgeDice.Standard));
+	// `rolled` is the Wolf Ring's: dodge dice already rolled before the choice was made.
+	public static async Task<CombatResolver.AttackOutcome> EnemyAttacksDodging(Enemy attacker, EnemyMove move, PlayerToken target, AttackSlash swing = null, List<RollReveal.Face> rolled = null) {
+		List<RollReveal.Face> faces = rolled ?? RollDodge(target, attacker);
 		int strength = CombatResolver.AttackStrength(move, attacker);
 
 		RollReveal reveal = EncounterManager.rollReveal;
@@ -169,10 +233,9 @@ public static class CombatPresenter
 
 	// A spell card or a magic attack casts; a weapon that reaches two nodes shoots; the
 	// rest swing. The option's own range replaces the weapon's when it has one (p23).
-	private static AttackSlash.Form FormFor(PlayerMove move, Weapon weapon) {
-		bool magic = move.isMagic || weapon?.type == Equipment.EquipmentType.Spell;
-		int range = move.attackRange > 0 ? move.attackRange : (weapon?.attackRange ?? 0);
-		return AttackSlash.FormFor(magic, range);
+	private static AttackSlash.Form FormFor(AttackTerms terms, Weapon weapon) {
+		bool magic = terms.magic || weapon?.type == Equipment.EquipmentType.Spell;
+		return AttackSlash.FormFor(magic, Mathf.Min(terms.range, 99));
 	}
 
 	private static AttackSlash.Blow BlowFor(Control target, CombatResolver.AttackOutcome outcome) {
@@ -198,23 +261,23 @@ public static class CombatPresenter
 
 	// ----- Views -----
 
-	private static RollReveal.View AttackView(Weapon weapon, PlayerMove move, List<RollReveal.Face> faces, Player roller) {
+	private static RollReveal.View AttackView(Weapon weapon, PlayerMove move, List<RollReveal.Face> faces, Player roller, int bonus) {
 		return new RollReveal.View {
 			actorArt = weapon == null ? null : EquipmentSlot.CropOf(weapon, EquipmentSlot.DefaultRegionFor(weapon)),
 			actorIsCard = true,
 			actorName = weapon?.name ?? "",
 			faces = faces,
-			modifier = move.modifier,
+			modifier = move.modifier + bonus,
 			luckOwner = roller,
 		};
 	}
 
-	private static RollReveal.Line EnemyLine(Enemy target, PlayerMove move, CombatResolver.AttackOutcome outcome) {
+	private static RollReveal.Line EnemyLine(Enemy target, bool magic, CombatResolver.AttackOutcome outcome) {
 		RollReveal reveal = EncounterManager.rollReveal;
 		return new RollReveal.Line {
 			portrait = target?.data?.GetPortrait(),
-			badge = move.isMagic ? reveal?.resistIcon : reveal?.blockIcon,
-			badgeTint = move.isMagic ? RESIST : BLOCK,
+			badge = magic ? reveal?.resistIcon : reveal?.blockIcon,
+			badgeTint = magic ? RESIST : BLOCK,
 			badgeValue = outcome.mitigation,
 			damage = outcome.damage,
 		};
@@ -251,6 +314,15 @@ public static class CombatPresenter
 		}
 		return faces;
 	}
+
+	public static List<RollReveal.Face> RollDodge(PlayerToken target, Enemy attacker) {
+		List<RollReveal.Face> faces = new List<RollReveal.Face>();
+		int pool = CombatResolver.DodgePool(target, attacker);
+		for (int i = 0; i < pool; i++) faces.Add(RollOne(DodgeDice.Standard));
+		return faces;
+	}
+
+	public static int Icons(List<RollReveal.Face> faces) => faces == null ? 0 : Sum(faces);
 
 	private static RollReveal.Face RollOne(Dice die) =>
 		new RollReveal.Face { type = die.diceType, value = DiceUtility.Roll(die), faces = die.dice };

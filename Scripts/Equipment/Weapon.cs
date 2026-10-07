@@ -29,6 +29,16 @@ public partial class Weapon : Resource, Equipment {
     // See EquipmentEffect.
     [ExportGroup("Passives")]
     [Export] public Array<EquipmentEffect> passives = new();
+
+    // Buckler and the other small shields: "you can equip this in one hand while you have a
+    // two-handed weapon in your other hand" (p12's empty other hand does not apply to them).
+    public bool SitsBesideTwoHander {
+        get {
+            if (passives == null) return false;
+            foreach (EquipmentEffect e in passives) if (e != null && e.type == EquipmentEffect.EffectType.BYPASS_TWO_HAND_CHECK) return true;
+            return false;
+        }
+    }
     [Export] public Array<EncounterManager.StatusEffect> immunities = new();
     // "Immune to Push": a separate flag rather than a StatusEffect, because Push is not a
     // condition and adding it to that enum would renumber the values saved in every .tres.

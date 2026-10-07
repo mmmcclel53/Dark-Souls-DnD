@@ -84,20 +84,12 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-
-[node name="Dim" type="ColorRect" parent="Card Viewer/Overlay"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
 mouse_filter = 2
-color = Color(0.027, 0.024, 0.02, 0.863)
 
 [node name="Centre" type="CenterContainer" parent="Card Viewer/Overlay"]
 layout_mode = 1
-anchors_preset = 15
+anchors_preset = -1
+anchor_left = 0.7
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
@@ -114,10 +106,3 @@ layout_mode = 2
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
-
-[node name="Hint" type="Label" parent="Card Viewer/Overlay/Centre/Column"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.549, 0.514, 0.451, 1)
-theme_override_font_sizes/font_size = 11
-text = "Click anywhere to close"
-horizontal_alignment = 1

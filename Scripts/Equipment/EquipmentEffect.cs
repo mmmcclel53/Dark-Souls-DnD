@@ -59,6 +59,9 @@ public partial class EquipmentEffect : Resource {
         // Aggro / board control
         MAY_MOVE_AGGRO,             // "May move Aggro"
         MAY_TAKE_AGGRO,             // "May take Aggro"
+
+        // Appended (Oct 2026): ordinals are stored in the .tres files.
+        DIRECT_DAMAGE,              // "the chosen enemy suffers N damage": no roll, no Block (Rapport)
     }
 
     // The gate/timing that must be satisfied for the effect to fire. NONE = always.
@@ -97,6 +100,7 @@ public partial class EquipmentEffect : Resource {
         TWO_CHARACTERS,         // "Two Characters"
         ALL_CHARACTERS,         // "All Characters"
         ONE_CHARACTER_IN_RANGE, // "One Character within N Range" (N is scopeRange)
+        ALL_OTHER_CHARACTERS,   // "All other characters within range" (appended, Oct 2026)
     }
 
     // Which defense track a DEFENSE_DICE effect boosts.
