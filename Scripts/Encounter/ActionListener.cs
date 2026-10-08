@@ -179,8 +179,20 @@ public partial class ActionListener : Control
 	    }
 
 	    EncounterPlan plan = WorldMapManager.GetPendingPlan();
+	    if (plan != null && boardArt != null && ResourceLoader.Exists(plan.TilePath)) boardArt.Texture = ResourceLoader.Load<Texture2D>(plan.TilePath);
+
+	    // A save made in this fight: the board as it was, not the plan's opening.
+	    EncounterSnapshot snapshot = CampaignManager.CurrentSave?.encounter;
+	    if (plan != null && snapshot != null && snapshot.worldNode == WorldMapManager.PendingEncounterNodeId && RestoreSnapshot(snapshot)) {
+	        RestoreSoulDrop();
+	        return;
+	    }
+	    // Entered afresh (or a snapshot that no longer fits): a quit before the first turn
+	    // boundary comes back to placement.
+	    if (snapshot != null) CampaignManager.CurrentSave.encounter = null;
+	    CampaignManager.Autosave(CampaignManager.ENCOUNTER);
+
 	    if (plan != null && enemyNodes.Count > 0) {
-	        if (boardArt != null && ResourceLoader.Exists(plan.TilePath)) boardArt.Texture = ResourceLoader.Load<Texture2D>(plan.TilePath);
 	        foreach (EncounterSpawn spawn in plan.spawns) {
 	            if (spawn.Data == null) continue;
 	            SpawnEnemy(spawn.Data, spawn.tier, enemyNodes[spawn.spawnSlot % enemyNodes.Count]);
@@ -197,7 +209,7 @@ public partial class ActionListener : Control
 	    RestoreSoulDrop();
 	}
 
-	private void SpawnEnemy(EnemyData enemyData, int tier, Control node) {
+	private Enemy SpawnEnemy(EnemyData enemyData, int tier, Control node) {
 		Node2D enemy = (Node2D)enemyScene.Instantiate();
 		// Must be set before the node enters the tree, since _Ready builds the
 		// token's visuals and health from them.
@@ -209,6 +221,55 @@ public partial class ActionListener : Control
 		EncounterManager.ScaleToken(enemy, node.Size.X);
 		EncounterManager.MovePlayer(enemy, node, null);
 		EncounterManager.enemies.Add(enemy);
+		return spawned;
+	}
+
+	// ----- Saving the fight -----
+	//
+	// The fight is saved at each turn boundary, the start of an enemy phase and of a character
+	// activation, and loading begins that phase again (EncounterSnapshot).
+
+	private void SaveSnapshot(bool characterPhase) {
+	    SaveGame save = CampaignManager.CurrentSave;
+	    if (save == null || !WorldMapManager.HasPendingEncounter) return;
+	    save.encounter = EncounterSnapshot.Capture(WorldMapManager.PendingEncounterNodeId, characterPhase, GetParty());
+	    CampaignManager.Autosave(CampaignManager.ENCOUNTER);
+	}
+
+	// Puts every model back where it stood and queues the phase that was next. False, with
+	// nothing spawned, when the snapshot no longer fits the party or the board.
+	private bool RestoreSnapshot(EncounterSnapshot snapshot) {
+	    Player[] party = GetParty();
+	    if (snapshot.characters.Length == 0 || snapshot.enemies.Length == 0) return false;
+	    foreach (CharacterState state in snapshot.characters) {
+	        if (state.partyIndex < 0 || state.partyIndex >= party.Length || EncounterManager.GameNodeAtIndex(state.gridIndex) == null) return false;
+	    }
+	    foreach (EnemyState state in snapshot.enemies) {
+	        if (state.Data == null || EncounterManager.GameNodeAtIndex(state.gridIndex) == null) return false;
+	    }
+
+	    // In saved order, which is still threat order: not re-sorted, so ties keep their places.
+	    foreach (EnemyState state in snapshot.enemies) {
+	        Enemy enemy = SpawnEnemy(state.Data, state.tier, EncounterManager.GameNodeAtIndex(state.gridIndex));
+	        enemy.Restore(state.health, state.conditions);
+	    }
+
+	    for (int i = 0; i < snapshot.characters.Length; i++) {
+	        CharacterState state = snapshot.characters[i];
+	        PlayerToken token = PlaceCharacter(party[state.partyIndex], EncounterManager.GameNodeAtIndex(state.gridIndex));
+	        state.ApplyTo(token);
+	        placed.Add(state.partyIndex);
+	        if (i == snapshot.aggroIndex) EncounterManager.SetAggroHolder(token);
+	    }
+	    playersSpawned = snapshot.characters.Length;
+
+	    EncounterManager.round = snapshot.round;
+	    EncounterManager.activeCharacterIndex = Mathf.Clamp(snapshot.activeCharacterIndex, 0, snapshot.characters.Length - 1);
+	    EncounterManager.activeEnemyIndex = 0;
+	    EncounterManager.Action next = snapshot.characterPhase ? EncounterManager.Action.CHARACTER_TURN : EncounterManager.Action.ENEMY_MOVE;
+	    EncounterManager.phase = next;
+	    EncounterManager.action = next;
+	    return true;
 	}
 
 	// Souls dropped here by an earlier wipe reappear on the node they fell on.
@@ -235,14 +296,7 @@ public partial class ActionListener : Control
 	    int index = placed.Contains(placing) || placing < 0 || placing >= party.Length ? NextUnplaced(party) : placing;
 	    if (index < 0) return;
 
-		Node2D player = (Node2D)playerScene.Instantiate();
-		PlayerToken token = player.GetChild<PlayerToken>(0);
-		// Assigned before the node enters the tree, since _Ready builds the token from it.
-		token.player = party[index];
-
-		EncounterManager.ScaleToken(player, entrance.Size.X);
-		EncounterManager.MovePlayer(player, entrance, null);
-	    EncounterManager.players.Add(player);
+		PlayerToken token = PlaceCharacter(party[index], entrance);
 	    placed.Add(index);
 	    playersSpawned++;
 	    if (playersSpawned == 1) EncounterManager.SetAggroHolder(token);
@@ -258,6 +312,19 @@ public partial class ActionListener : Control
 	        EncounterManager.action = EncounterManager.Action.ENEMY_MOVE;
 	        EncounterManager.phase = EncounterManager.Action.ENEMY_MOVE;
 	    }
+	}
+
+	// Last in activation order: EncounterManager.players is filled in placement order (p19).
+	private PlayerToken PlaceCharacter(Player character, Control node) {
+		Node2D model = (Node2D)playerScene.Instantiate();
+		PlayerToken token = model.GetChild<PlayerToken>(0);
+		// Assigned before the node enters the tree, since _Ready builds the token from it.
+		token.player = character;
+
+		EncounterManager.ScaleToken(model, node.Size.X);
+		EncounterManager.MovePlayer(model, node, null);
+		EncounterManager.players.Add(model);
+		return token;
 	}
 
 	private int NextUnplaced(Player[] party) {
@@ -340,8 +407,9 @@ public partial class ActionListener : Control
 	        BeginCharacterPhase();
 	        return;
 	    }
-	    if (EncounterManager.activeEnemyIndex == 0 && phaseBanner != null) {
-	        await phaseBanner.Show("Enemy Turn", enemyBannerGlow);
+	    if (EncounterManager.activeEnemyIndex == 0) {
+	        SaveSnapshot(false);
+	        if (phaseBanner != null) await phaseBanner.Show("Enemy Turn", enemyBannerGlow);
 	    }
 	    EnemyMove();
 	}
@@ -368,6 +436,7 @@ public partial class ActionListener : Control
 	        EndCharacterActivation();
 	        return;
 	    }
+	    SaveSnapshot(true);
 	    if (phaseBanner != null) await phaseBanner.Show($"{token.player?.name}'s Turn", adventurerBannerGlow);
 	    if (!GodotObject.IsInstanceValid(token)) return;
 	    // Magic Barrier and the like last "until the next character activation".
@@ -437,8 +506,21 @@ public partial class ActionListener : Control
 	    return EncounterManager.GetPlayerToken(EncounterManager.players[i]);
 	}
 
-	// A character dying defeats the party immediately (p19/p20).
+	// DEV: Win. Every enemy dies as if struck down, so the win runs the real path: the
+	// banner, the result panel, the souls and the save.
+	public void KillAllEnemies() {
+	    foreach (Node2D model in EncounterManager.enemies.ToList()) {
+	        Enemy enemy = EncounterManager.GetEnemy(model);
+	        enemy?.ApplyDamage(enemy.currentHealth);
+	    }
+	    EncounterManager.PruneDeadEnemies();
+	    CheckEncounterOver();
+	}
+
+	// A character dying defeats the party immediately (p19/p20). Settled once: a loop still
+	// running when it ends (an enemy finishing its activation) must not settle it again.
 	private bool CheckEncounterOver() {
+	    if (EncounterManager.phase == EncounterManager.Action.ENCOUNTER_WON || EncounterManager.phase == EncounterManager.Action.ENCOUNTER_LOST) return true;
 	    if (EncounterManager.partyDefeated) {
 	        EncounterManager.phase = EncounterManager.Action.ENCOUNTER_LOST;
 	        EndEncounter();
@@ -471,13 +553,16 @@ public partial class ActionListener : Control
 	    WorldNodeData node = WorldMapManager.GetPendingEncounterNode();
 	    string worldNodeId = WorldMapManager.PendingEncounterNodeId;
 
+	    // Saved before the banner, so quitting on it cannot take the outcome back.
 	    if (won) {
 	        int? earned = AwardVictory(node);
 	        WorldMapManager.ReportEncounterWon();
+	        CampaignManager.Autosave(CampaignManager.WORLD_MAP);
 	        ShowOutcome(true, earned, SoulCache.current);
 	    } else {
 	        int dropped = SettleDefeat(worldNodeId);
 	        WorldMapManager.ReportPartyDeath();
+	        CampaignManager.Autosave(CampaignManager.BONFIRE);
 	        ShowOutcome(false, dropped, SoulCache.current);
 	    }
 	}

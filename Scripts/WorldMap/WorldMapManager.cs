@@ -4,7 +4,7 @@ using System.Linq;
 
 // Static campaign-run world state: which node the party is on, which encounters
 // are cleared, and the last bonfire checkpoint. Mirrors itself into
-// CampaignManager.CurrentSave; disk writes happen when resting at a bonfire.
+// CampaignManager.CurrentSave, and autosaves whenever the party moves.
 public static class WorldMapManager {
 	public const string CAMPAIGN_DIR = "res://Campaigns";
 	public const string DEFAULT_CAMPAIGN = "DemoCampaign.json";
@@ -59,9 +59,16 @@ public static class WorldMapManager {
 
 		bool rolled = LoadPlans(save);
 		WriteToSave();
-		// Straight to disk, so quitting before the next rest cannot re-roll them.
-		if (rolled && save != null && CampaignManager.SaveSlot > 0)
-			save.SaveToSlot(CampaignManager.SaveSlot);
+		// Straight to disk, so quitting cannot re-roll them.
+		if (rolled) CampaignManager.Autosave();
+		return true;
+	}
+
+	// Loading a save made in an encounter: back into it, unless it can no longer be fought.
+	public static bool ResumeEncounter(string nodeId) {
+		if (!EnsureLoaded() || GetPlan(nodeId) == null || IsCleared(nodeId)) return false;
+		PendingEncounterNodeId = nodeId;
+		WriteToSave();
 		return true;
 	}
 
@@ -94,10 +101,12 @@ public static class WorldMapManager {
 	public static void SetCurrentNode(string nodeId) {
 		CurrentNodeId = nodeId;
 		WriteToSave();
+		CampaignManager.Autosave();
 	}
 
 	public static void StartEncounter(string nodeId) {
 		PendingEncounterNodeId = nodeId;
+		WriteToSave();
 	}
 
 	public static WorldNodeData GetPendingEncounterNode() => MapData?.GetNode(PendingEncounterNodeId);
@@ -135,9 +144,7 @@ public static class WorldMapManager {
 		int respawned = clearedNodes.RemoveWhere(id => !IsBoss(id));
 
 		WriteToSave();
-		var save = CampaignManager.CurrentSave;
-		if (save != null && CampaignManager.SaveSlot > 0)
-			save.SaveToSlot(CampaignManager.SaveSlot);
+		CampaignManager.Autosave();
 		return respawned;
 	}
 
@@ -151,6 +158,7 @@ public static class WorldMapManager {
 		save.worldCurrentNode = CurrentNodeId;
 		save.worldLastBonfire = LastBonfireId;
 		save.worldClearedNodes = clearedNodes.ToArray();
+		save.encounterNode = PendingEncounterNodeId;
 		save.encounterPlans = plans.Values.ToArray();
 	}
 

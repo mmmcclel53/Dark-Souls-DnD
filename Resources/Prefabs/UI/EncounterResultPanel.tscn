@@ -52,7 +52,7 @@ titleLabel = NodePath("Scrim/Centre/Panel/Rows/Title")
 changeRow = NodePath("Scrim/Centre/Panel/Rows/Change")
 changeSign = NodePath("Scrim/Centre/Panel/Rows/Change/Amount/Sign")
 changeLabel = NodePath("Scrim/Centre/Panel/Rows/Change/Amount/Value")
-totalLabel = NodePath("Scrim/Centre/Panel/Rows/Total/Value")
+totalLabel = NodePath("Scrim/Centre/Panel/Rows/Total/Count/Value")
 continueButton = NodePath("Scrim/Centre/Panel/Rows/Continue")
 
 [node name="Scrim" type="ColorRect" parent="."]
@@ -101,7 +101,7 @@ color = Color(0.788, 0.635, 0.294, 0.55)
 
 [node name="Change" type="HBoxContainer" parent="Scrim/Centre/Panel/Rows"]
 layout_mode = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = -3
 alignment = 1
 
 [node name="Amount" type="HBoxContainer" parent="Scrim/Centre/Panel/Rows/Change"]
@@ -123,30 +123,51 @@ theme_override_font_sizes/font_size = 28
 text = "4"
 vertical_alignment = 1
 
-[node name="Soul" type="TextureRect" parent="Scrim/Centre/Panel/Rows/Change"]
-custom_minimum_size = Vector2(40, 40)
+[node name="Lift" type="MarginContainer" parent="Scrim/Centre/Panel/Rows/Change"]
 layout_mode = 2
 size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/margin_bottom = 6
+
+[node name="Soul" type="TextureRect" parent="Scrim/Centre/Panel/Rows/Change/Lift"]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
 texture = ExtResource("2_soul")
 expand_mode = 1
 stretch_mode = 5
 
 [node name="Total" type="HBoxContainer" parent="Scrim/Centre/Panel/Rows"]
 layout_mode = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 0
 alignment = 1
 
-[node name="Value" type="Label" parent="Scrim/Centre/Panel/Rows/Total"]
+[node name="Count" type="HBoxContainer" parent="Scrim/Centre/Panel/Rows/Total"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Caption" type="Label" parent="Scrim/Centre/Panel/Rows/Total/Count"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.702, 0.667, 0.596, 1)
 theme_override_font_sizes/font_size = 16
-text = "Total: 4"
+text = "Total:"
 vertical_alignment = 1
 
-[node name="Soul" type="TextureRect" parent="Scrim/Centre/Panel/Rows/Total"]
-custom_minimum_size = Vector2(24, 24)
+[node name="Value" type="Label" parent="Scrim/Centre/Panel/Rows/Total/Count"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.702, 0.667, 0.596, 1)
+theme_override_font_sizes/font_size = 16
+text = "4"
+vertical_alignment = 1
+
+[node name="Lift" type="MarginContainer" parent="Scrim/Centre/Panel/Rows/Total"]
 layout_mode = 2
 size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/margin_bottom = 5
+
+[node name="Soul" type="TextureRect" parent="Scrim/Centre/Panel/Rows/Total/Lift"]
+custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
 texture = ExtResource("2_soul")
 expand_mode = 1
 stretch_mode = 5

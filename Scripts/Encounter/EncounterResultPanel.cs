@@ -48,7 +48,7 @@ public partial class EncounterResultPanel : Control
 		if (changeRow != null) changeRow.Visible = change.HasValue;
 		if (changeSign != null) changeSign.Text = sign;
 		if (changeLabel != null && change.HasValue) changeLabel.Text = change.Value.ToString();
-		if (totalLabel != null) totalLabel.Text = $"Total: {total}";
+		if (totalLabel != null) totalLabel.Text = total.ToString();
 		if (continueButton != null) continueButton.Text = victory ? "To the World Map" : "Back to the Bonfire";
 
 		Visible = true;
@@ -59,6 +59,7 @@ public partial class EncounterResultPanel : Control
 
 	private void OnContinue() {
 		string scene = won ? WORLD_MAP_SCENE : BONFIRE_SCENE;
+		if (!won) BonfireOptions.restOnArrival = true;
 		GetTree().ChangeSceneToPacked(ResourceLoader.Load<PackedScene>(scene));
 	}
 }

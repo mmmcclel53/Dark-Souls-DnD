@@ -10,6 +10,10 @@ public partial class BonfireOptions : VBoxContainer
     [Export] public Control titleBar;
     [Export] public BonfireRestAnimation restAnimation;
 
+    // Set by a wipe on its way here: the party wakes at the bonfire and rests at once.
+    // One-shot, so a later visit does not rest by itself.
+    public static bool restOnArrival;
+
     private CharacterPortraitPane pane;
     private EquipmentModal modal;
     private bool resting;
@@ -31,13 +35,35 @@ public partial class BonfireOptions : VBoxContainer
 
         // Route portrait clicks to the modal when the modal isn't already open.
         if (pane != null) pane.PortraitClicked += OnPortraitClicked;
+        if (modal != null) modal.Closed += OnEquipmentClosed;
+
+        CampaignManager.Autosave(CampaignManager.BONFIRE);
+
+        if (restOnArrival) {
+            restOnArrival = false;
+            RestOnArrival();
+        }
+    }
+
+    // A frame late: the rest animation is later in the tree, so its _Ready (which hides and
+    // clears it) has not run yet, and nothing has been laid out for its flare to centre on.
+    private async void RestOnArrival() {
+        SetOptionsEnabled(false);
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        OnPressedRest();
     }
 
     // The pane is an autoload and outlives this scene; left connected, every later scene's
     // portrait click would still open the equipment modal.
     public override void _ExitTree() {
         if (pane != null) pane.PortraitClicked -= OnPortraitClicked;
+        if (modal != null) modal.Closed -= OnEquipmentClosed;
         GetNodeOrNull<SoulCounter>("/root/SoulCounter")?.Release(titleBar);
+    }
+
+    // Gear changed at the bonfire is kept the moment the modal closes.
+    private void OnEquipmentClosed() {
+        CampaignManager.Autosave();
     }
 
     private void OnPortraitClicked(int playerIndex) {

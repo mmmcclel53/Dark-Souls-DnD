@@ -11,10 +11,14 @@ using System.Threading.Tasks;
 // The same band closes the encounter: "Victory" in gold, or the games' "You Died" in red,
 // held longer and larger, the band growing slowly the whole time it is up. The words never
 // scale — only the band's rect does — because a scaled Label re-samples its glyphs every
-// frame and shimmers.
+// frame and shimmers. For the same reason the title is the band's sibling with a fixed rect,
+// not its child: a Label whose rect changes every frame re-centres its text and snaps it to
+// whole pixels, so the words bounce.
 public partial class PhaseBanner : CanvasLayer
 {
 	private const string SHADER_PATH = "res://Resources/Shaders/Banner.gdshader";
+	private const float BAND_LINE = 0.4f;
+	private const float TITLE_HEIGHT = 200f;
 
 	public float fadeInSeconds = 0.3f;
 	public float holdSeconds = 0.9f;
@@ -52,7 +56,7 @@ public partial class PhaseBanner : CanvasLayer
 		band = new ColorRect { Material = material, MouseFilter = Control.MouseFilterEnum.Ignore };
 		band.AnchorLeft = 0f;
 		band.AnchorRight = 1f;
-		band.AnchorTop = band.AnchorBottom = 0.4f;
+		band.AnchorTop = band.AnchorBottom = BAND_LINE;
 		band.OffsetTop = -bandHeight * 0.5f;
 		band.OffsetBottom = bandHeight * 0.5f;
 		root.AddChild(band);
@@ -62,11 +66,15 @@ public partial class PhaseBanner : CanvasLayer
 			VerticalAlignment = VerticalAlignment.Center,
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 		};
-		title.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+		title.AnchorLeft = 0f;
+		title.AnchorRight = 1f;
+		title.AnchorTop = title.AnchorBottom = BAND_LINE;
+		title.OffsetTop = -TITLE_HEIGHT * 0.5f;
+		title.OffsetBottom = TITLE_HEIGHT * 0.5f;
 		title.AddThemeFontSizeOverride("font_size", 44);
 		title.AddThemeColorOverride("font_color", new Color(0.84f, 0.8f, 0.72f));
 		title.AddThemeConstantOverride("outline_size", 0);
-		band.AddChild(title);
+		root.AddChild(title);
 	}
 
 	public Task Show(string text, Color glow) =>

@@ -376,6 +376,15 @@ public partial class Enemy : TextureButton
 
 	public bool HasCondition(EncounterManager.StatusEffect condition) => conditions.Contains(condition);
 
+	public IEnumerable<EncounterManager.StatusEffect> Conditions => conditions;
+
+	// Loading a saved encounter: the wounds and conditions it had, with no burst or number.
+	public void Restore(int health, int[] savedConditions) {
+		currentHealth = Mathf.Clamp(health, 1, maxHealth);
+		conditions.Clear();
+		foreach (int condition in savedConditions) conditions.Add((EncounterManager.StatusEffect)condition);
+	}
+
 	// Rules p21: poison, frostbite and stagger come off at the end of the model's own
 	// activation. Bleed stays until the model next suffers damage.
 	// p21: every remaining condition comes off when the encounter ends, bleed included.

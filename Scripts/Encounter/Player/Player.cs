@@ -38,8 +38,8 @@ public partial class Player : Resource
     // Divine Blessing (a ring, not a board token) is spent the same way: once per rest.
     [Export] public bool divineBlessingUsed;
 
-    // Encounter-scoped and deliberately NOT exported: the bar clears on victory (p19),
-    // so it must never be written into the saved character. PlayerToken drives it.
+    // Not exported: the bar is saved beside the party (SaveGame.staminaSpent / damageTaken),
+    // not inside the character, as a wipe leaves it on until a rest. PlayerToken drives it.
     public Endurance endurance { get; private set; } = new Endurance();
 
     // Conditions live here rather than on the board token for the same reason the endurance

@@ -49,6 +49,13 @@ public class Endurance {
 		damageTaken = Mathf.Max(0, damageTaken - health);
 	}
 
+	// A saved bar coming back. Nothing saves a dead character's overflow: a death ends the encounter.
+	public void Restore(int stamina, int damage) {
+		damageTaken = Mathf.Clamp(damage, 0, BOXES);
+		staminaSpent = Mathf.Clamp(stamina, 0, BOXES - damageTaken);
+		isDead = false;
+	}
+
 	public void Clear() {
 		staminaSpent = 0;
 		damageTaken = 0;

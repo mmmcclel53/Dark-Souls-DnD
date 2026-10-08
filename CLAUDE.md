@@ -80,7 +80,8 @@ Scripts/
       Dice.cs              — Dice definition (type, possible values)
       DiceUtility.cs       — Roll helper
   MainMenu/
-    MainMenu.cs            — New Game / Continue / Quit
+    MainMenu.cs            — Continue / New Game / Load Game / Quit
+    LoadGame.cs            — The four save slots; loading one resumes where the party was
     Bonfire/
       BonfireOptions.cs    — Rest / Equipment / Ready buttons
       BonfireRestAnimation.cs — Flare/blackout/fade-back transition the rest happens behind
@@ -107,7 +108,10 @@ Scripts/
   CharacterSelect/
     CharacterSelect.cs     — 1–4 player setup; character class picker, name input
   SaveGame/
-    SaveGame.cs            — Campaign save data resource
+    SaveGame.cs            — Campaign save data resource: party, endurance, world, souls, scene
+    EncounterSnapshot.cs   — The board at an encounter's last turn boundary
+    CharacterState.cs      — One character in it: node, conditions, Faraam, defence buffs
+    EnemyState.cs          — One enemy in it: card, tier, node, health, conditions
   SoulCache.cs             — Party soul pool + the pile a wipe leaves behind
   WorldMap/
     EncounterGenerator.cs  — Rolls each map encounter once: health band per level, terrain family, tiers, spawn nodes
@@ -202,6 +206,8 @@ Shift steps are free and are not the Walk or a Run, so they ignore the movement 
 `ActionListener.CheckEncounterOver` sets `ENCOUNTER_WON` / `ENCOUNTER_LOST` and calls `EndEncounter`, which clears every model's conditions and then settles the outcome. `WorldMapManager` is told **last**, because `ReportEncounterWon` / `ReportPartyDeath` consume `PendingEncounterNodeId` and both branches need it first.
 
 A win clears every endurance bar (p19) and awards `2 × party size` souls. **Sparks are cut from this project**, so p19's boss formula (1 soul per character per remaining spark) is unusable and boss wins currently award nothing — the panel says so. Boss rewards need a replacement rule, not a spark implementation.
+
+`CheckEncounterOver` settles an encounter once: once the phase is won or lost it only returns true, so a loop still running (an enemy finishing its activation) cannot pay out twice. The debug title bar's **DEV: Win** (`EncounterDevControls`, enabled only during a character's activation) calls `ActionListener.KillAllEnemies`, which kills every enemy through `ApplyDamage` so the real win follows: banner, panel, souls, save.
 
 The win is checked the moment the last enemy dies: `CharacterTurn` emits `AttackResolved` after every attack and `ActionListener.OnAttackResolved` runs `CheckEncounterOver` there, not at End Activation. It relies on `EncounterManager.GetEnemy` treating an enemy queued for deletion as already gone.
 
@@ -337,7 +343,7 @@ To go back to a normal standalone run, set `demoParty` to a real class (it was t
 ### Player Model
 `Player` is the campaign-persistent Resource (stats, equipment ids, level) and `PlayerToken : TextureButton` is the character on the board, exactly mirroring the `EnemyData` / `Enemy` split. `ActionListener` spawns one shared `PlayerToken.tscn` per party member and assigns the `Player` before parenting it.
 
-Encounter state lives on `Player.endurance` and `Player.conditions`, both deliberately **not** `[Export]`ed — the bar clears on victory (p19), so it must never be written into the saved character. It is a plain `Endurance` object rather than a Resource so it stays out of serialisation entirely. `Player` is per-character (one per party member from `CampaignManager.Players`), so mutable runtime state on it is safe in a way it would not be on a shared template like `EnemyData`.
+Encounter state lives on `Player.endurance` and `Player.conditions`, both deliberately **not** `[Export]`ed: they are saved beside the character, not in it (`SaveGame.staminaSpent` / `damageTaken`, and the conditions only in an `EncounterSnapshot`; see Persistence). It is a plain `Endurance` object rather than a Resource so it stays out of serialisation entirely. `Player` is per-character (one per party member from `CampaignManager.Players`), so mutable runtime state on it is safe in a way it would not be on a shared template like `EnemyData`.
 
 The party comes from `CampaignManager.Players`; when that is empty the encounter falls back to `ActionListener.demoParty` (a list of `Character` resources) so the scene can be run standalone. The portrait pane only knows `CampaignManager.Players`, so a standalone run hands it that fallback party through `CharacterPortraitPane.standaloneParty` (cleared in `_ExitTree`). Without it the test bench drew no portraits, and since tokens carry no badges, a character's conditions showed nowhere.
 
@@ -514,6 +520,21 @@ Every world map encounter is rolled **once** and kept in the save (`SaveGame.enc
 
 On the map (`WorldMapNode.DrawEncounter`) an encounter shows its toughest enemy (`EncounterPlan.Toughest`: most tiered health, ties to higher threat). The avatar is cut to a disc, inside a rim coloured by tier (`Enemy.TierRimColour`: bronze, ember, crimson), with the level icon over the bottom of the ring. The activation bar's tier rim now uses the same colours.
 
+### Persistence
+Every save is an autosave, and a save is **where the party is** (Matt, Oct 2026): loading a slot, from Load Game or the main menu's **Continue** (the slot written last, by file time), opens the scene the party was in (`CampaignManager.Resume`), not the Bonfire. There is no manual save.
+
+`CampaignManager.Autosave(scene)` is the one call. It records `SaveGame.scene` (`BONFIRE` / `WORLD_MAP` / `ENCOUNTER`) and writes the slot, and it does nothing without a campaign, so a scene run on its own never writes one. It runs on entering the Bonfire and the World Map, on every map move (`SetCurrentNode`), on a rest, when the equipment modal closes at the Bonfire, when the encounter plans are rolled, at an encounter's end (before the outcome banner, so quitting on it cannot take the outcome back) and at each of its turn boundaries. Leaving an encounter drops its snapshot.
+
+`SaveToSlot` also captures every character's endurance bar (`SaveGame.staminaSpent` / `damageTaken`, in `players` order) and `LoadFromSlot` restores it (`Endurance.Restore`). The bar is encounter-scoped, but a wipe leaves it on until a rest, and a mid-fight save needs it.
+
+**Mid-encounter (turn boundaries).** The turn loop is a chain of awaited steps (walks, Block-or-Dodge, the roll reveal) that cannot be resumed from the middle, so an encounter is saved only **between** them: at the start of each enemy phase (`BeginEnemyActivation` at `activeEnemyIndex == 0`, which a prune can bring back to 0 after an enemy dies in its own activation, meaning "the phase from the next living enemy") and at the start of each character activation, before its banner, its stamina gain and the clearing of last activation's defence buffs. `EncounterSnapshot.Capture` records the round, whose activation is next, every character in activation order (party index, grid index, conditions, `faraamUsed`, `lastStep`, `Player.defenceBuffs` as die type/kind pairs) with the Aggro holder, and every living enemy in activation order (card path, tier, grid index, health, conditions). Everything `BeginActivation` resets is deliberately not saved: beginning the activation again rebuilds it.
+
+On entry, `ActionListener.SpawnEnemies` restores a snapshot whose `worldNode` matches the pending encounter (`RestoreSnapshot`): enemies spawned in saved order (not re-sorted, so ties keep their places) and given back their health and conditions without bursts (`Enemy.Restore`), characters placed through the same `PlaceCharacter` placement uses, then the saved phase is queued, so its banner plays and the loop carries on. A snapshot that no longer fits (a missing card, a party index out of range) is dropped and the encounter starts from placement. With no snapshot, a quit before the first boundary also comes back to placement.
+
+So quitting mid-activation replays that activation from its start, dice included: that is the accepted cost of saving at boundaries (Matt's choice over saving after every action). Anything spent mid-activation (Estus, Luck, Heroic, souls picked up) is only in memory until the next boundary, so it is replayed consistently rather than half-kept.
+
+`SaveGame.encounterNode` is the encounter the party is in (`WorldMapManager.PendingEncounterNodeId`, mirrored by `WriteToSave`). `WorldMapManager.ResumeEncounter` reloads the map and sets it pending again; a save whose encounter has since gone (no plan, or cleared) resumes on the World Map instead.
+
 ### Scene Navigation
 Scenes are swapped by instantiating the next scene, adding it to root, then freeing the first child. Prefer `GetTree().ChangeSceneToPacked()` for new scene transitions — it's cleaner and avoids root-child-index assumptions.
 
@@ -544,7 +565,8 @@ Scenes are swapped by instantiating the next scene, adding it to root, then free
 - The over-full-node push (p10) auto-picks its destination; p21 gives the players that choice. Attack and movement pushes follow the V2 direction rule instead
 - The V2 dodge, all three pushes and the starting-node push were verified by build, a load check, a direction check of `Pushing.Destination` against the board edge, and code review only, not yet by playing through them
 - Enemy tokens are bare avatars while character tokens are clipped discs with a rim; they do not match visually
-- Save/load is scaffolded but non-functional
+- Persistence was verified by build, a save round trip of every new field (Bleed's 0 included) and a headless run that placed a party, read the first enemy-phase snapshot back, edited it and resumed it into the Encounter scene (positions, shared nodes, conditions, endurance, Aggro, round and the next activation all came back). Continue, Load Game and the World Map / Bonfire resumes have not been played through
+- Quitting on the defeat banner saves the party at the Bonfire with its wounds, but `BonfireOptions.restOnArrival` is a static flag, not saved, so loading that save does not rest on arrival
 - Only five classes have a `Character` resource (Herald, Assassin, Knight, Deprived, Cleric). Mercenary, Pyromancer, Sorcerer, Thief and Warrior have art folders but no class resource, so their Heroic Actions are coded but cannot be played until the resources exist. Set `heroicAction` on each when made
 - Heroic Actions, Estus and Luck were verified by build, a load check and code review only, not yet by playing through them
 - The dodge step, the roll reveal and its thrown cube dice, the attack stroke (`AttackSlash`), the outcome banners, the held-attack zoom, the spotlight pulse, the cursor policy and every board effect under `Fx/` were verified by build and code review only, not yet by playing through them

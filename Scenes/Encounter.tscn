@@ -1484,9 +1484,10 @@ actionBar = NodePath("../AspectRatioContainer/UI/Stage/HUD/Action Bar")
 [node name="Roll Reveal" parent="CanvasLayer" instance=ExtResource("21_reveal")]
 unique_name_in_owner = true
 
-[node name="EncounterDevControls" type="Node" parent="CanvasLayer" node_paths=PackedStringArray("encounterTitle", "buttonHost")]
+[node name="EncounterDevControls" type="Node" parent="CanvasLayer" node_paths=PackedStringArray("encounterTitle", "buttonHost", "actionListener")]
 script = ExtResource("13_devwm")
 encounterTitle = NodePath("../AspectRatioContainer/UI/Title Panel/Margin/HBoxContainer/Encounter Title")
 buttonHost = NodePath("../AspectRatioContainer/UI/Title Panel/Margin/HBoxContainer")
+actionListener = NodePath("../AspectRatioContainer/UI/Stage/Board View/Encounter")
 
 [connection signal="pressed" from="CanvasLayer/AspectRatioContainer/UI/Title Panel/Margin/HBoxContainer/CheckButton" to="CanvasLayer/AspectRatioContainer/UI/Title Panel/Margin/HBoxContainer/CheckButton" method="OnPressed"]

@@ -58,6 +58,7 @@ public partial class WorldMap : VBoxContainer {
 			return;
 		}
 
+		CampaignManager.Autosave(CampaignManager.WORLD_MAP);
 		titleLabel.Text = WorldMapManager.MapData.name;
 		var start = WorldMapManager.MapData.GetStartNode();
 		rotationPivot = new Vector2I(start.q, start.r);

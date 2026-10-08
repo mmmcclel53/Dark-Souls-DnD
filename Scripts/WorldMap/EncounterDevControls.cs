@@ -11,6 +11,9 @@ using Godot;
 public partial class EncounterDevControls : Node {
 	[Export] public Label encounterTitle;
 	[Export] public Container buttonHost;
+	[Export] public ActionListener actionListener;
+
+	private Button winButton;
 
 	public override void _Ready() {
 		var node = WorldMapManager.GetPendingEncounterNode();
@@ -26,18 +29,23 @@ public partial class EncounterDevControls : Node {
 		// After the title, before the Show Stats toggle.
 		buttonHost.MoveChild(row, buttonHost.GetChildCount() - 2);
 
-		var winButton = new Button { Text = "DEV: Win" };
-		winButton.Pressed += () => {
-			WorldMapManager.ReportEncounterWon();
-			GetTree().ChangeSceneToPacked(ResourceLoader.Load<PackedScene>("res://Scenes/WorldMap.tscn"));
-		};
+		// Kills the board rather than reporting the win, so the Victory modal and souls follow.
+		winButton = new Button { Text = "DEV: Win" };
+		winButton.Pressed += () => actionListener?.KillAllEnemies();
 		row.AddChild(winButton);
 
 		var dieButton = new Button { Text = "DEV: Die" };
 		dieButton.Pressed += () => {
 			WorldMapManager.ReportPartyDeath();
+			BonfireOptions.restOnArrival = true;
 			GetTree().ChangeSceneToPacked(ResourceLoader.Load<PackedScene>("res://Scenes/Bonfire.tscn"));
 		};
 		row.AddChild(dieButton);
+	}
+
+	// Only in a character's activation: the souls are paid per character on the board, and an
+	// enemy's activation may be waiting on a prompt that a win would leave hanging.
+	public override void _Process(double delta) {
+		if (winButton != null) winButton.Disabled = EncounterManager.phase != EncounterManager.Action.CHARACTER_TURN;
 	}
 }

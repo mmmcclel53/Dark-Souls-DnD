@@ -152,12 +152,14 @@ public partial class LoadGame : Node
         deleteButtons[i].Disabled = true;
     }
 
+    // Back to wherever the party was, as Continue does.
     private void OnLoadPressed(int slot) {
-        if (!CampaignManager.LoadFromSlot(slot)) {
+        string scene = CampaignManager.Resume(slot);
+        if (scene == null) {
             GD.PrintErr($"Failed to load save slot {slot}");
             return;
         }
-        GetTree().ChangeSceneToPacked(ResourceLoader.Load<PackedScene>("res://Scenes/Bonfire.tscn"));
+        GetTree().ChangeSceneToPacked(ResourceLoader.Load<PackedScene>(scene));
     }
 
     private void OnDeletePressed(int slot) {
