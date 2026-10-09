@@ -550,12 +550,11 @@ public partial class ActionListener : Control
 	        EncounterManager.GetEnemy(enemyObj)?.ClearAllConditions();
 	    }
 
-	    WorldNodeData node = WorldMapManager.GetPendingEncounterNode();
 	    string worldNodeId = WorldMapManager.PendingEncounterNodeId;
 
 	    // Saved before the banner, so quitting on it cannot take the outcome back.
 	    if (won) {
-	        int? earned = AwardVictory(node);
+	        int? earned = AwardVictory(worldNodeId);
 	        WorldMapManager.ReportEncounterWon();
 	        CampaignManager.Autosave(CampaignManager.WORLD_MAP);
 	        ShowOutcome(true, earned, SoulCache.current);
@@ -579,24 +578,26 @@ public partial class ActionListener : Control
 	    else resultPanel.ShowDefeat(change ?? 0, total);
 	}
 
-	// Returns the souls paid, or null when the win pays nothing yet.
-	private int? AwardVictory(WorldNodeData node) {
+	// Returns the souls paid, or null when the win pays nothing: an encounter already won, whose
+	// souls are held, dropped or spent (SoulEconomy, SoulCache).
+	private int? AwardVictory(string worldNodeId) {
 	    // p19: every black and red cube comes off the endurance bars on a win.
 	    foreach (Node2D playerObj in EncounterManager.players) {
 	        EncounterManager.GetPlayerToken(playerObj)?.RestoreEndurance();
 	    }
 
-	    // A boss win pays 1 soul per character per remaining bonfire spark (p19), and
-	    // sparks are cut — so pay nothing rather than bake in a wrong number.
-	    if (node != null && node.encounterType == WorldEncounterType.BOSS) return null;
+	    int earned = WorldMapManager.ClaimSouls(worldNodeId);
+	    if (earned <= 0) return null;
+	    SoulCache.Award(earned, worldNodeId);
 
-	    int earned = EncounterManager.players.Count * SoulCache.SOULS_PER_CHARACTER;
-	    // Covetous Silver Serpent Ring: 1 more soul for each worn.
+	    // Covetous Silver Serpent Ring: 1 more soul for each worn, only on a win that pays, or
+	    // re-fighting a won encounter would farm it. These souls have no encounter to go back to.
+	    int covetous = 0;
 	    foreach (Node2D playerObj in EncounterManager.players) {
-	        earned += EncounterManager.GetPlayerToken(playerObj)?.player?.RingCount(Ring.Effect.COVETOUS_SILVER_SERPENT) ?? 0;
+	        covetous += EncounterManager.GetPlayerToken(playerObj)?.player?.RingCount(Ring.Effect.COVETOUS_SILVER_SERPENT) ?? 0;
 	    }
-	    SoulCache.Award(earned);
-	    return earned;
+	    SoulCache.Award(covetous, "");
+	    return earned + covetous;
 	}
 
 	// Returns how many souls were dropped where the character fell. An older pile still

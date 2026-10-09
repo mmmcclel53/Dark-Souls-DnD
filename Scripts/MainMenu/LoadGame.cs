@@ -7,6 +7,7 @@ public partial class LoadGame : Node
     [ExportGroup("Slot 1")]
     [Export] public PanelContainer slot1Panel;
     [Export] public Label slot1Name;
+    [Export] public Label slot1Campaign;
     [Export] public Label slot1Timestamp;
     [Export] public Label slot1Party;
     [Export] public Button slot1Load;
@@ -15,6 +16,7 @@ public partial class LoadGame : Node
     [ExportGroup("Slot 2")]
     [Export] public PanelContainer slot2Panel;
     [Export] public Label slot2Name;
+    [Export] public Label slot2Campaign;
     [Export] public Label slot2Timestamp;
     [Export] public Label slot2Party;
     [Export] public Button slot2Load;
@@ -23,6 +25,7 @@ public partial class LoadGame : Node
     [ExportGroup("Slot 3")]
     [Export] public PanelContainer slot3Panel;
     [Export] public Label slot3Name;
+    [Export] public Label slot3Campaign;
     [Export] public Label slot3Timestamp;
     [Export] public Label slot3Party;
     [Export] public Button slot3Load;
@@ -31,6 +34,7 @@ public partial class LoadGame : Node
     [ExportGroup("Slot 4")]
     [Export] public PanelContainer slot4Panel;
     [Export] public Label slot4Name;
+    [Export] public Label slot4Campaign;
     [Export] public Label slot4Timestamp;
     [Export] public Label slot4Party;
     [Export] public Button slot4Load;
@@ -44,6 +48,7 @@ public partial class LoadGame : Node
 
     private PanelContainer[] panels;
     private Label[] nameLabels;
+    private Label[] campaignLabels;
     private Label[] timestampLabels;
     private Label[] partyLabels;
     private Button[] loadButtons;
@@ -54,6 +59,7 @@ public partial class LoadGame : Node
     public override void _Ready() {
         panels = new[] { slot1Panel, slot2Panel, slot3Panel, slot4Panel };
         nameLabels = new[] { slot1Name, slot2Name, slot3Name, slot4Name };
+        campaignLabels = new[] { slot1Campaign, slot2Campaign, slot3Campaign, slot4Campaign };
         timestampLabels = new[] { slot1Timestamp, slot2Timestamp, slot3Timestamp, slot4Timestamp };
         partyLabels = new[] { slot1Party, slot2Party, slot3Party, slot4Party };
         loadButtons = new[] { slot1Load, slot2Load, slot3Load, slot4Load };
@@ -119,6 +125,8 @@ public partial class LoadGame : Node
             }
             nameLabels[i].Text = string.IsNullOrEmpty(save.campaignName) ? $"Save {slot}" : save.campaignName;
             nameLabels[i].Modulate = Colors.White;
+            campaignLabels[i].Text = CampaignLine(save);
+            campaignLabels[i].Visible = true;
             timestampLabels[i].Text = $"Last saved:  {save.timestamp}";
             timestampLabels[i].Visible = true;
             if (save.playerNames.Length > 0) {
@@ -141,9 +149,18 @@ public partial class LoadGame : Node
         }
     }
 
+    // A generated campaign by its size and bosses, a hand-built one by its file.
+    private static string CampaignLine(SaveGame save) {
+        if (save.campaignSize > 0)
+            return $"{CampaignGenerator.SizeName(save.campaignSize)}  —  {save.campaignSize} Bosses";
+        return WorldMapManager.CampaignTitle(string.IsNullOrEmpty(save.campaignFile) ? WorldMapManager.DEFAULT_CAMPAIGN : save.campaignFile);
+    }
+
     private void SetEmptySlot(int i, int slot) {
         nameLabels[i].Text = $"— Empty Slot {slot} —";
         nameLabels[i].Modulate = new Color(0.55f, 0.55f, 0.55f, 1f);
+        campaignLabels[i].Text = "";
+        campaignLabels[i].Visible = false;
         timestampLabels[i].Text = "";
         timestampLabels[i].Visible = false;
         partyLabels[i].Text = "";

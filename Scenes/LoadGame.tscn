@@ -19,29 +19,33 @@ content_margin_top = 24.0
 content_margin_right = 24.0
 content_margin_bottom = 24.0
 
-[node name="LoadGame" type="Node" node_paths=PackedStringArray("backButton", "slot1Panel", "slot1Name", "slot1Timestamp", "slot1Party", "slot1Load", "slot1Delete", "slot2Panel", "slot2Name", "slot2Timestamp", "slot2Party", "slot2Load", "slot2Delete", "slot3Panel", "slot3Name", "slot3Timestamp", "slot3Party", "slot3Load", "slot3Delete", "slot4Panel", "slot4Name", "slot4Timestamp", "slot4Party", "slot4Load", "slot4Delete", "deleteModal", "deleteModalLabel", "confirmDeleteButton", "cancelDeleteButton")]
+[node name="LoadGame" type="Node" node_paths=PackedStringArray("backButton", "slot1Panel", "slot1Name", "slot1Campaign", "slot1Timestamp", "slot1Party", "slot1Load", "slot1Delete", "slot2Panel", "slot2Name", "slot2Campaign", "slot2Timestamp", "slot2Party", "slot2Load", "slot2Delete", "slot3Panel", "slot3Name", "slot3Campaign", "slot3Timestamp", "slot3Party", "slot3Load", "slot3Delete", "slot4Panel", "slot4Name", "slot4Campaign", "slot4Timestamp", "slot4Party", "slot4Load", "slot4Delete", "deleteModal", "deleteModalLabel", "confirmDeleteButton", "cancelDeleteButton")]
 script = ExtResource("2_script")
 backButton = NodePath("CanvasLayer/Background/BackButton")
 slot1Panel = NodePath("CanvasLayer/Background/SlotsContainer/Slot1")
 slot1Name = NodePath("CanvasLayer/Background/SlotsContainer/Slot1/HBox/SlotInfo/SlotName")
+slot1Campaign = NodePath("CanvasLayer/Background/SlotsContainer/Slot1/HBox/SlotInfo/Campaign")
 slot1Timestamp = NodePath("CanvasLayer/Background/SlotsContainer/Slot1/HBox/SlotInfo/Timestamp")
 slot1Party = NodePath("CanvasLayer/Background/SlotsContainer/Slot1/HBox/SlotInfo/Party")
 slot1Load = NodePath("CanvasLayer/Background/SlotsContainer/Slot1/HBox/Buttons/LoadButton")
 slot1Delete = NodePath("CanvasLayer/Background/SlotsContainer/Slot1/HBox/Buttons/DeleteButton")
 slot2Panel = NodePath("CanvasLayer/Background/SlotsContainer/Slot2")
 slot2Name = NodePath("CanvasLayer/Background/SlotsContainer/Slot2/HBox/SlotInfo/SlotName")
+slot2Campaign = NodePath("CanvasLayer/Background/SlotsContainer/Slot2/HBox/SlotInfo/Campaign")
 slot2Timestamp = NodePath("CanvasLayer/Background/SlotsContainer/Slot2/HBox/SlotInfo/Timestamp")
 slot2Party = NodePath("CanvasLayer/Background/SlotsContainer/Slot2/HBox/SlotInfo/Party")
 slot2Load = NodePath("CanvasLayer/Background/SlotsContainer/Slot2/HBox/Buttons/LoadButton")
 slot2Delete = NodePath("CanvasLayer/Background/SlotsContainer/Slot2/HBox/Buttons/DeleteButton")
 slot3Panel = NodePath("CanvasLayer/Background/SlotsContainer/Slot3")
 slot3Name = NodePath("CanvasLayer/Background/SlotsContainer/Slot3/HBox/SlotInfo/SlotName")
+slot3Campaign = NodePath("CanvasLayer/Background/SlotsContainer/Slot3/HBox/SlotInfo/Campaign")
 slot3Timestamp = NodePath("CanvasLayer/Background/SlotsContainer/Slot3/HBox/SlotInfo/Timestamp")
 slot3Party = NodePath("CanvasLayer/Background/SlotsContainer/Slot3/HBox/SlotInfo/Party")
 slot3Load = NodePath("CanvasLayer/Background/SlotsContainer/Slot3/HBox/Buttons/LoadButton")
 slot3Delete = NodePath("CanvasLayer/Background/SlotsContainer/Slot3/HBox/Buttons/DeleteButton")
 slot4Panel = NodePath("CanvasLayer/Background/SlotsContainer/Slot4")
 slot4Name = NodePath("CanvasLayer/Background/SlotsContainer/Slot4/HBox/SlotInfo/SlotName")
+slot4Campaign = NodePath("CanvasLayer/Background/SlotsContainer/Slot4/HBox/SlotInfo/Campaign")
 slot4Timestamp = NodePath("CanvasLayer/Background/SlotsContainer/Slot4/HBox/SlotInfo/Timestamp")
 slot4Party = NodePath("CanvasLayer/Background/SlotsContainer/Slot4/HBox/SlotInfo/Party")
 slot4Load = NodePath("CanvasLayer/Background/SlotsContainer/Slot4/HBox/Buttons/LoadButton")
@@ -125,6 +129,12 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 22
 text = "— Empty Slot 1 —"
 
+[node name="Campaign" type="Label" parent="CanvasLayer/Background/SlotsContainer/Slot1/HBox/SlotInfo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+modulate = Color(0.95, 0.8, 0.5, 1)
+text = ""
+
 [node name="Timestamp" type="Label" parent="CanvasLayer/Background/SlotsContainer/Slot1/HBox/SlotInfo"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
@@ -181,6 +191,12 @@ theme_override_constants/separation = 4
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
 text = "— Empty Slot 2 —"
+
+[node name="Campaign" type="Label" parent="CanvasLayer/Background/SlotsContainer/Slot2/HBox/SlotInfo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+modulate = Color(0.95, 0.8, 0.5, 1)
+text = ""
 
 [node name="Timestamp" type="Label" parent="CanvasLayer/Background/SlotsContainer/Slot2/HBox/SlotInfo"]
 layout_mode = 2
@@ -239,6 +255,12 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 22
 text = "— Empty Slot 3 —"
 
+[node name="Campaign" type="Label" parent="CanvasLayer/Background/SlotsContainer/Slot3/HBox/SlotInfo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+modulate = Color(0.95, 0.8, 0.5, 1)
+text = ""
+
 [node name="Timestamp" type="Label" parent="CanvasLayer/Background/SlotsContainer/Slot3/HBox/SlotInfo"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
@@ -295,6 +317,12 @@ theme_override_constants/separation = 4
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
 text = "— Empty Slot 4 —"
+
+[node name="Campaign" type="Label" parent="CanvasLayer/Background/SlotsContainer/Slot4/HBox/SlotInfo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+modulate = Color(0.95, 0.8, 0.5, 1)
+text = ""
 
 [node name="Timestamp" type="Label" parent="CanvasLayer/Background/SlotsContainer/Slot4/HBox/SlotInfo"]
 layout_mode = 2

@@ -57,7 +57,7 @@ expand_margin_bottom = 8.0
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
-[node name="Character Select" type="TextureRect" parent="CanvasLayer" node_paths=PackedStringArray("backButton", "characterSheet", "playerButtonsContainer", "characterButtonsContainer", "startButton", "nameModal", "nameModalTextEdit", "nameModalConfirm", "summaryDescLabel", "summaryPhysDamageLabel", "summaryMagicDamageLabel", "summaryPhysDefenseLabel", "summaryMagicDefenseLabel", "summaryDodgeLabel")]
+[node name="Character Select" type="TextureRect" parent="CanvasLayer" node_paths=PackedStringArray("backButton", "characterSheet", "playerButtonsContainer", "characterButtonsContainer", "startButton", "nameModal", "nameModalTextEdit", "nameModalConfirm", "summaryDescLabel", "summaryPhysDamageLabel", "summaryMagicDamageLabel", "summaryPhysDefenseLabel", "summaryMagicDefenseLabel", "summaryDodgeLabel", "campaignModal", "campaignNameEdit", "campaignOptions", "campaignCancel", "campaignBegin")]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -84,6 +84,11 @@ summaryMagicDamageLabel = NodePath("MainContainer/CharacterSelectContainer/Start
 summaryPhysDefenseLabel = NodePath("MainContainer/CharacterSelectContainer/StartContainer/PlayersOverview/CharacterSummary/PhysDefenseRow/Label")
 summaryMagicDefenseLabel = NodePath("MainContainer/CharacterSelectContainer/StartContainer/PlayersOverview/CharacterSummary/MagicDefenseRow/Label")
 summaryDodgeLabel = NodePath("MainContainer/CharacterSelectContainer/StartContainer/PlayersOverview/CharacterSummary/DodgeRow/Label")
+campaignModal = NodePath("Campaign Modal")
+campaignNameEdit = NodePath("Campaign Modal/Box/Margin/VBox/Name")
+campaignOptions = NodePath("Campaign Modal/Box/Margin/VBox/Options")
+campaignCancel = NodePath("Campaign Modal/Box/Margin/VBox/Buttons/Cancel")
+campaignBegin = NodePath("Campaign Modal/Box/Margin/VBox/Buttons/Begin")
 
 [node name="MainContainer" type="VBoxContainer" parent="CanvasLayer/Character Select"]
 layout_mode = 1
@@ -724,3 +729,69 @@ layout_mode = 2
 size_flags_horizontal = 8
 theme_override_styles/normal = ExtResource("7_cjuwb")
 text = "Confirm"
+
+[node name="Campaign Modal" type="Panel" parent="CanvasLayer/Character Select"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Box" type="PanelContainer" parent="CanvasLayer/Character Select/Campaign Modal"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -180.0
+offset_top = -150.0
+offset_right = 180.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_5wgyk")
+
+[node name="Margin" type="MarginContainer" parent="CanvasLayer/Character Select/Campaign Modal/Box"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="VBox" type="VBoxContainer" parent="CanvasLayer/Character Select/Campaign Modal/Box/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="CanvasLayer/Character Select/Campaign Modal/Box/Margin/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "New Campaign"
+
+[node name="Name" type="LineEdit" parent="CanvasLayer/Character Select/Campaign Modal/Box/Margin/VBox"]
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+max_length = 40
+
+[node name="Options" type="VBoxContainer" parent="CanvasLayer/Character Select/Campaign Modal/Box/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Buttons" type="HBoxContainer" parent="CanvasLayer/Character Select/Campaign Modal/Box/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 2
+
+[node name="Cancel" type="Button" parent="CanvasLayer/Character Select/Campaign Modal/Box/Margin/VBox/Buttons"]
+custom_minimum_size = Vector2(100, 28)
+layout_mode = 2
+text = "Cancel"
+
+[node name="Begin" type="Button" parent="CanvasLayer/Character Select/Campaign Modal/Box/Margin/VBox/Buttons"]
+custom_minimum_size = Vector2(100, 28)
+layout_mode = 2
+theme_override_styles/normal = ExtResource("7_cjuwb")
+text = "Begin"

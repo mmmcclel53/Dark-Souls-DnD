@@ -5,6 +5,9 @@ public enum WorldTerrain { GRASS, MOUNTAIN, SNOW, CITY, SAND, VOLCANO, LAVA, WAT
 
 public enum WorldEncounterType { NONE, BONFIRE, ENCOUNTER, BOSS }
 
+// A boss's weight, which sets its soul payout (SoulEconomy.BossSouls).
+public enum WorldBossKind { MINI, MAIN, MEGA }
+
 public class WorldNodeData {
 	public string id = "";
 	public string displayName = "";
@@ -13,6 +16,9 @@ public class WorldNodeData {
 	public WorldTerrain terrain = WorldTerrain.GRASS;
 	public WorldEncounterType encounterType = WorldEncounterType.NONE;
 	public int level = 1;
+	// The campaign section this node belongs to, from 1; 0 when the map has no sections.
+	public int section = 0;
+	public WorldBossKind boss = WorldBossKind.MAIN;
 	public int elevation = 1;
 	public bool isStart = false;
 
@@ -22,6 +28,9 @@ public class WorldNodeData {
 
 public class WorldMapData {
 	public string name = "Unnamed Campaign";
+	// How many sections the campaign has (Small 6, Medium 10, Large 14), which sets every
+	// section's soul budget. 0 for a map without sections, whose encounters pay nothing.
+	public int sections = 0;
 	public List<WorldNodeData> nodes = new List<WorldNodeData>();
 
 	private Dictionary<string, WorldNodeData> byId = new Dictionary<string, WorldNodeData>();
@@ -60,12 +69,28 @@ public class WorldMapData {
 		}
 	}
 
+	// Adds a node to the map, refusing one on a taken coordinate or with a taken id.
+	public bool Add(WorldNodeData node) {
+		var coord = new Vector2I(node.q, node.r);
+		if (byCoord.ContainsKey(coord) || byId.ContainsKey(node.id)) return false;
+		nodes.Add(node);
+		byId[node.id] = node;
+		byCoord[coord] = node;
+		return true;
+	}
+
 	public static WorldMapData LoadFromFile(string path) {
 		if (!FileAccess.FileExists(path)) {
 			GD.PushError($"WorldMapData: campaign file not found: {path}");
 			return null;
 		}
-		var parsed = Json.ParseString(FileAccess.GetFileAsString(path));
+		return Parse(FileAccess.GetFileAsString(path), path);
+	}
+
+	// A campaign as JSON: a file under res://Campaigns, or a generated one kept in the save.
+	// `path` only names it in errors.
+	public static WorldMapData Parse(string json, string path) {
+		var parsed = Json.ParseString(json);
 		if (parsed.VariantType != Variant.Type.Dictionary) {
 			GD.PushError($"WorldMapData: '{path}' is not valid JSON (expected a top-level object)");
 			return null;
@@ -74,6 +99,7 @@ public class WorldMapData {
 
 		var map = new WorldMapData();
 		map.name = GetString(root, "name", "Unnamed Campaign");
+		map.sections = Mathf.Max(0, GetInt(root, "sections", 0));
 
 		if (!root.TryGetValue("nodes", out var nodesVar) || nodesVar.VariantType != Variant.Type.Array) {
 			GD.PushError($"WorldMapData: '{path}' has no \"nodes\" array");
@@ -92,22 +118,20 @@ public class WorldMapData {
 			node.terrain = GetEnum(dict, "terrain", WorldTerrain.GRASS, path);
 			node.encounterType = GetEnum(dict, "encounter", WorldEncounterType.NONE, path);
 			node.level = Mathf.Clamp(GetInt(dict, "level", 1), 1, 4);
+			node.section = Mathf.Clamp(GetInt(dict, "section", 0), 0, map.sections);
+			node.boss = GetEnum(dict, "boss", WorldBossKind.MAIN, path);
 			node.elevation = Mathf.Clamp(GetInt(dict, "elevation", 1), 0, 8);
 			node.isStart = GetBool(dict, "start", false);
 
-			var coord = new Vector2I(node.q, node.r);
-			if (map.byCoord.ContainsKey(coord)) {
+			if (map.GetNodeAt(node.q, node.r) != null) {
 				GD.PushError($"WorldMapData: duplicate node at q={node.q}, r={node.r} in '{path}' — skipping '{node.id}'");
 				continue;
 			}
-			if (map.byId.ContainsKey(node.id)) {
+			if (map.GetNode(node.id) != null) {
 				GD.PushError($"WorldMapData: duplicate node id '{node.id}' in '{path}' — skipping");
 				continue;
 			}
-
-			map.nodes.Add(node);
-			map.byId[node.id] = node;
-			map.byCoord[coord] = node;
+			map.Add(node);
 		}
 
 		if (map.nodes.Count == 0) {
@@ -122,6 +146,26 @@ public class WorldMapData {
 			GD.PushWarning($"WorldMapData: '{path}' has {startCount} start nodes — using '{map.GetStartNode().id}'");
 
 		return map;
+	}
+
+	// The same format Parse reads, so a generated campaign can be kept in the save.
+	public string ToJson() {
+		var list = new Godot.Collections.Array();
+		foreach (WorldNodeData node in nodes) {
+			var dict = new Godot.Collections.Dictionary {
+				{ "id", node.id }, { "q", node.q }, { "r", node.r },
+				{ "terrain", node.terrain.ToString() }, { "elevation", node.elevation },
+			};
+			if (!string.IsNullOrEmpty(node.displayName)) dict["name"] = node.displayName;
+			if (node.encounterType != WorldEncounterType.NONE) dict["encounter"] = node.encounterType.ToString();
+			if (node.encounterType == WorldEncounterType.ENCOUNTER || node.encounterType == WorldEncounterType.BOSS) dict["level"] = node.level;
+			if (node.encounterType == WorldEncounterType.BOSS) dict["boss"] = node.boss.ToString();
+			if (node.section > 0) dict["section"] = node.section;
+			if (node.isStart) dict["start"] = true;
+			list.Add(dict);
+		}
+		var root = new Godot.Collections.Dictionary { { "name", name }, { "sections", sections }, { "nodes", list } };
+		return Json.Stringify(root, "	");
 	}
 
 	private static string GetString(Godot.Collections.Dictionary dict, string key, string fallback) =>

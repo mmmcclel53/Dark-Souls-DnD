@@ -7,10 +7,17 @@ public partial class Player : Resource
     [Export] public string name = "Mattmac53";
     [Export] public Character character;
 
+    // Each stat is the value of the highest tier its row of the board has a Level Up cube on
+    // (p15), Base to Tier 3, or 0 with no cube at all (Matt, Oct 2026: a character starts with
+    // a Base cube only where their starting gear needs one). Requirements read these values.
     [Export] public int strength;
     [Export] public int dexterity;
     [Export] public int intelligence;
     [Export] public int faith;
+    // Starting cubes still to be placed, each on an empty row's Base square, for free. Every
+    // character starts with STARTING_CUBES; a class whose gear needs fewer stats (the
+    // Deprived's needs none) places the rest itself, at the bonfire's Level Up.
+    [Export] public int freeCubes;
 
     // p12: every weapon not in a hand is in the backup slot, the only slot that holds more
     // than one, and a character carries at most MAX_WEAPONS weapons in all.
@@ -51,12 +58,18 @@ public partial class Player : Resource
 
     public Player(string name, Character character) {
         this.name = name;
-        this.character = character;
+        SetCharacter(character);
+    }
 
-        this.strength = character.strengthTiers[0];
-        this.dexterity = character.dexterityTiers[0];
-        this.intelligence = character.intelligenceTiers[0];
-        this.faith = character.faithTiers[0];
+    // Picks the class, and with it the starting cubes, for a character still being made. The
+    // New Game screen calls it whenever the class changes: setting `character` alone once
+    // left a Knight with the Assassin's stats it was first added as.
+    public void SetCharacter(Character c) {
+        character = c;
+        strength = dexterity = intelligence = faith = 0;
+        var needed = c.StartingGearStats();
+        foreach (Stat stat in needed) SetStat(stat, Tiers(stat)[0]);
+        freeCubes = Mathf.Max(0, STARTING_CUBES - needed.Count);
     }
 
     // Equipment accessors via the GameManager owned pool.
@@ -301,23 +314,94 @@ public partial class Player : Resource
     // Stamina and Health share the bar, so what is spendable is simply what is uncovered.
     public int GetCurrentStamina() => endurance.free;
 
-    // Character level = 1 + total stat investments: how many tiers each attribute has
-    // climbed above its starting tier, summed across all four. A freshly created
-    // character is Level 1.
-    public int GetLevel() {
-        if (character == null) return 1;
-        return 1
-             + TierIndex(strength, character.strengthTiers)
-             + TierIndex(dexterity, character.dexterityTiers)
-             + TierIndex(intelligence, character.intelligenceTiers)
-             + TierIndex(faith, character.faithTiers);
+    public enum Stat { STRENGTH, DEXTERITY, INTELLIGENCE, FAITH }
+    public static readonly Stat[] STATS = { Stat.STRENGTH, Stat.DEXTERITY, Stat.INTELLIGENCE, Stat.FAITH };
+
+    public const int STARTING_CUBES = 2;
+    // Base is tier 0; there is no Tier 4 (Matt: every class at 40 would lose its identity).
+    public const int TOP_TIER = 3;
+
+    public int GetStat(Stat stat) => stat switch {
+        Stat.STRENGTH => strength,
+        Stat.DEXTERITY => dexterity,
+        Stat.INTELLIGENCE => intelligence,
+        _ => faith,
+    };
+
+    private void SetStat(Stat stat, int value) {
+        switch (stat) {
+            case Stat.STRENGTH: strength = value; break;
+            case Stat.DEXTERITY: dexterity = value; break;
+            case Stat.INTELLIGENCE: intelligence = value; break;
+            default: faith = value; break;
+        }
     }
 
-    private static int TierIndex(int value, int[] tiers) {
-        if (tiers == null) return 0;
-        int idx = 0;
-        for (int i = 0; i < tiers.Length; i++) if (value >= tiers[i]) idx = i;
-        return idx;
+    // The board's printed values for a stat's row: Base, Tier 1, Tier 2, Tier 3.
+    public int[] Tiers(Stat stat) => stat switch {
+        Stat.STRENGTH => character.strengthTiers,
+        Stat.DEXTERITY => character.dexterityTiers,
+        Stat.INTELLIGENCE => character.intelligenceTiers,
+        _ => character.faithTiers,
+    };
+
+    // The highest square of the row with a cube on it: -1 for none, 0 for Base … 3 for Tier 3.
+    public int TierOf(Stat stat) {
+        if (character == null) return -1;
+        int[] tiers = Tiers(stat);
+        int value = GetStat(stat), tier = -1;
+        for (int i = 0; i < tiers.Length && i <= TOP_TIER; i++) if (value >= tiers[i]) tier = i;
+        return tier;
+    }
+
+    // One more cube on the row: the next tier's value.
+    public void Raise(Stat stat) {
+        int next = TierOf(stat) + 1;
+        if (next <= TOP_TIER) SetStat(stat, Tiers(stat)[next]);
+    }
+
+    // Takes every cube off the board and puts them back as given (the Level Up's Respec): a
+    // tier per stat, -1 for an empty row. The free starting cubes are among them, so the level
+    // is unchanged and no souls move.
+    public void Respec(int[] tiers) {
+        foreach (Stat stat in STATS) SetStat(stat, tiers[(int)stat] < 0 ? 0 : Tiers(stat)[tiers[(int)stat]]);
+        freeCubes = 0;
+    }
+
+    // Everything the character carries, each needing its requirements met (p12): both hands,
+    // the armour, the backup weapons and the upgrades on all of them.
+    public IEnumerable<Equipment> CarriedItems() {
+        var ids = new List<string> { leftHandId, rightHandId, armourId };
+        ids.AddRange(BackupIds());
+        foreach (string[] upgrades in new[] { leftHandUpgradeIds, rightHandUpgradeIds, armourUpgradeIds, backupUpgradeIds })
+            if (upgrades != null) ids.AddRange(upgrades);
+        foreach (string id in ids) {
+            if (!string.IsNullOrEmpty(id) && GameManager.GetInstance(id) is Equipment item) yield return item;
+        }
+    }
+
+    public int CubesPlaced() {
+        int cubes = 0;
+        foreach (Stat stat in STATS) cubes += TierOf(stat) + 1;
+        return cubes;
+    }
+
+    // Level 1 with the starting cubes, placed or not, and one more for every cube bought
+    // (SoulEconomy): a character at Tier 3 in every stat is Level 15.
+    public int GetLevel() {
+        if (character == null) return 1;
+        return Mathf.Max(1, CubesPlaced() + freeCubes - STARTING_CUBES + 1);
+    }
+
+    // Whether stats as given (or the character's own) meet an item's requirements. Black
+    // Knight Armour lowers what its upgrades (rings) ask for.
+    public bool MeetsRequirements(Equipment e, int[] stats = null) {
+        stats ??= new[] { strength, dexterity, intelligence, faith };
+        int cut = e is Ring ? RingRequirementCut() : 0;
+        return stats[0] >= e.strengthReq - cut
+            && stats[1] >= e.dexterityReq - cut
+            && stats[2] >= e.intelligenceReq - cut
+            && stats[3] >= e.faithReq - cut;
     }
 
     // The weapons in hand. Only these and the armour count (p25: "the character's armour and

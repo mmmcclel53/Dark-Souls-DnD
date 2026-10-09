@@ -1,8 +1,10 @@
-[gd_scene load_steps=31 format=3 uid="uid://d4klkh4uctk1c"]
+[gd_scene load_steps=33 format=3 uid="uid://d4klkh4uctk1c"]
 
 [ext_resource type="Theme" uid="uid://b4u8wpfygl601" path="res://Theme.tres" id="1_theme"]
 [ext_resource type="Texture2D" uid="uid://c1qqm6jq11jti" path="res://Resources/Images/Sprites/Soul.png" id="2_soul"]
 [ext_resource type="Script" path="res://Scripts/MainMenu/Bonfire/BonfireOptions.cs" id="4_options"]
+[ext_resource type="Script" path="res://Scripts/MainMenu/Bonfire/LevelUpModal.cs" id="12_levelup"]
+[ext_resource type="Script" path="res://Scripts/MainMenu/Bonfire/MerchantModal.cs" id="13_merchant"]
 [ext_resource type="FontVariation" uid="uid://sv82bym31oaq" path="res://DS_Font.tres" id="5_font"]
 [ext_resource type="Script" path="res://Scripts/MainMenu/Bonfire/BonfireRestAnimation.cs" id="6_restanim"]
 [ext_resource type="Shader" path="res://Resources/Shaders/Vignette.gdshader" id="7_vignette"]
@@ -283,7 +285,7 @@ color_ramp = SubResource("Gradient_spark_life")
 hue_variation_min = -0.03
 hue_variation_max = 0.03
 
-[node name="Options" type="VBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire" node_paths=PackedStringArray("restButton", "equipmentButton", "readyButton", "restFeedback", "titleBar", "restAnimation")]
+[node name="Options" type="VBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire" node_paths=PackedStringArray("restButton", "levelUpButton", "merchantButton", "readyButton", "restFeedback", "titleBar", "restAnimation", "levelUp", "merchant")]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.74
@@ -299,7 +301,10 @@ restButton = NodePath("Rest")
 restFeedback = NodePath("Rest Feedback")
 titleBar = NodePath("../../../TitleBar")
 restAnimation = NodePath("../../../../../../Rest Animation/Overlay")
-equipmentButton = NodePath("Equipment")
+levelUpButton = NodePath("Level Up")
+levelUp = NodePath("../../../../../../Level Up Modal")
+merchant = NodePath("../../../../../../Merchant Modal")
+merchantButton = NodePath("Merchant")
 readyButton = NodePath("Ready")
 
 [node name="Rest" type="Button" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/Options"]
@@ -322,7 +327,7 @@ theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_btn_pressed")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
 text = "Rest"
 
-[node name="Equipment" type="Button" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/Options"]
+[node name="Level Up" type="Button" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/Options"]
 custom_minimum_size = Vector2(230, 48)
 layout_mode = 2
 size_flags_horizontal = 4
@@ -340,7 +345,27 @@ theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_pressed")
 theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_btn_pressed")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
-text = "Equipment"
+text = "Level Up"
+
+[node name="Merchant" type="Button" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/Options"]
+custom_minimum_size = Vector2(230, 48)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_colors/font_color = Color(0.86, 0.78, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.66, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.66, 1)
+theme_override_colors/font_pressed_color = Color(1, 0.95, 0.8, 1)
+theme_override_colors/font_hover_pressed_color = Color(1, 0.95, 0.8, 1)
+theme_override_colors/font_disabled_color = Color(0.6, 0.55, 0.45, 0.6)
+theme_override_fonts/font = SubResource("FontVariation_banner")
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_pressed")
+theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_btn_pressed")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
+text = "Merchant"
 
 [node name="Ready" type="Button" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/Options"]
 custom_minimum_size = Vector2(230, 48)
@@ -360,7 +385,7 @@ theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_pressed")
 theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_btn_pressed")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
-text = "Ready!"
+text = "World Map"
 
 [node name="Rest Feedback" type="Label" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/Options"]
 layout_mode = 2
@@ -489,3 +514,9 @@ theme_override_font_sizes/font_size = 64
 text = "Rested"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="Level Up Modal" type="CanvasLayer" parent="."]
+script = ExtResource("12_levelup")
+
+[node name="Merchant Modal" type="CanvasLayer" parent="."]
+script = ExtResource("13_merchant")

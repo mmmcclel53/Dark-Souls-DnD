@@ -241,7 +241,7 @@ public partial class WorldMap : VBoxContainer {
 		if (nd.id == cur.id) {
 			SelectNode(ctl);
 		} else if (ctl.Reachable) {
-			bool mustFight = nd.encounterType == WorldEncounterType.ENCOUNTER && !WorldMapManager.IsCleared(nd.id);
+			bool mustFight = WorldMapManager.IsFight(nd) && !WorldMapManager.IsCleared(nd.id);
 			if (mustFight)
 				SelectNode(ctl);
 			else
@@ -287,9 +287,13 @@ public partial class WorldMap : VBoxContainer {
 				lines.Add("Bonfire");
 				break;
 			case WorldEncounterType.BOSS:
-				lines.Add("Boss (not yet implemented)");
+				lines.Add(WorldMapManager.IsCleared(nd.id)
+					? $"{WorldMapNode.PrettyBoss(nd.boss)} — defeated"
+					: $"{WorldMapNode.PrettyBoss(nd.boss)} — Level {nd.level}");
 				break;
 		}
+		if (SoulCache.droppedAmount > 0 && SoulCache.droppedWorldNode == nd.id)
+			lines.Add($"Bloodstain — {SoulCache.droppedAmount} souls");
 		if (isCurrent)
 			lines.Add("The party is here.");
 		else if (!ctl.Reachable)
@@ -301,7 +305,7 @@ public partial class WorldMap : VBoxContainer {
 		if (isCurrent && nd.encounterType == WorldEncounterType.BONFIRE) {
 			pendingAction = PendingAction.REST;
 			actionButton.Text = "Rest at Bonfire";
-		} else if (!isCurrent && ctl.Reachable && nd.encounterType == WorldEncounterType.ENCOUNTER && !WorldMapManager.IsCleared(nd.id)) {
+		} else if (!isCurrent && ctl.Reachable && WorldMapManager.IsFight(nd) && !WorldMapManager.IsCleared(nd.id)) {
 			pendingAction = PendingAction.START_ENCOUNTER;
 			actionButton.Text = $"Start Encounter  (Level {nd.level})";
 		}

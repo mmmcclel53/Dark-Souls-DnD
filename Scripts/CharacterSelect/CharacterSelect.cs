@@ -19,6 +19,14 @@ public partial class CharacterSelect : Control
 	[Export] public TextEdit nameModalTextEdit;
 	[Export] public Button nameModalConfirm;
 
+	// Start asks for the campaign: its name, and a generated size or a hand-built file.
+	[ExportGroup("Campaign Modal")]
+	[Export] public Control campaignModal;
+	[Export] public LineEdit campaignNameEdit;
+	[Export] public BoxContainer campaignOptions;
+	[Export] public Button campaignCancel;
+	[Export] public Button campaignBegin;
+
 	[ExportGroup("Character Summary")]
 	[Export] public Label summaryDescLabel;
 	[Export] public Label summaryPhysDamageLabel;
@@ -36,6 +44,12 @@ public partial class CharacterSelect : Control
 	private StyleBoxFlat charSelectedStyle;
 	private StyleBoxFlat charUnselectedStyle;
 
+	private static readonly int[] SIZES = { CampaignGenerator.SMALL, CampaignGenerator.MEDIUM, CampaignGenerator.LARGE };
+	// One per option in campaignOptions, in order: a generated size, or a campaign file.
+	private List<(int size, string file)> campaignChoices = new List<(int, string)>();
+	private ButtonGroup campaignGroup = new ButtonGroup();
+	private StyleBoxFlat campaignChosenStyle;
+
 	public override void _Ready() {
 		addIconTexture = ((Button)playerButtonsContainer.GetChild(0)).GetNode<TextureRect>("AddIcon").Texture;
 		pendingCharacter = DEFAULT_CHARACTER;
@@ -48,7 +62,11 @@ public partial class CharacterSelect : Control
 		charUnselectedStyle = MakeStyleBox(darkBg, greyBorder, 2, 4);
 
 		backButton.Pressed += () => { OnPressedBackButton(); };
-		startButton.Pressed += () => { OnStartCampaign(); };
+		startButton.Pressed += () => { OpenCampaignModal(); };
+		campaignCancel.Pressed += () => { campaignModal.Visible = false; };
+		campaignBegin.Pressed += () => { OnStartCampaign(); };
+		campaignNameEdit.TextSubmitted += _ => { OnStartCampaign(); };
+		BuildCampaignOptions();
 		nameModalConfirm.Pressed += () => { OnConfirmName(); };
 
 		for (int i = 0; i < playerButtonsContainer.GetChildCount(); i++) {
@@ -152,7 +170,7 @@ public partial class CharacterSelect : Control
 		selectedCharacterIndex = index;
 		pendingCharacter = c;
 		if (selectedPlayer < players.Count) {
-			players[selectedPlayer].character = c;
+			players[selectedPlayer].SetCharacter(c);
 			UpdatePlayerButton(selectedPlayer, players[selectedPlayer]);
 		}
 		characterSheet.SetCharacter(c);
@@ -212,7 +230,42 @@ public partial class CharacterSelect : Control
 		return s;
 	}
 
+	// The three generated sizes, named by their bosses, then any hand-built campaign files.
+	private void BuildCampaignOptions() {
+		// Chosen reads like a chosen class: the same blue border, padded like the other options.
+		campaignChosenStyle = (StyleBoxFlat)charSelectedStyle.Duplicate();
+		campaignChosenStyle.ContentMarginLeft = campaignChosenStyle.ContentMarginRight = 6;
+		foreach (int size in SIZES) AddCampaignOption($"{CampaignGenerator.SizeName(size)}  —  {size} Bosses", size, "");
+		foreach (string file in WorldMapManager.ListCampaignFiles()) AddCampaignOption(WorldMapManager.CampaignTitle(file), 0, file);
+		((Button)campaignOptions.GetChild(0)).ButtonPressed = true;
+	}
+
+	private void AddCampaignOption(string text, int size, string file) {
+		var option = new Button {
+			Text = text,
+			ToggleMode = true,
+			ButtonGroup = campaignGroup,
+			CustomMinimumSize = new Vector2(0, 32),
+			Alignment = HorizontalAlignment.Left,
+		};
+		option.AddThemeStyleboxOverride("pressed", campaignChosenStyle);
+		option.AddThemeStyleboxOverride("hover_pressed", campaignChosenStyle);
+		campaignOptions.AddChild(option);
+		campaignChoices.Add((size, file));
+	}
+
+	private void OpenCampaignModal() {
+		if (players.Count == 0) return;
+		campaignNameEdit.PlaceholderText = DefaultCampaignName();
+		campaignModal.Visible = true;
+		campaignNameEdit.GrabFocus();
+	}
+
+	private static string DefaultCampaignName() => "Campaign " + System.DateTime.Now.ToString("M/d/yy");
+
 	private void OnStartCampaign() {
+		if (players.Count == 0) return;
+		var (size, file) = campaignChoices[campaignGroup.GetPressedButton().GetIndex()];
 		GameManager.EnsureCatalogLoaded();
 		GameManager.ResetOwnedPool();
 
@@ -234,9 +287,17 @@ public partial class CharacterSelect : Control
 		}
 
 		var save = new SaveGame();
-		save.campaignName = "Campaign " + System.DateTime.Now.ToString("M/d/yy");
-		save.campaignFile = string.IsNullOrEmpty(WorldMapManager.SelectedCampaignFile)
-			? WorldMapManager.DEFAULT_CAMPAIGN : WorldMapManager.SelectedCampaignFile;
+		string name = campaignNameEdit.Text.StripEdges();
+		save.campaignName = name.Length > 0 ? name : DefaultCampaignName();
+		if (size > 0) {
+			var rng = new RandomNumberGenerator();
+			rng.Randomize();
+			save.campaignMap = CampaignGenerator.Generate(size, rng)?.ToJson() ?? "";
+			if (save.campaignMap.Length > 0) save.campaignSize = size;
+		}
+		if (string.IsNullOrEmpty(save.campaignMap)) {
+			save.campaignFile = string.IsNullOrEmpty(file) ? WorldMapManager.DEFAULT_CAMPAIGN : file;
+		}
 		save.players = players.ToArray();
 		save.playerNames = new string[players.Count];
 		save.characterNames = new string[players.Count];

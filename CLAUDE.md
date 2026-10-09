@@ -81,9 +81,12 @@ Scripts/
       DiceUtility.cs       — Roll helper
   MainMenu/
     MainMenu.cs            — Continue / New Game / Load Game / Quit
-    LoadGame.cs            — The four save slots; loading one resumes where the party was
+    LoadGame.cs            — The four save slots (name, campaign size, last saved, party); loading one resumes where the party was
     Bonfire/
-      BonfireOptions.cs    — Rest / Equipment / Ready buttons
+      BonfireOptions.cs    — Rest / Level Up / Merchant / Ready buttons (a portrait click opens that character's equipment)
+      LevelUpModal.cs      — The Firekeeper: queue levels on the board, pay from the party's souls on Confirm
+      LevelUpBoard.cs      — The class's printed board with its white Level Up cubes; lit squares can be bought
+      MerchantModal.cs     — The Merchant: the stock face up, who can wield each card, Buy
       BonfireRestAnimation.cs — Flare/blackout/fade-back transition the rest happens behind
       BonfireFireLight.cs   — The living fire on the Bonfire screen: flicker, floor warmth, sparks
   Common/
@@ -106,14 +109,18 @@ Scripts/
     InventoryPanel.cs         — Modal column: search/filter/sort grid over the owned pool
     ComparisonPanel.cs        — Slide-in current-vs-proposed stat compare
   CharacterSelect/
-    CharacterSelect.cs     — 1–4 player setup; character class picker, name input
+    CharacterSelect.cs     — 1–4 player setup; character class picker, name input; Start asks for the campaign's name and size
   SaveGame/
     SaveGame.cs            — Campaign save data resource: party, endurance, world, souls, scene
     EncounterSnapshot.cs   — The board at an encounter's last turn boundary
     CharacterState.cs      — One character in it: node, conditions, Faraam, defence buffs
     EnemyState.cs          — One enemy in it: card, tier, node, health, conditions
-  SoulCache.cs             — Party soul pool + the pile a wipe leaves behind
+    SoulLot.cs             — Souls held or dropped, with the world node that paid them
+  SoulCache.cs             — Party soul pool + the pile a wipe leaves behind, kept as lots that remember their encounter
+  SoulEconomy.cs           — The campaign's fixed soul budget: section budgets, the split, boss payouts
+  Merchant.cs              — The treasure deck and the Merchant's stock: building, restocking, buying
   WorldMap/
+    CampaignGenerator.cs   — Builds a Small / Medium / Large campaign map: a chain of sections, each gated by its boss
     EncounterGenerator.cs  — Rolls each map encounter once: health band per level, terrain family, tiers, spawn nodes
     EncounterPlan.cs       — One fixed encounter as saved: tile + its EncounterSpawns; Toughest for the map icon
     EncounterSpawn.cs      — One enemy of a plan: EnemyData path, tier, spawn slot
@@ -133,7 +140,7 @@ The physical game rules are in `Dark Souls Board Game Rules.pdf`. Key mechanics 
 - **Endurance bar** (p20): 10 boxes shared by Stamina and Health. Spending 1 stamina adds a black cube from the left; suffering 1 damage adds a red cube from the right. Uncovered boxes are the remaining capacity to do *either*. ⚠️ **Death (Matt's ruling, replaces p20's "all ten covered"):** a character dies only when **damage overflows** the bar, needing more red cubes than there are boxes left, from an enemy attack or a condition such as Poison. A bar filled exactly, whether by their own stamina or by damage that just fits, is still standing. Stamina can never kill, since nothing spends more than the free boxes. The party is then immediately defeated (p19). Gaining stamina/health **removes** cubes and does nothing when there are none to remove. Cleared on encounter victory.
 - **Status effects** (rules p21): conditions apply to **any model — characters and enemies alike**. BLEED (2 extra damage next time the model is damaged, then remove), POISON (1 damage at end of the model's activation), FROST/Frostbite (character: +1 stamina to walk/run/dodge; enemy: Move icon values −1), STAGGER (character: +1 stamina to use weapon actions; enemy: attack damage values −1). All of this is implemented — see Conditions under Architecture Notes.
 - **Bonfire rest**: Refills estus, heroic action, luck. Resets all encounters (enemies respawn) — **except bosses, which stay beaten** (this project's own call; see Bonfire Rest under Architecture Notes). ⚠️ The printed rule also costs 1 **spark** — sparks are **deliberately cut from this project**. Do not implement them, do not gate resting on them, and do not use p19's spark-based boss soul formula.
-- **Souls**: Currency. Earned 2 per character per non-boss encounter win. Spent on treasure (1 soul) and leveling up stats. Implemented — see Souls under Architecture Notes. Spending is not wired to anything yet.
+- **Souls**: Currency. ⚠️ **Not the book's economy:** each campaign holds a fixed number of souls, paid by an encounter's **first** win only (see Souls under Architecture Notes). Spent on levelling up stats (see Levelling) and treasure (see Merchant).
 
 ### V2 Rules (official revision; these are deliberate, not mistakes)
 
@@ -205,7 +212,7 @@ Shift steps are free and are not the Walk or a Run, so they ignore the movement 
 ### Ending an Encounter
 `ActionListener.CheckEncounterOver` sets `ENCOUNTER_WON` / `ENCOUNTER_LOST` and calls `EndEncounter`, which clears every model's conditions and then settles the outcome. `WorldMapManager` is told **last**, because `ReportEncounterWon` / `ReportPartyDeath` consume `PendingEncounterNodeId` and both branches need it first.
 
-A win clears every endurance bar (p19) and awards `2 × party size` souls. **Sparks are cut from this project**, so p19's boss formula (1 soul per character per remaining spark) is unusable and boss wins currently award nothing — the panel says so. Boss rewards need a replacement rule, not a spark implementation.
+A win clears every endurance bar (p19) and takes whatever souls the node still has on the map (`WorldMapManager.ClaimSouls`; see Souls). A win that pays nothing (an encounter won before, whose souls are held, dropped or spent) hides the panel's change row. **Sparks are cut from this project**, so p19's boss formula is not used; bosses pay by `SoulEconomy.BossSouls`.
 
 `CheckEncounterOver` settles an encounter once: once the phase is won or lost it only returns true, so a loop still running (an enemy finishing its activation) cannot pay out twice. The debug title bar's **DEV: Win** (`EncounterDevControls`, enabled only during a character's activation) calls `ActionListener.KillAllEnemies`, which kills every enemy through `ApplyDamage` so the real win follows: banner, panel, souls, save.
 
@@ -237,7 +244,44 @@ The floor art (`Resources/Images/Backgrounds/BonfireFloor.jpg`, 1920×1080) is g
 ### Souls
 `SoulCache` is the party's shared pool, stored on `SaveGame` so it survives the trip back to the bonfire. Every call no-ops without a save, so the encounter still runs standalone.
 
-A wipe drops the **whole** cache on the node where the first character fell (`EncounterManager.deathGridIndex`, captured in `PlayerToken.CheckDeath`). The drop is pinned to both a world node id and a grid index, because the encounter is rebuilt from scratch every time it is entered — `ActionListener.RestoreSoulDrop` puts the pile back on re-entry and highlights it, and walking a character onto it calls `EncounterManager.TryRetrieveSouls`. A second death before retrieval discards the old pile rather than stacking it (p19).
+**A fixed budget** (Matt, Oct 2026; this project's own rule). Low encounters cannot be farmed: each campaign holds a set number of souls and an encounter pays them on its **first** win. Enemies still respawn on a rest or a wipe, but a won encounter pays nothing again. The numbers are in `SoulEconomy`, all per character, with the pool getting them times the party size:
+- The budget assumes a character starts with 2 base cubes and has **14 level-ups** to Tier 3 in every stat (no Tier 4: every class at 40 would lose its identity). A level costs the level being reached, Level 2 at 2 up to Level 15 at 15, which is **119** souls whatever the campaign's size. See Levelling.
+- A campaign has `WorldMapData.sections` sections (Small 6, Medium 10, Large 14), and each node has a `section`. A section's encounters pay its share of the levels at 14 / sections levels a section (`SectionLevelSouls`, smoothed so the campaign total stays 119) plus 3 treasure cards at 2 souls (`SectionBudget`).
+- `WorldMapManager.AssignSouls` splits each section's budget over its encounters by tiered health (`SoulEconomy.Split`, largest remainder), once, when the plans are rolled, into `EncounterPlan.souls`. A tougher fight pays more and the section adds up exactly. No fight pays 0: a share that rounds to 0 takes 1 from the section's biggest (a 1-health fight beside 20-health ones did). A map without sections pays nothing.
+- A boss pays on top of the budget: mini a quarter of its section's budget, main half, mega all of it (`WorldNodeData.boss`). The last section's main boss ends the campaign and pays nothing. A beaten boss stays beaten on a wipe as well as a rest, so it pays once.
+- The Covetous Silver Serpent Ring adds its souls only on a win that pays.
+
+**Lost souls are never destroyed** (Matt's idea). The pool is a list of `SoulLot`s, each remembering the node that paid it. Spending takes the oldest first, and spent souls stay off the map for good (`EncounterPlan.soulsClaimed`). A pile lost to a second death goes back to its encounters (`WorldMapManager.ReturnSouls`), which then pay that much again. So souls spent + held + dropped + still on the map always add up to the budget. The exceptions are boss souls (a boss never comes back) and souls with no source (the ring's), which are gone when lost.
+
+**On the map** (`WorldMapNode.DrawSoulGlyph`) every fight that pays wears a soul glyph in its top-right corner, in the soul counter's colours: lit, with the party's number (`WorldMapManager.SoulsOnMap`), while its souls are still there; a dim soul once they are held, dropped or spent; lit again when a lost pile gives them back, with only what came back. A won fight shows the cleared tick there instead, which never clashes, since a win takes every soul the node has. A fight that pays nothing (the last main boss) shows none.
+
+The hex where the dropped pile lies wears the games' **bloodstain** (`WorldMapNode.DrawBloodstainPool` / `DrawBloodstainMotes`): a breathing pool of green light on the ground under the encounter's face, a green ring round the face and motes rising off it. It is the only hex that animates, so it is the only one that processes (`SetProcess`). The amount is in its info panel and tooltip ("Bloodstain — N souls"), not on the map.
+
+The Demo Campaign's six biomes are numbered as sections (Grass, Sand, Mountain, Snow, City, Volcano) so the economy can be tried on it. Its encounter levels do not climb with them, and it has one boss.
+
+A wipe drops the **whole** cache on the node where the first character fell (`EncounterManager.deathGridIndex`, captured in `PlayerToken.CheckDeath`). The drop is pinned to both a world node id and a grid index, because the encounter is rebuilt from scratch every time it is entered — `ActionListener.RestoreSoulDrop` puts the pile back on re-entry and highlights it, and walking a character onto it calls `EncounterManager.TryRetrieveSouls`, which puts the pile in front of the pool so it is spent first. A second death before retrieval loses the old pile rather than stacking it (p19); its souls go back to their encounters.
+
+### Levelling
+The Firekeeper (p15) is the Bonfire's **Level Up** button (`LevelUpModal`, a code-built `CanvasLayer` at 10 in the equipment modal's palette). Not the book's prices (Matt, Oct 2026; numbers in `SoulEconomy`):
+- **Cubes.** A stat (`Player.strength` etc.) is the value of the highest square of its board row holding a Level Up cube, Base to Tier 3, or **0 with no cube**; requirements read the values as before (`Player.MeetsRequirements`, which the inventory now uses too). `Player.TierOf` / `Raise` / `CubesPlaced` work in squares. There is no Tier 4.
+- **The 2-cube start.** A new character (`new Player(name, character)`) gets a Base cube only on the stats their starting gear asks anything of (`Character.StartingGearStats`): Str + Dex for the Assassin and Knight, Str + Faith for the Cleric and Herald. `Player.SetCharacter` sets them, and the New Game screen calls it on every class change (it once set `character` alone, so a Knight first added as the default Assassin kept the Assassin's stats). Every character starts with `STARTING_CUBES` (2), so a class needing fewer places the rest itself: the Deprived's gear needs none, so it starts with 2 `freeCubes`, placed at the Level Up on empty rows' Base squares for nothing, before anything can be bought. Old saves keep their four Base cubes.
+- **Level** = cubes placed + free cubes − 1, so the start is Level 1 and Tier 3 everywhere is Level 15. A level costs the level being reached (`SoulEconomy.LevelCost`), whichever stat it raises.
+- **The cap** (`WorldMapManager.LevelCap`, `SoulEconomy.LevelCap`) is 1 + ⌊14 × s / sections⌋ while the party is in section s, i.e. one section past the bosses beaten (mini or main; megas are optional). So a section's levels can be bought before its boss, matching what its encounters pay. A map without such a boss in every section (the Demo Campaign) has no cap.
+
+**The screen.** The class's printed board fills the left (`LevelUpBoard`), drawn aspect-fit, with a white cube on every square held, a gold one on every square queued, and the next square of each row lit and breathing when it can be bought now (free cube left, under the cap, affordable, below Tier 3). Click a lit square to queue it; click any queued cube to take it back, together with any queued above it in its row (a row has no gaps). There is no Reset button (Matt). The queue is replayed against the rules on every change (`LevelUpModal.Replay`), so taking a cube back drops whatever no longer holds after it. Nothing is spent until **Confirm**, which pays from the party's pool (`SoulCache.Spend`, oldest souls first), raises the stats and autosaves. The side column shows name and class (arrows switch character), Level now → after with the cap, souls now → after, the next level's price (red if it cannot be paid, "—" at the cap), free cubes left, each stat's value now → after, and **Unlocks**: owned equipment the queued levels make wieldable, plus how many more items in the game they would.
+
+**Respec** (Matt, Oct 2026) takes the Reset button's old place, a toggle that reads gold while on. It lifts every cube off the board and hands back the same number (`CubesPlaced` + `freeCubes`, the starting ones included) to place anew, anywhere a row allows; the side column counts the cubes left to place. The level stays, so **no souls move**: nothing is refunded to the pool, where it could be lost or sent back to its encounters (see Souls). It confirms only once every cube is placed again (`Player.Respec`, which also places any free cubes) and only while everything the character carries (`Player.CarriedItems`: hands, armour, backup weapons and their upgrades) can still be wielded with the new spread (p12); anything that could not is listed in red under **Unwieldable**, and a stat that falls shows red. It is free, at any bonfire.
+
+Where the squares are is data: `Character.tierSquares` (the top-left and bottom-right square centres as fractions of the board image) and `tierSquareSize`, measured from the scans by `Tools/LevelSquares/measure.py` (`--write` updates every Character resource from the board its `image` names). The scans come at two sizes, so one fixed fraction would not fit; Herald's needs a darker cutoff than the rest, which is why it tries several.
+
+### Merchant
+Blacksmith Andre's treasure (p14, campaign p33), sold **face up** (Matt, Oct 2026) from the Bonfire's **Merchant** button, which took the Equipment button's place (a portrait click opens that character's equipment, as before). `Merchant` holds the rules, its state is on `SaveGame` (`treasureDeck`, `merchantStock`, `merchantStocked`, `winsSinceRestock`), and `MerchantModal` is the screen, code-built like the Level Up's.
+- **The deck** is every item in the catalogue but starting gear (rarity STARTER) that someone in the party could wield at Tier 3 (`Merchant.TopStats`), built on the first look. A card bought is minted into the party's pool (`GameManager.MintInstance`, so it shows in the inventory) and is gone from the deck for the campaign.
+- **The stock** is `3 + party size` cards, each at `SoulEconomy.CARD_PRICE` (2), the price the soul budget allows three of per section per character. A bought card leaves an empty frame.
+- **Rarity** comes in with the campaign (`WorldMapManager.Progress`, the share of sections whose boss is beaten; 1 on a map without them): Common and Uncommon from the start, then Rare, Epic and Legendary from a quarter, a half and three quarters of the way. Draws are weighted 3 / 3 / 2 / 2 / 1 from Common up.
+- **Restocking** happens on a rest (`WorldMapManager.RestAtBonfire` → `Merchant.OnRest`), but only after a win that paid souls since the last restock (`WorldMapManager.ClaimSouls` → `NoteWin`), so resting cannot reroll the stock for free. Unsold cards go back into the deck first.
+- Under each card, the party's faces say who could wield it: a gold ring now, a grey ring and a dimmed face after levelling, no face if never. Its tooltip lists type, rarity and requirements.
+- There is **no selling** yet. The book's campaign sells a card back for 1 soul; in a fixed economy that soul would need a source to return to if lost, so it is left for Matt to decide.
 
 ### Conditions
 Everything in the p21 lifecycle is wired: applied on any hit through `CombatResolver.Apply` (a 0-damage hit still applies), consumed or expired on the right schedule, and reflected by the token icons. There is no separate condition readout — the icons are the UI.
@@ -451,7 +495,7 @@ The 16 rings (Matt typed out 18 from the cards, Oct 2026; two were cut, below) a
 | Blue Tearstone | `CombatResolver.Apply(…, PlayerToken)` | 1 stamina after an enemy attack actually deals damage (not Poison) |
 | Carthus Milkring | `CombatResolver.DodgeStaminaCost` | dodging costs 0, Frostbite included |
 | Chloranthy | `PlayerToken.StartGain` | 4 instead of 2 at activation start, for the wearer and anyone on their node (Matt: replaces the 2) |
-| Covetous Silver Serpent | `ActionListener` win payout | +1 soul per ring worn; boss wins still pay nothing |
+| Covetous Silver Serpent | `ActionListener` win payout | +1 soul per ring worn, only on a win that pays (a re-fight would farm it); lost with no encounter to go back to |
 | Dark Wood Grain | `CharacterTurn.OfferDodgeStep` | the dodge step may be 2 nodes for its 1 stamina (Matt) |
 | Divine Blessing | action bar, beside the tokens | once per rest, in the wearer's activation: all damage and conditions off. Spent like a token (`Player.divineBlessingUsed`, refreshed by `RefreshTokens` on a rest) and shown darkened; the card was edited to say "once per rest, use this card to" in place of "permanently discard", and its Faith requirement raised from 22 to 30 (Matt) |
 | Dusk Crown | `AttackTerms.For` | magic attacks cost 2 less; 1 self-damage once per attack (`PlayerToken.SufferOwnDamage`, which cannot kill: only enemy attacks and conditions do) |
@@ -465,7 +509,7 @@ The 16 rings (Matt typed out 18 from the cards, Oct 2026; two were cut, below) a
 | Tiny Being's | `CharacterTurn.Begin` → `CharacterActionBar.AskStartGain` | with damage on the bar, the start gain waits (`pendingStartGain`) on a choice: all stamina, or one of it as health (Matt: asked each activation) |
 | Wolf | `Enemy.Strike` → `DodgePrompt.Ask(peek)` | the dodge dice are rolled before Block/Dodge is asked; the Dodge row shows the icons, Dodge is greyed if they fall short, and choosing it uses that same roll (Matt: peek, then choose) |
 
-**Rarity** (Claude's ranking, agreed with Matt, Oct 2026; in `onboard_rings.py` / `onboard_gems.py`). Rings: Legendary Chloranthy, Wolf, Divine Blessing; Epic Carthus Milkring, Sun Princess; Rare Dusk Crown, Obscuring; Uncommon Blue Tearstone, Knight Slayer's, Ring of Favour, Covetous Silver Serpent, Magic Stoneplate; Common Red Tearstone, Tiny Being's, Hornet, Dark Wood Grain. Gems: Epic Titanite Scale, Faron Flashsword, Blue Titanite; Rare Simple, Raw, Carthus Flame Arc, Crystal Magic Weapon; Uncommon Blood, Blessed, Crystal, Heavy, Sharp; Common Titanite Shard, Lightning, Hollow, Poison. Rarity only drives the frame colour and the inventory filter until treasure exists. The tiers run Common → Uncommon → Rare → Epic → Legendary: Epic and Legendary swapped names (Matt, Oct 2026), not ordinals, so every saved item kept its tier.
+**Rarity** (Claude's ranking, agreed with Matt, Oct 2026; in `onboard_rings.py` / `onboard_gems.py`). Rings: Legendary Chloranthy, Wolf, Divine Blessing; Epic Carthus Milkring, Sun Princess; Rare Dusk Crown, Obscuring; Uncommon Blue Tearstone, Knight Slayer's, Ring of Favour, Covetous Silver Serpent, Magic Stoneplate; Common Red Tearstone, Tiny Being's, Hornet, Dark Wood Grain. Gems: Epic Titanite Scale, Faron Flashsword, Blue Titanite; Rare Simple, Raw, Carthus Flame Arc, Crystal Magic Weapon; Uncommon Blood, Blessed, Crystal, Heavy, Sharp; Common Titanite Shard, Lightning, Hollow, Poison. Rarity drives the frame colour, the inventory filter and the Merchant's stock (which rarities it shows, and how often). The tiers run Common → Uncommon → Rare → Epic → Legendary: Epic and Legendary swapped names (Matt, Oct 2026), not ordinals, so every saved item kept its tier.
 
 The ring bonus on an attack is `AttackTerms.bonus`, added to the roll and shown in the row's modifier and in the roll reveal; the rings' dice are `AttackTerms.extraDice` as before. A ring shown on the bar (Divine Blessing, the Tiny Being choice) uses its card art cut to a disc (`CharacterActionBar.RING_ART`, `PlayerToken.AggroMask`).
 
@@ -505,8 +549,22 @@ The weapon and armour effects (`EquipmentEffect`, Oct 2026) are wired, read off 
 
 **Inert, waiting on systems that do not exist**: Abyss Greatsword (If Embered), Adventurer's Armour (If Trap Activated), Painting Guardian Armour (weak arc). Their tooltips say "(not in the game yet)".
 
+### Generated Campaigns
+The campaign is chosen on the New Game screen, not the main menu (Matt, Oct 2026): **Start** opens the New Campaign dialog (`CharacterSelect.campaignModal`), with the campaign's name (blank takes the date, shown as the placeholder) and the options **Small — 6 Bosses**, **Medium — 10 Bosses**, **Large — 14 Bosses** (the main path's bosses, megas not counted), then any hand-built file under `res://Campaigns` by its title. A size is generated by `CampaignGenerator` in `CharacterSelect.OnStartCampaign` and kept in the save as JSON (`SaveGame.campaignMap`, the same format as the files, via `WorldMapData.ToJson` / `Parse`), so a save carries its own map and `campaignFile` stays empty. `SaveGame.campaignSize` records the size for the Load Game slots, which show it under the campaign's name (a file campaign shows its title instead).
+
+The map is a chain of sections, each one biome (its terrain picks the enemy family, as before), laid out as a compact blob of hexes that grows away from the last:
+- The hex the party enters by is the section's **bonfire**. Section 1's is the start.
+- 5 encounters (6 in the back half of the campaign), spread out over the section, at the section's level, `1 + 4 × (s − 1) / sections`, so levels climb 1 to 4.
+- The **Fog Gate** is one of them, a level higher. It is the boss's only neighbour inside the section, and an uncleared encounter cannot be walked onto, so the boss can only be reached by beating it.
+- The **boss** stands on its own hex just outside the section, a level higher too. Bosses run mini, mini, main and repeat, and the last is always main. The hex behind the boss is the next section's bonfire, and it is the only link between the two: no hex of one section ever touches another's, since the party can only walk between hexes that exist. So the chain cannot be skipped.
+- **Mega bosses** are optional: one in Medium (section 5), two in Large (5 and 9), each on a dead end off an ordinary hex of its section, at level 4.
+- Elevations start from the biome's height and are lowered until every step between walkable hexes is climbable. Water (lava beside a volcano) fills some of the empty hexes around the chain.
+- Names are the section's region (four per biome, never repeated) plus a place.
+
+A probe of 900 maps (300 per size) found no failed layout and no broken rule: every hex reachable, every boss behind its Fog Gate, every section behind its boss, the right encounter counts, levels and boss kinds, and megas on dead ends. A Large map has about 310 hexes and takes about 4 ms.
+
 ### Fixed Encounters
-Every world map encounter is rolled **once** and kept in the save (`SaveGame.encounterPlans`), so going back after a wipe or a rest is the same fight: the same enemies, tiers, spawn nodes and tile (Matt, Oct 2026). `WorldMapManager.EnsureLoaded` rolls any `ENCOUNTER` node without a plan and writes the save to disk straight away. A new campaign does this in `CharacterSelect` before its first save, and an old save gets its plans the first time it is loaded. Boss nodes get no plan yet.
+Every world map encounter is rolled **once** and kept in the save (`SaveGame.encounterPlans`), so going back after a wipe or a rest is the same fight: the same enemies, tiers, spawn nodes and tile (Matt, Oct 2026). `WorldMapManager.EnsureLoaded` rolls any `ENCOUNTER` node without a plan and writes the save to disk straight away. A new campaign does this in `CharacterSelect` before its first save, and an old save gets its plans the first time it is loaded. Bosses do not exist yet, so a boss node gets a **stand-in**: an ordinary plan rolled at the boss node's level, fought and paid like a boss.
 
 `EncounterGenerator` rules (Matt's):
 - **Level = total tiered health** (`EncounterSpawn.Health`, i.e. `Enemy.TierHealthBonus`): L1 1–5, L2 6–10, L3 11–20, L4 21–40.
@@ -556,8 +614,11 @@ Scenes are swapped by instantiating the next scene, adding it to root, then free
 - Weapon and armour effects were verified by build and a runtime probe (walk/run/dodge costs, cannot-dodge, Steel Armour, Black Knight, Force's two pushes, two-hander and Buckler swaps and loadout rule, which options count as support), not yet by playing through them; the board picking, the Skip prompts (Sunset, Sunlight, Faraam, Crimson), the Mace and Rapport are untested in play
 - Shift and Repeat were verified by build, a load check of `shiftAfter` / `IsMovementOnly` and code review only, not yet by playing through them
 - Fixed encounters were verified by build, a 9,300-roll probe of the generator, a save round trip of a plan and a screenshot of the map icons. Spawning a plan in the Encounter scene has not been played through yet
-- Boss encounters award no souls — p19's formula needs sparks, which are cut, so boss rewards need their own rule
-- Souls can be earned but never spent — treasure and levelling do not consume them
+- Bosses are stand-ins (an ordinary encounter at the boss node's level) until real bosses exist
+- Generated campaigns were verified by build, the 900-map probe, a JSON round trip, a load of a generated Large campaign into `WorldMapManager` (budgets, boss plans and payouts) and screenshots of a Small and a Large map. Starting one from New Game, walking a section and fighting a stand-in boss have not been played through
+- The soul economy was verified by build and a headless probe (the per-size tables, the split on the Demo Campaign, claiming, spending, two wipes, a lost pile relighting its encounter, retrieval, a boss staying beaten through a wipe, and a save round trip), not yet by playing through it. Equal-health encounters in a section can pay 1 apart, from rounding. The map glyphs were verified by screenshots of a staged section (fresh, cleared, claimed, relit whole and relit in part, a beaten boss) and a 120-campaign probe of the split, and the bloodstain by screenshots of a staged wipe, not yet in play
+- The Merchant was verified by build, a probe (deck size, stock size, the start's rarities, a purchase into the inventory, no restock on a rest without a win, a restock after one) on the Bonfire scene, and screenshots, not yet by playing through it. There is no selling, and bosses do not pay their treasure yet
+- Levelling was verified by build, a probe of the 2-cube start (Knight and Deprived), the cap, the free cubes, queuing, taking back a run of cubes, Confirm, and a Respec (blocked by an unwieldable Long Sword, then confirmed with level and souls unchanged) on the Bonfire scene, and screenshots, not yet by playing through it. Portrait clicks do not reach the pane while the Level Up screen covers it; its arrows switch character
 - Rings were verified by build, an import check and a runtime probe of their terms, defence dice, dodge cost and the Red Tearstone threshold, not yet by playing through them. Gems were verified the same way (a runtime probe of Raw, Simple, Blood, Heavy, Faron and Hollow on Dancer's Enchanted Swords and of a backup weapon), not yet by playing through them. The summary panel's attack ranges ignore gems
 - Placement order, starting Aggro, the backup carousel and the swap were verified by build, a runtime check of `SwapBackupIntoHand` (one-hander and two-hander both ways) and code review only, not yet by playing through them
 - Characters are not placed on the Bonfire tile on a wipe; the result panel just returns to the Bonfire scene
@@ -572,7 +633,6 @@ Scenes are swapped by instantiating the next scene, adding it to root, then free
 - The dodge step, the roll reveal and its thrown cube dice, the attack stroke (`AttackSlash`), the outcome banners, the held-attack zoom, the spotlight pulse, the cursor policy and every board effect under `Fx/` were verified by build and code review only, not yet by playing through them
 - Presence, the no-overlap packing, the shadow, footfalls, heavy walk and heavy blows were verified by build and screenshots of a probe board (a ×3.4 stand-in boss, a crowded tier-3 Sentinel, singles); the walk, footfalls and blows have not been watched in play
 - **Boss backlog** (Matt, Oct 2026), for when bosses exist: a larger activation-bar portrait and a long boss health bar under the title as in the games; a boss intro banner with the name and a low vignette; the boss arcs (which side of a boss a character stands on), which the ×3+ overlap is there for
-- `WorldMapManager.ReportPartyDeath` still respawns **every** encounter including bosses, where resting spares them
 
 ### Enemy data (`Resources/Prefabs/Enemies/*/<Name>.tres`)
 

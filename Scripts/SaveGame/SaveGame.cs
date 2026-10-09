@@ -1,4 +1,5 @@
 using Godot;
+using Godot.Collections;
 
 [GlobalClass]
 public partial class SaveGame : Resource
@@ -24,8 +25,12 @@ public partial class SaveGame : Resource
     [Export] public string[] ownedEquipment = new string[0];
 
     [ExportGroup("World Map")]
-    // Campaign JSON file name inside res://Campaigns.
+    // Campaign JSON file name inside res://Campaigns, for a hand-built campaign.
     [Export] public string campaignFile = "";
+    // A generated campaign's map, in the same JSON (CampaignGenerator). Wins over campaignFile.
+    [Export] public string campaignMap = "";
+    // Its size in sections (CampaignGenerator.SMALL / MEDIUM / LARGE), for the Load Game slots.
+    [Export] public int campaignSize = 0;
     [Export] public string worldCurrentNode = "";
     [Export] public string worldLastBonfire = "";
     [Export] public string[] worldClearedNodes = new string[0];
@@ -36,14 +41,23 @@ public partial class SaveGame : Resource
     // The board at the encounter's last turn boundary; null before the first, or outside a fight.
     [Export] public EncounterSnapshot encounter;
 
-    // Souls (p19). The cache is the party's shared pool. On a wipe it is dropped on the
-    // node where the character died and has to be walked back to; a second death before
-    // that discards it. The drop is pinned to a world node AND a grid index inside it,
-    // because the encounter is rebuilt from scratch every time it is entered.
-    [Export] public int souls = 0;
+    // Souls (p19). The cache is the party's shared pool, kept as lots that remember the
+    // encounter each came from (SoulCache). On a wipe it is dropped on the node where the
+    // character died and has to be walked back to; a second death before that loses it, and
+    // its souls go back to their encounters. The drop is pinned to a world node AND a grid
+    // index inside it, because the encounter is rebuilt from scratch every time it is entered.
+    [Export] public Array<SoulLot> heldSouls = new Array<SoulLot>();
+    [Export] public Array<SoulLot> droppedSouls = new Array<SoulLot>();
     [Export] public string droppedSoulsWorldNode = "";
     [Export] public int droppedSoulsGridIndex = -1;
-    [Export] public int droppedSoulsAmount = 0;
+
+    // The Merchant (Merchant): the treasure deck left, by template name, and the cards on
+    // show ("" for one bought), with how many paying wins there have been since they were put out.
+    [ExportGroup("Merchant")]
+    [Export] public string[] treasureDeck = new string[0];
+    [Export] public string[] merchantStock = new string[0];
+    [Export] public bool merchantStocked;
+    [Export] public int winsSinceRestock;
 
     public SaveGame() { }
 

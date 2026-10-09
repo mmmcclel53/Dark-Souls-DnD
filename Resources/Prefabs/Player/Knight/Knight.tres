@@ -9,6 +9,8 @@
 
 [resource]
 script = ExtResource("1_t65kf")
+tierSquares = Rect2(0.70178, 0.65394, 0.25471, 0.21509)
+tierSquareSize = 0.03162
 heroicAction = 4
 name = "Knight"
 image = ExtResource("2_xfuvm")

@@ -149,7 +149,7 @@ public partial class InventoryPanel : Control
         btn.TextureNormal = item.image;
         btn.CustomMinimumSize = new Vector2(TILE_W - 4, TILE_H - 4);
 
-        bool meetsReqs = MeetsRequirements(item, viewer);
+        bool meetsReqs = viewer?.MeetsRequirements(item) ?? true;
         if (!meetsReqs) {
             btn.Modulate = new Color(0.45f, 0.45f, 0.45f, 0.8f);
             btn.Disabled = true;
@@ -164,16 +164,6 @@ public partial class InventoryPanel : Control
 
         panel.AddChild(btn);
         return panel;
-    }
-
-    private static bool MeetsRequirements(Equipment e, Player p) {
-        if (p == null) return true;
-        // Black Knight Armour lowers what its upgrades (rings) ask for.
-        int cut = e is Ring ? p.RingRequirementCut() : 0;
-        return p.strength >= e.strengthReq - cut
-            && p.dexterity >= e.dexterityReq - cut
-            && p.intelligence >= e.intelligenceReq - cut
-            && p.faith >= e.faithReq - cut;
     }
 
     private static int MaxDamage(Equipment e, bool magic) {

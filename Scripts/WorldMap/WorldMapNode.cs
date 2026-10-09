@@ -20,6 +20,10 @@ public partial class WorldMapNode : Control {
 	private bool reachable;
 	private bool selected;
 	private bool hovered;
+	// The party's dropped souls lie here (SoulCache), drawn as the games' bloodstain. The only
+	// hex that animates, so it is the only one that processes.
+	private bool bloodstain;
+	private float stainTime;
 
 	public bool Cleared { get => cleared; set { cleared = value; QueueRedraw(); } }
 	// Only a reachable hex does anything when clicked, so only a reachable hex shows the hand.
@@ -34,6 +38,15 @@ public partial class WorldMapNode : Control {
 	public bool Selected { get => selected; set { selected = value; QueueRedraw(); } }
 
 	private static Texture2D[] levelIcons;
+	private static Texture2D soulIcon;
+
+	private const string SOUL_ICON_PATH = "res://Resources/Images/Sprites/Soul.png";
+	private const int SOUL_FONT_SIZE = 12;
+	// The soul counter's colours (SoulCounter), so the two read as the same thing.
+	private static readonly Color SOUL_PLATE = new Color(0.06f, 0.05f, 0.05f, 0.92f);
+	private static readonly Color SOUL_RIM = new Color(0.72f, 0.70f, 0.64f, 0.95f);
+	private static readonly Color SOUL_NUMBER = new Color(0.87f, 0.85f, 0.80f);
+	private static readonly Color SOUL_DIM = new Color(0.62f, 0.62f, 0.62f, 0.7f);
 
 	// Center of the top hex face in local coordinates (control is sized to fit
 	// either orientation).
@@ -49,7 +62,14 @@ public partial class WorldMapNode : Control {
 		Size = new Vector2(HEX_RADIUS * 2f, HEX_RADIUS * 2f + WallHeight);
 		MouseEntered += () => { hovered = true; QueueRedraw(); };
 		MouseExited += () => { hovered = false; QueueRedraw(); };
+		bloodstain = SoulCache.droppedAmount > 0 && SoulCache.droppedWorldNode == data.id;
+		SetProcess(bloodstain);
 		TooltipText = BuildTooltip();
+	}
+
+	public override void _Process(double delta) {
+		stainTime += (float)delta;
+		QueueRedraw();
 	}
 
 	public override void _GuiInput(InputEvent @event) {
@@ -86,13 +106,20 @@ public partial class WorldMapNode : Control {
 		if (selected)
 			DrawOutline(HexPoints(c, HEX_RADIUS - 7f, FlatTop), new Color(1f, 0.84f, 0.3f), 3f);
 
+		if (bloodstain) DrawBloodstainPool(c);
+
 		if (data.encounterType == WorldEncounterType.BONFIRE)
 			DrawBonfire(c);
-		else if (data.encounterType == WorldEncounterType.ENCOUNTER)
+		else if (WorldMapManager.IsFight(data))
 			DrawEncounter(c);
 
-		if (data.encounterType == WorldEncounterType.ENCOUNTER && cleared)
-			DrawClearedBadge(c + new Vector2(HEX_RADIUS * 0.52f, -HEX_RADIUS * 0.62f));
+		if (bloodstain) DrawBloodstainMotes(c);
+
+		if (WorldMapManager.IsFight(data)) {
+			Vector2 corner = c + new Vector2(HEX_RADIUS * 0.52f, -HEX_RADIUS * 0.62f);
+			if (cleared) DrawClearedBadge(corner);
+			else DrawSoulGlyph(corner);
+		}
 	}
 
 	// Hex vertices clockwise (y-down coordinates). Pointy-top starts at the top
@@ -197,8 +224,21 @@ public partial class WorldMapNode : Control {
 		Color rim = Enemy.TierRimColour(toughest.tier);
 		if (cleared) rim = rim.Lerp(new Color(0.45f, 0.45f, 0.45f), 0.7f);
 		DrawArc(centre, radius, 0, Mathf.Tau, 48, rim, RIM, true);
+		if (data.encounterType == WorldEncounterType.BOSS) DrawBossRing(centre, radius + RIM + 2f);
 
 		DrawLevelIcon(centre + new Vector2(0, radius), new Vector2(58f, 40f));
+	}
+
+	// A boss wears a second, outer ring: bone for a mini boss, gold for a main, crimson for a mega.
+	private void DrawBossRing(Vector2 centre, float radius) {
+		Color colour = data.boss switch {
+			WorldBossKind.MINI => new Color(0.85f, 0.82f, 0.74f),
+			WorldBossKind.MEGA => new Color(0.75f, 0.1f, 0.1f),
+			_ => new Color(1f, 0.78f, 0.25f),
+		};
+		if (cleared) colour = colour.Lerp(new Color(0.45f, 0.45f, 0.45f), 0.7f);
+		DrawArc(centre, radius, 0, Mathf.Tau, 48, colour, 2.5f, true);
+		DrawArc(centre, radius + 4f, 0, Mathf.Tau, 48, colour with { A = colour.A * 0.6f }, 1.5f, true);
 	}
 
 	// The avatar art is a printed round token with its own gold rim; this keeps the face and
@@ -240,6 +280,76 @@ public partial class WorldMapNode : Control {
 			HorizontalAlignment.Center, r * 2f, fontSize, cleared ? new Color(0.7f, 0.7f, 0.7f) : Colors.White);
 	}
 
+	// What the fight still pays the party (SoulEconomy): lit with the number while its souls are
+	// on the map, dimmed once they are held, dropped or spent, and lit again when a lost pile
+	// gives them back. Nothing for a fight that pays nothing. It sits in the cleared badge's
+	// corner, which it never shares: a win takes every soul the node has.
+	private void DrawSoulGlyph(Vector2 corner) {
+		if (soulIcon == null || WorldMapManager.SoulsPaidBy(data.id) <= 0) return;
+		int souls = WorldMapManager.SoulsOnMap(data.id);
+		const float ICON = 14f, HEIGHT = 18f, PAD = 4f, GAP = 2f;
+
+		if (souls <= 0) {
+			DrawCircle(corner, HEIGHT * 0.5f, SOUL_PLATE with { A = 0.7f });
+			DrawArc(corner, HEIGHT * 0.5f, 0, Mathf.Tau, 24, SOUL_DIM, 1f, true);
+			DrawTextureRect(soulIcon, new Rect2(corner - new Vector2(ICON, ICON) / 2f, new Vector2(ICON, ICON)), false, SOUL_DIM);
+			return;
+		}
+
+		// Laid out leftwards from the badge's right edge, so it stays over the hex.
+		Font font = GetThemeDefaultFont();
+		string text = souls.ToString();
+		float textWidth = font.GetStringSize(text, HorizontalAlignment.Left, -1, SOUL_FONT_SIZE).X;
+		float width = PAD + ICON + GAP + textWidth + PAD;
+		var plate = new Rect2(corner.X + HEIGHT * 0.5f - width, corner.Y - HEIGHT * 0.5f, width, HEIGHT);
+		var box = new StyleBoxFlat { BgColor = SOUL_PLATE, BorderColor = SOUL_RIM };
+		box.SetBorderWidthAll(1);
+		box.SetCornerRadiusAll((int)(HEIGHT * 0.5f));
+		DrawStyleBox(box, plate);
+
+		var iconCentre = new Vector2(plate.Position.X + PAD + ICON * 0.5f, corner.Y);
+		DrawCircle(iconCentre, ICON * 0.55f, new Color(1f, 0.85f, 0.5f, 0.22f));
+		DrawTextureRect(soulIcon, new Rect2(iconCentre - new Vector2(ICON, ICON) / 2f, new Vector2(ICON, ICON)), false);
+		float baseline = corner.Y + (font.GetAscent(SOUL_FONT_SIZE) - font.GetDescent(SOUL_FONT_SIZE)) * 0.5f;
+		DrawString(font, new Vector2(iconCentre.X + ICON * 0.5f + GAP, baseline), text,
+			HorizontalAlignment.Left, -1, SOUL_FONT_SIZE, SOUL_NUMBER);
+	}
+
+	private static readonly Color STAIN = new Color(0.3f, 1f, 0.5f);
+	private const int STAIN_MOTES = 9;
+
+	private float StainBreath => 0.75f + 0.25f * Mathf.Sin(stainTime * 2f);
+
+	// A pool of green light on the ground under the encounter's face, breathing slowly: layered
+	// ellipses, squashed to lie flat on the hex, brightest in the middle.
+	private void DrawBloodstainPool(Vector2 c) {
+		const int LAYERS = 7;
+		DrawSetTransform(c + new Vector2(0, 4f), 0, new Vector2(1f, 0.55f));
+		for (int i = 0; i < LAYERS; i++) {
+			float radius = HEX_RADIUS * 0.95f * (1f - i / (float)LAYERS);
+			DrawCircle(Vector2.Zero, radius, STAIN with { A = 0.22f * StainBreath });
+		}
+		DrawSetTransform(Vector2.Zero, 0, Vector2.One);
+	}
+
+	// Over the face: a green ring breathing round the encounter, and motes rising off the pool
+	// and fading, each on its own loop, the way the games' bloodstains smoke.
+	private void DrawBloodstainMotes(Vector2 c) {
+		Vector2 face = c + new Vector2(0, -10f);
+		DrawArc(face, 33f, 0, Mathf.Tau, 48, STAIN with { A = 0.25f * StainBreath }, 7f, true);
+		DrawArc(face, 33f, 0, Mathf.Tau, 48, STAIN.Lerp(Colors.White, 0.3f) with { A = 0.85f * StainBreath }, 2f, true);
+
+		for (int i = 0; i < STAIN_MOTES; i++) {
+			float progress = Mathf.PosMod(stainTime * 0.35f + i / (float)STAIN_MOTES, 1f);
+			float x = Mathf.Sin(i * 2.3f + stainTime * 0.9f) * HEX_RADIUS * 0.55f;
+			Vector2 at = c + new Vector2(x, Mathf.Lerp(12f, -HEX_RADIUS, progress));
+			float alpha = Mathf.Sin(progress * Mathf.Pi);
+			float radius = 2f + (i % 3) * 0.8f;
+			DrawCircle(at, radius * 2.6f, STAIN with { A = 0.3f * alpha });
+			DrawCircle(at, radius, STAIN.Lerp(Colors.White, 0.5f) with { A = alpha });
+		}
+	}
+
 	private void DrawClearedBadge(Vector2 c) {
 		DrawCircle(c, 10f, new Color(0.15f, 0.45f, 0.18f));
 		DrawArc(c, 10f, 0, Mathf.Tau, 24, new Color(0.9f, 1f, 0.9f, 0.8f), 1.4f);
@@ -249,9 +359,17 @@ public partial class WorldMapNode : Control {
 	private string BuildTooltip() {
 		string line = $"{data.Title}\n{PrettyTerrain(data.terrain)}, elevation {data.elevation}";
 		if (data.encounterType == WorldEncounterType.ENCOUNTER) line += $"\nEncounter — Level {data.level}";
+		else if (data.encounterType == WorldEncounterType.BOSS) line += $"\n{PrettyBoss(data.boss)} — Level {data.level}";
 		else if (data.encounterType == WorldEncounterType.BONFIRE) line += "\nBonfire";
+		if (bloodstain) line += $"\nBloodstain — {SoulCache.droppedAmount} souls";
 		return line;
 	}
+
+	public static string PrettyBoss(WorldBossKind kind) => kind switch {
+		WorldBossKind.MINI => "Mini Boss",
+		WorldBossKind.MEGA => "Mega Boss",
+		_ => "Main Boss",
+	};
 
 	public static string PrettyTerrain(WorldTerrain t) {
 		string s = t.ToString().ToLower();
@@ -274,6 +392,7 @@ public partial class WorldMapNode : Control {
 
 	private static void EnsureIconsLoaded() {
 		if (levelIcons != null) return;
+		soulIcon = ResourceLoader.Exists(SOUL_ICON_PATH) ? ResourceLoader.Load<Texture2D>(SOUL_ICON_PATH) : null;
 		levelIcons = new Texture2D[4];
 		for (int i = 1; i <= 4; i++) {
 			string path = $"res://Resources/Images/Sprites/Encounters/Encounter Level {i}.png";

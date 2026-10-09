@@ -10,6 +10,8 @@
 
 [resource]
 script = ExtResource("1_char")
+tierSquares = Rect2(0.70178, 0.65394, 0.25542, 0.21509)
+tierSquareSize = 0.03197
 heroicAction = 2
 name = "Tester"
 image = ExtResource("2_art")

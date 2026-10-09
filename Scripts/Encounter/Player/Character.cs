@@ -29,6 +29,33 @@ public partial class Character : Resource
     [Export] public int[] dexterityTiers = [10, 20, 30, 40];
     [Export] public int[] intelligenceTiers = [10, 20, 30, 40];
     [Export] public int[] faithTiers = [10, 20, 30, 40];
+    // Where the board's 4x4 grid of level-up squares sits, as fractions of `image`: the centre
+    // of the top-left square (Strength, Base) and the span to the bottom-right one's (Faith,
+    // Tier 3), and a square's width. The Level Up screen puts the cubes there. Measured from
+    // the scans by Tools/LevelSquares/measure.py.
+    [Export] public Rect2 tierSquares;
+    [Export] public float tierSquareSize;
+
+    // The stats the starting gear asks anything of: where a new character's Base cubes go
+    // (Player). Two for every class so far; the Deprived's gear asks for none.
+    public System.Collections.Generic.List<Player.Stat> StartingGearStats() {
+        var gear = new System.Collections.Generic.List<Equipment> { leftHandDefault, rightHandDefault, armourDefault, backupSlotDefault };
+        foreach (Weapon extra in extraBackupDefaults) gear.Add(extra);
+        var stats = new System.Collections.Generic.List<Player.Stat>();
+        foreach (Player.Stat stat in Player.STATS) {
+            foreach (Equipment item in gear) {
+                if (item == null) continue;
+                int req = stat switch {
+                    Player.Stat.STRENGTH => item.strengthReq,
+                    Player.Stat.DEXTERITY => item.dexterityReq,
+                    Player.Stat.INTELLIGENCE => item.intelligenceReq,
+                    _ => item.faithReq,
+                };
+                if (req > 0) { stats.Add(stat); break; }
+            }
+        }
+        return stats;
+    }
 
     public int GetDodge() {
         int dodge = armourDefault?.dodgeAbility ?? 0;

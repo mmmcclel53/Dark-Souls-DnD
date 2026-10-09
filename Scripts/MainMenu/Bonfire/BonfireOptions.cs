@@ -3,12 +3,15 @@ using Godot;
 public partial class BonfireOptions : VBoxContainer
 {
     [Export] public Button restButton;
-    [Export] public Button equipmentButton;
+    [Export] public Button levelUpButton;
+    [Export] public Button merchantButton;
     [Export] public Button readyButton;
     [Export] public Label restFeedback;
     // The soul counter hangs under this bar's right end.
     [Export] public Control titleBar;
     [Export] public BonfireRestAnimation restAnimation;
+    [Export] public LevelUpModal levelUp;
+    [Export] public MerchantModal merchant;
 
     // Set by a wipe on its way here: the party wakes at the bonfire and rests at once.
     // One-shot, so a later visit does not rest by itself.
@@ -20,7 +23,8 @@ public partial class BonfireOptions : VBoxContainer
 
     public override void _Ready() {
         restButton.Pressed      += OnPressedRest;
-        equipmentButton.Pressed += OnPressedEquipment;
+        levelUpButton.Pressed   += OnPressedLevelUp;
+        merchantButton.Pressed  += () => merchant?.Open();
         readyButton.Pressed     += OnPressedReady;
 
         pane = GetNodeOrNull<CharacterPortraitPane>("/root/CharacterPortraitPane");
@@ -66,11 +70,16 @@ public partial class BonfireOptions : VBoxContainer
         CampaignManager.Autosave();
     }
 
+    // While the Level Up screen is open a portrait picks whose board it shows.
     private void OnPortraitClicked(int playerIndex) {
-        if (modal == null) return;
-        if (modal.IsOpen()) return;                 // modal handles further clicks itself
         var players = CampaignManager.Players;
         if (playerIndex < 0 || playerIndex >= players.Length) return;
+        if (levelUp != null && levelUp.IsOpen()) {
+            levelUp.Open(players[playerIndex]);
+            return;
+        }
+        if (modal == null) return;
+        if (modal.IsOpen()) return;                 // modal handles further clicks itself
         modal.Open(players[playerIndex]);
     }
 
@@ -104,14 +113,16 @@ public partial class BonfireOptions : VBoxContainer
 
     private void SetOptionsEnabled(bool enabled) {
         restButton.Disabled = !enabled;
-        equipmentButton.Disabled = !enabled;
+        levelUpButton.Disabled = !enabled;
+        merchantButton.Disabled = !enabled;
         readyButton.Disabled = !enabled;
     }
 
     // The title bar count is the party pool, not a per-character number (p19).
 
-    private void OnPressedEquipment() {
-        modal?.Open(null);
+    private void OnPressedLevelUp() {
+        var players = CampaignManager.Players;
+        if (players.Length > 0) levelUp?.Open(players[0]);
     }
 
     private void OnPressedReady() {

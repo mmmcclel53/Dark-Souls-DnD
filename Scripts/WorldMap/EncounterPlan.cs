@@ -10,6 +10,12 @@ public partial class EncounterPlan : Resource {
 	// Board art under Resources/Images/Backgrounds, by name. Only Tile 2 has its grid mapped.
 	[Export] public string tile = "";
 	[Export] public Array<EncounterSpawn> spawns = new Array<EncounterSpawn>();
+	// What the first win pays each character: this encounter's share of its section's budget
+	// (SoulEconomy), worked out once when the map's plans are rolled. -1 until then.
+	[Export] public int souls = -1;
+	// Party souls already taken off the map: held, dropped or spent. A lost pile gives its
+	// share back, which lights the encounter again (SoulCache.Lose).
+	[Export] public int soulsClaimed = 0;
 
 	public int TotalHealth {
 		get {
