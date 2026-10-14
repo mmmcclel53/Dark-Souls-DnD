@@ -11,6 +11,7 @@ public partial class Weapon : Resource, Equipment {
     [Export] public Equipment.EquipmentType type { get; set; }
     [Export] public Equipment.Rarity rarity { get; set; }
     [Export] public bool isUpgrade { get; set; }
+    [Export] public bool bossTreasure { get; set; }
     [Export] public int numHands = 1;   // hand slots required to wield (1 or 2)
 
     [ExportGroup("Attacks")]

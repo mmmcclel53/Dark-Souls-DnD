@@ -22,6 +22,8 @@ public partial class EncounterSnapshot : Resource
 	[Export] public CharacterState[] characters = new CharacterState[0];
 	// In activation order, which is threat order as it was sorted on entry.
 	[Export] public EnemyState[] enemies = new EnemyState[0];
+	// Abyss tokens on the board, as grid index / enemy phases left pairs.
+	[Export] public int[] abyss = new int[0];
 
 	public static EncounterSnapshot Capture(string worldNode, bool characterPhase, Player[] party) {
 		EncounterSnapshot snapshot = new EncounterSnapshot {
@@ -46,6 +48,13 @@ public partial class EncounterSnapshot : Resource
 			if (enemy != null) enemies.Add(EnemyState.Of(enemy));
 		}
 		snapshot.enemies = enemies.ToArray();
+
+		List<int> abyss = new List<int>();
+		for (int i = 0; i < EncounterManager.gridSize * EncounterManager.gridSize; i++) {
+			GameNode node = EncounterManager.GameNodeAtIndex(i);
+			if (node != null && node.abyss > 0) abyss.AddRange(new[] { i, node.abyss });
+		}
+		snapshot.abyss = abyss.ToArray();
 		return snapshot;
 	}
 

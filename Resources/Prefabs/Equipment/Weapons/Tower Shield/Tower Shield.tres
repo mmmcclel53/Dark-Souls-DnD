@@ -12,6 +12,7 @@ duration = 4
 
 [resource]
 script = ExtResource("1_x")
+bossTreasure = true
 name = "Tower Shield"
 image = ExtResource("2_x")
 type = 2

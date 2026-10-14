@@ -5,7 +5,9 @@ using System.Linq;
 
 public static partial class EncounterManager {
 
-    public enum StatusEffect { BLEED, POISON, FROST, STAGGER, NONE };
+    // Stored as ordinals in the .tres files: only ever append, and NONE stays 4. The four after
+    // it came with the bosses (Matt, Oct 2026) and are characters' only (PlayerToken).
+    public enum StatusEffect { BLEED, POISON, FROST, STAGGER, NONE, ABYSS, CALAMITY, CORROSION, CURSE };
 
     public enum Action { INACTIVE, PICK_ENTRANCE, ENEMY_MOVE, CHARACTER_TURN, ENCOUNTER_WON, ENCOUNTER_LOST };
 
@@ -165,10 +167,32 @@ public static partial class EncounterManager {
     // A hazard node applies its condition to anything that steps onto it. Not a rule from
     // the book — GameNode.statusEffect is this project's own idea.
     public static void ApplyNodeHazard(GameNode node, Node2D arrival) {
-        if (node == null || node.statusEffect == StatusEffect.NONE) return;
+        if (node == null) return;
+        // An Abyss token gives Abyss to any character stepping onto its node.
+        if (node.abyss > 0) GetPlayerToken(arrival)?.ApplyCondition(StatusEffect.ABYSS);
+        if (node.statusEffect == StatusEffect.NONE) return;
 
         GetEnemy(arrival)?.ApplyCondition(node.statusEffect);
         GetPlayerToken(arrival)?.ApplyCondition(node.statusEffect);
+    }
+
+    // Abyss (Matt, Oct 2026): an attack that inflicts it lays a token on every node it reaches,
+    // giving Abyss to every character standing there now and to any who step on while it
+    // lasts. A token lasts ABYSS_PHASES enemy phases, the one that laid it included.
+    public const int ABYSS_PHASES = 2;
+
+    public static void LayAbyss(GameNode node) {
+        if (node == null) return;
+        node.SetAbyss(ABYSS_PHASES);
+        foreach (Node2D model in GetPlayersInNode(node, "Player")) GetPlayerToken(model)?.ApplyCondition(StatusEffect.ABYSS);
+    }
+
+    // The end of an enemy phase: every token is one phase older, and the spent ones fade.
+    public static void AgeAbyss() {
+        for (int i = 0; i < gridSize * gridSize; i++) {
+            GameNode node = GameNodeAtIndex(i);
+            if (node != null && node.abyss > 0) node.SetAbyss(node.abyss - 1);
+        }
     }
 
     public static PlayerToken GetPlayerToken(Node2D playerObj) {

@@ -32,10 +32,11 @@ repeat = 2
 
 [resource]
 script = ExtResource("1_x")
+bossTreasure = true
 name = "Winged Knight Twin Axes"
 image = ExtResource("2_x")
 type = 1
-rarity = 1
+rarity = 2
 isUpgrade = false
 numHands = 2
 attackRange = 0

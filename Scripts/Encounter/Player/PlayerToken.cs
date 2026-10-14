@@ -124,7 +124,7 @@ public partial class PlayerToken : TextureButton
 	// Rules p22: a character gains 2 Stamina and the Aggro token when they activate.
 	public void BeginActivation() {
 		int gain = StartGain();
-		if (player.HasRing(Ring.Effect.TINY_BEING) && endurance.damageTaken > 0) {
+		if (player.HasRing(Ring.Effect.TINY_BEING) && endurance.damageTaken > 0 && CanBeHealed) {
 			pendingStartGain = gain;
 		} else {
 			pendingStartGain = 0;
@@ -279,19 +279,28 @@ public partial class PlayerToken : TextureButton
 			GearHeal(this, enemies);
 		}
 		if (player.HasRing(Ring.Effect.RING_OF_FAVOUR) && attackRolls >= 2) RecoverStamina(1);
+		if (player.HasRing(Ring.Effect.PONTIFFS_LEFT_EYE) && attackRolls >= 2) GearHeal(this, 1);
 		ClearVolatileConditions();
 	}
 
+	// Old Leo Ring: the enemies whose attacks damaged this character in the latest enemy phase.
+	// Cleared as each enemy phase begins. Not saved: a resumed encounter starts it empty.
+	private readonly HashSet<Enemy> hurtBy = new HashSet<Enemy>();
+	public void NoteHurtBy(Enemy enemy) { if (enemy != null) hurtBy.Add(enemy); }
+	public bool WasHurtBy(Enemy enemy) => enemy != null && hurtBy.Contains(enemy);
+	public void ForgetHurt() => hurtBy.Clear();
+
 	// Divine Blessing: once per rest, in the wearer's own activation, every red cube and
 	// every condition comes off. Like Estus, only offered with something to take off.
+	// Under Curse it heals nothing and Curse stays (only a rest lifts it).
 	public bool CanUseDivineBlessing => player.HasRing(Ring.Effect.DIVINE_BLESSING) && !player.divineBlessingUsed
-		&& (endurance.damageTaken > 0 || conditions.Count > 0);
+		&& ((CanBeHealed && endurance.damageTaken > 0) || conditions.Count > (player.cursed ? 1 : 0));
 
 	public void UseDivineBlessing() {
 		if (!CanUseDivineBlessing) return;
 		player.divineBlessingUsed = true;
 		Heal(endurance.damageTaken);
-		conditions.Clear();
+		player.ClearConditions();
 	}
 
 	// Damage the character does to themselves (Dusk Crown Ring). Only an enemy attack or a
@@ -306,13 +315,30 @@ public partial class PlayerToken : TextureButton
 	// The Estus Flask clears the whole endurance bar, stamina and damage alike, as a rest
 	// does. Drinking it on a clean bar would waste it, so it is only offered with something
 	// to restore.
-	public bool CanDrinkEstus => !player.estusUsed && (endurance.staminaSpent > 0 || endurance.damageTaken > 0);
+	// Under Curse a flask heals nothing, so it only takes the stamina off.
+	public bool CanDrinkEstus => !player.estusUsed && EstusRestores > 0;
+
+	private int EstusRestores => endurance.staminaSpent + (CanBeHealed ? endurance.damageTaken : 0);
 
 	public void DrinkEstus() {
 		if (!CanDrinkEstus) return;
-		int restored = endurance.staminaSpent + endurance.damageTaken;
 		player.estusUsed = true;
-		endurance.Clear();
+		DrinkFlask();
+	}
+
+	// The party's shared flask does the same, from the pool instead of the character's own token.
+	public bool CanDrinkPartyEstus => PartyEstus.CanDrink && EstusRestores > 0;
+
+	public void DrinkPartyEstus() {
+		if (!CanDrinkPartyEstus) return;
+		PartyEstus.Drink();
+		DrinkFlask();
+	}
+
+	private void DrinkFlask() {
+		int restored = EstusRestores;
+		if (CanBeHealed) endurance.Clear();
+		else endurance.ClearStamina();
 		BoardFloat.Number(this, restored, BoardFloat.STAMINA);
 	}
 
@@ -340,12 +366,22 @@ public partial class PlayerToken : TextureButton
 		CheckDeath();
 	}
 
-	// p19: a win removes every black and red cube from the bar.
 	public void RestoreEndurance() {
 		endurance.Clear();
 	}
 
+	// A win (Matt's rule, replacing p19): the black cubes come off, the red ones stay.
+	public void RecoverAllStamina() {
+		int recovered = endurance.staminaSpent;
+		endurance.ClearStamina();
+		if (recovered > 0) BoardFloat.Number(this, recovered, BoardFloat.STAMINA);
+	}
+
+	// Curse: "cannot heal or be healed while afflicted" (Matt, Oct 2026).
+	public bool CanBeHealed => !player.cursed;
+
 	public void Heal(int health) {
+		if (!CanBeHealed) return;
 		int healed = Mathf.Min(health, endurance.damageTaken);
 		endurance.GainHealth(health);
 		if (healed > 0) BoardFloat.Number(this, healed, HEAL);
@@ -385,8 +421,17 @@ public partial class PlayerToken : TextureButton
 		if (conditions.Add(condition)) ConditionBurst.Play(this, condition);
 	}
 
+	// Curse is never removed here: only a bonfire rest lifts it (CampaignManager.RestParty).
 	public void RemoveCondition(EncounterManager.StatusEffect condition) {
+		if (condition == EncounterManager.StatusEffect.CURSE) return;
 		conditions.Remove(condition);
+	}
+
+	// Calamity and Corrosion: like Bleed they stay past the activation, and come off when an
+	// attack does this character damage.
+	public void ShedOnHurt() {
+		conditions.Remove(EncounterManager.StatusEffect.CALAMITY);
+		conditions.Remove(EncounterManager.StatusEffect.CORROSION);
 	}
 
 	public bool HasCondition(EncounterManager.StatusEffect condition) => conditions.Contains(condition);
@@ -394,13 +439,19 @@ public partial class PlayerToken : TextureButton
 	// Rules p21: poison, frostbite and stagger come off at the end of the model's own
 	// activation. Bleed stays until the model next suffers damage.
 	// p21: every remaining condition comes off when the encounter ends, bleed included.
+	// Curse is the exception: it outlasts the encounter until a rest.
 	public void ClearAllConditions() {
-		conditions.Clear();
+		player.ClearConditions();
 	}
 
+	// Abyss deals 2 at the end of the activation and comes off, like Poison's 1; Curse deals 1
+	// and stays. Either can kill, as Poison can.
 	public void ClearVolatileConditions() {
 		if (conditions.Contains(EncounterManager.StatusEffect.POISON)) ApplyDamage(1);
+		if (conditions.Contains(EncounterManager.StatusEffect.ABYSS)) ApplyDamage(2);
+		if (conditions.Contains(EncounterManager.StatusEffect.CURSE)) ApplyDamage(1);
 		conditions.Remove(EncounterManager.StatusEffect.POISON);
+		conditions.Remove(EncounterManager.StatusEffect.ABYSS);
 		conditions.Remove(EncounterManager.StatusEffect.FROST);
 		conditions.Remove(EncounterManager.StatusEffect.STAGGER);
 	}

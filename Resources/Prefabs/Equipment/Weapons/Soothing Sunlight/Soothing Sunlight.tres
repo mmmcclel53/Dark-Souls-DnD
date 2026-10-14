@@ -20,6 +20,7 @@ bonusEffects = Array[Object]([SubResource("EE0")])
 
 [resource]
 script = ExtResource("1_x")
+bossTreasure = true
 name = "Soothing Sunlight"
 image = ExtResource("2_x")
 type = 3

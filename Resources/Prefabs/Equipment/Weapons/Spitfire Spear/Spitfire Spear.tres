@@ -26,6 +26,7 @@ repeat = 1
 
 [resource]
 script = ExtResource("1_x")
+bossTreasure = true
 name = "Spitfire Spear"
 image = ExtResource("2_x")
 type = 1

@@ -12,8 +12,14 @@ public static class SoulEconomy {
 	public const int LEVEL_UPS = 14;
 	public const int CARDS_PER_SECTION = 3;
 	public const int CARD_PRICE = 2;
+	public const int UNCOMMON_CARD_PRICE = 4;
 	public const int TREASURE_PER_SECTION = CARDS_PER_SECTION * CARD_PRICE;
 	public const int MAX_LEVEL = 1 + LEVEL_UPS;
+
+	// What the Merchant asks for a card: CARD_PRICE is the Common price, which the section
+	// budget is counted in. Nothing rarer than Uncommon is sold.
+	public static int CardPrice(Equipment.Rarity rarity) =>
+		rarity >= Equipment.Rarity.UNCOMMON ? UNCOMMON_CARD_PRICE : CARD_PRICE;
 
 	// The price of a level is the level being reached: Level 2 costs 2, Level 15 costs 15.
 	public static int LevelCost(int toLevel) => toLevel;

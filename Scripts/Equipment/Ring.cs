@@ -28,6 +28,11 @@ public partial class Ring : Resource, Equipment {
 		SUN_PRINCESS,           // 1 health at the end of the wearer's activation
 		TINY_BEING,             // may take 1 stamina and 1 health instead of 2 stamina at activation start
 		WOLF,                   // the dodge dice are rolled before choosing to dodge or block
+		// Boss treasure (Oct 2026): paid out by a boss, never sold or found.
+		OLD_LEO,                // +1 damage against an enemy that damaged the wearer in the last enemy phase (Old Dragonslayer)
+		RING_OF_BLADES,         // at activation start, may suffer 1 damage to ready the Luck token (The Pursuer)
+		CALAMITY,               // -1 on each Block, Resist and Dodge roll, +1 on each attack roll (Kalameet)
+		PONTIFFS_LEFT_EYE,      // two or more attack rolls in an activation give 1 health at its end (Vordt)
 	}
 
 	[Export] public string id { get; set; } = "";
@@ -37,6 +42,7 @@ public partial class Ring : Resource, Equipment {
 	[Export] public Equipment.EquipmentType type { get; set; } = Equipment.EquipmentType.Ring;
 	[Export] public Equipment.Rarity rarity { get; set; } = Equipment.Rarity.COMMON;
 	[Export] public bool isUpgrade { get; set; } = true;
+	[Export] public bool bossTreasure { get; set; }
 
 	[Export] public Effect effect = Effect.NONE;
 

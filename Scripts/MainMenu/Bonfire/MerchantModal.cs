@@ -94,12 +94,13 @@ public partial class MerchantModal : CanvasLayer {
 		}
 		tile.AddChild(faces);
 
+		int price = Merchant.Price(item);
 		var buy = new Button {
-			Text = SoulEconomy.CARD_PRICE.ToString(),
+			Text = price.ToString(),
 			Icon = soulIcon,
 			ExpandIcon = false,
 			CustomMinimumSize = new Vector2(0, 30),
-			Disabled = SoulCache.current < SoulEconomy.CARD_PRICE,
+			Disabled = SoulCache.current < price,
 		};
 		buy.AddThemeConstantOverride("icon_max_width", 16);
 		buy.Pressed += () => Buy(slot);

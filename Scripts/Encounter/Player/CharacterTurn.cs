@@ -20,6 +20,7 @@ public partial class CharacterTurn : Node
 	[Signal] public delegate void ActivationEndedEventHandler();
 	[Signal] public delegate void AttackResolvedEventHandler();
 	[Signal] public delegate void DodgeStepEndedEventHandler();
+	[Signal] public delegate void HomewardBoneUsedEventHandler();
 
 	[Export] public CharacterActionBar actionBar;
 
@@ -101,6 +102,7 @@ public partial class CharacterTurn : Node
 			};
 			actionBar.DodgeStepEnded += () => EmitSignal(SignalName.DodgeStepEnded);
 			actionBar.HeroicChosen += UseHeroic;
+			actionBar.HomewardBoneChosen += UseHomewardBone;
 			actionBar.EquipmentSwapped += OnEquipmentSwapped;
 			actionBar.BackstabPassed += () => backstabChoice?.TrySetResult((null, null));
 			actionBar.ShowIdle();
@@ -117,8 +119,33 @@ public partial class CharacterTurn : Node
 			if (active != token || !GodotObject.IsInstanceValid(token)) return;
 			token.TakeStartGain(asHealth);
 		}
+		if (await OfferRingOfBlades(token) && (active != token || !GodotObject.IsInstanceValid(token))) return;
 		if (actionBar != null) actionBar.Refresh(token);
 		ShowMoveOptions();
+	}
+
+	// Ring of Blades: "at the start of your activation, you may suffer 1 damage to flip your Luck
+	// token to the ready side". Only asked with the token spent and a box free to take the damage.
+	// True when it asked, so the caller re-checks the activation after the await.
+	private async Task<bool> OfferRingOfBlades(PlayerToken token) {
+		Player player = token.player;
+		if (actionBar == null || !player.HasRing(Ring.Effect.RING_OF_BLADES) || !player.luckUsed || player.endurance.free < 1) return false;
+		ClearHighlights();
+		HBoxContainer content = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+		content.AddThemeConstantOverride("separation", 6);
+		content.AddChild(CubeRow.Damage(1, 10f));
+		content.AddChild(new TextureRect {
+			Texture = TokenArt.Ready(TokenArt.Kind.LUCK), CustomMinimumSize = new Vector2(22, 22),
+			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+		});
+		List<(Control, string)> options = new List<(Control, string)> { (content, "Suffer 1 damage to ready Luck") };
+		int choice = await actionBar.AskChoice(player, null, options, "Skip");
+		if (choice == 0 && GodotObject.IsInstanceValid(token)) {
+			token.SufferOwnDamage(1);
+			player.luckUsed = false;
+		}
+		return true;
 	}
 
 	public void End() {
@@ -764,6 +791,7 @@ public partial class CharacterTurn : Node
 		if (!GodotObject.IsInstanceValid(user)
 			|| !user.player.HasPassive(EquipmentEffect.EffectType.REMOVE_STATUS, EquipmentEffect.Condition.IF_HEROIC_ABILITY_ACTIVATED)) return;
 		List<EncounterManager.StatusEffect> held = user.Conditions();
+		held.Remove(EncounterManager.StatusEffect.CURSE);
 		if (held.Count == 0) return;
 		if (held.Count == 1 || actionBar == null) {
 			user.RemoveCondition(held[0]);
@@ -787,6 +815,22 @@ public partial class CharacterTurn : Node
 		if (active == null) return;
 		if (underway == null) Disarm();
 		Refresh();
+	}
+
+	// ----- Homeward Bone -----
+
+	// Ending the encounter cannot be taken back, so the bar asks once before ActionListener does it.
+	private async void UseHomewardBone() {
+		if (active == null || !HomewardBone.CanUse || actionBar == null) return;
+		PlayerToken user = active;
+		Control bone = new TextureRect {
+			Texture = HomewardBone.Token, CustomMinimumSize = new Vector2(24, 24),
+			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+			MouseFilter = Control.MouseFilterEnum.Ignore, Material = PlayerToken.AggroMask,
+		};
+		int choice = await actionBar.AskChoice(user.player, null,
+			new List<(Control, string)> { (bone, "Return to the last bonfire") }, "Skip");
+		if (choice == 0 && active == user) EmitSignal(SignalName.HomewardBoneUsed);
 	}
 
 	// ----- Heroic Actions -----

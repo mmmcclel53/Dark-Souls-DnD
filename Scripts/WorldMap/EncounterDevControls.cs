@@ -17,7 +17,10 @@ public partial class EncounterDevControls : Node {
 
 	public override void _Ready() {
 		var node = WorldMapManager.GetPendingEncounterNode();
-		if (node != null && encounterTitle != null)
+		var roamer = WorldMapManager.MapData?.GetRoamer(WorldMapManager.PendingRoamerId);
+		if (roamer != null && encounterTitle != null)
+			encounterTitle.Text = $"{roamer.name}  -  Level {WorldMapManager.RoamerLevel(roamer)} Encounter";
+		else if (node != null && encounterTitle != null)
 			encounterTitle.Text = $"{node.Title}  -  Level {node.level} Encounter";
 
 		if (!OS.IsDebugBuild() || !WorldMapManager.HasPendingEncounter || buttonHost == null) return;

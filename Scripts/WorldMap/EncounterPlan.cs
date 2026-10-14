@@ -16,6 +16,9 @@ public partial class EncounterPlan : Resource {
 	// Party souls already taken off the map: held, dropped or spent. A lost pile gives its
 	// share back, which lights the encounter again (SoulCache.Lose).
 	[Export] public int soulsClaimed = 0;
+	// A boss node's boss (BossRoster), picked once when the plans are rolled: whose treasure the
+	// win pays. The fight is still a stand-in encounter until bosses exist.
+	[Export] public string boss = "";
 
 	public int TotalHealth {
 		get {

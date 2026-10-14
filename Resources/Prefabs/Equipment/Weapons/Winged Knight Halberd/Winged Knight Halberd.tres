@@ -31,10 +31,11 @@ repeat = 1
 
 [resource]
 script = ExtResource("1_x")
+bossTreasure = true
 name = "Winged Knight Halberd"
 image = ExtResource("2_x")
 type = 1
-rarity = 3
+rarity = 4
 isUpgrade = false
 numHands = 2
 attackRange = 1

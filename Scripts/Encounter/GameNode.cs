@@ -24,6 +24,14 @@ public partial class GameNode : Control
 	private Color pulseColour;
 	private float pulseTime;
 
+	// Enemy phases an Abyss token has left on this node (EncounterManager.LayAbyss); 0 for none.
+	public int abyss { get; private set; }
+
+	public void SetAbyss(int phases) {
+		abyss = Mathf.Max(0, phases);
+		QueueRedraw();
+	}
+
 	public override void _Ready() {
 		SetProcess(false);
 	}
@@ -72,6 +80,7 @@ public partial class GameNode : Control
 
 	// Drawn by the node itself, so it sits under the marker and the models standing here.
 	public override void _Draw() {
+		DrawAbyss();
 		if (!pulsing) return;
 		Control marker = ClickTarget;
 		float progress = pulseTime * rippleRate % 1f;
@@ -81,6 +90,16 @@ public partial class GameNode : Control
 		Color colour = new Color(pulseColour.R, pulseColour.G, pulseColour.B, fade * rippleAlpha);
 		float width = Mathf.Max(1f, marker.Size.X * 0.03f);
 		DrawArc(marker.Position + marker.Size * 0.5f, radius, 0f, Mathf.Tau, 48, colour, width, true);
+	}
+
+	// The token lies under the models (they are children, drawn after), fainter on its last phase.
+	private void DrawAbyss() {
+		if (abyss <= 0) return;
+		Texture2D icon = ConditionArt.Icon(EncounterManager.StatusEffect.ABYSS);
+		if (icon == null) return;
+		float side = Mathf.Min(Size.X, Size.Y) * 0.62f;
+		Color tint = new Color(1, 1, 1, abyss >= EncounterManager.ABYSS_PHASES ? 0.85f : 0.5f);
+		DrawTextureRect(icon, new Rect2((Size - new Vector2(side, side)) * 0.5f, new Vector2(side, side)), false, tint);
 	}
 
 	// [Signal]

@@ -7,10 +7,11 @@
 
 [resource]
 script = ExtResource("1_x")
+bossTreasure = true
 name = "Pursuer's Greatshield"
 image = ExtResource("2_x")
 type = 2
-rarity = 1
+rarity = 2
 isUpgrade = false
 numHands = 1
 attackRange = 0

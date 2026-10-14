@@ -25,10 +25,11 @@ repeat = 1
 
 [resource]
 script = ExtResource("1_x")
+bossTreasure = true
 name = "Gold Tracer"
 image = ExtResource("2_x")
 type = 1
-rarity = 2
+rarity = 3
 isUpgrade = false
 numHands = 1
 attackRange = 0

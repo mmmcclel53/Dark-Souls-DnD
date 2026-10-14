@@ -26,10 +26,11 @@ repeat = 2
 
 [resource]
 script = ExtResource("1_x")
+bossTreasure = true
 name = "Dancer's Enchanted Swords"
 image = ExtResource("2_x")
 type = 1
-rarity = 1
+rarity = 2
 isUpgrade = false
 numHands = 2
 attackRange = 0

@@ -45,6 +45,20 @@ public partial class Player : Resource
     // Divine Blessing (a ring, not a board token) is spent the same way: once per rest.
     [Export] public bool divineBlessingUsed;
 
+    // Curse outlasts the encounter (Matt, Oct 2026): only a bonfire rest lifts it, so it is
+    // saved with the character. Read and written through the conditions it sits among.
+    [Export] public bool cursed {
+        get => conditions.Contains(EncounterManager.StatusEffect.CURSE);
+        set { if (value) conditions.Add(EncounterManager.StatusEffect.CURSE); else conditions.Remove(EncounterManager.StatusEffect.CURSE); }
+    }
+
+    // Takes every condition off but Curse, which only a rest lifts.
+    public void ClearConditions() {
+        bool keep = cursed;
+        conditions.Clear();
+        cursed = keep;
+    }
+
     // Not exported: the bar is saved beside the party (SaveGame.staminaSpent / damageTaken),
     // not inside the character, as a wipe leaves it on until a rest. PlayerToken drives it.
     public Endurance endurance { get; private set; } = new Endurance();
@@ -508,7 +522,7 @@ public partial class Player : Resource
         foreach ((Dice die, EquipmentEffect.DefenseKind kind) in defenceBuffs) {
             if (die != null && (kind == EquipmentEffect.DefenseKind.BOTH || (kind == EquipmentEffect.DefenseKind.MAGIC) == magic)) pool.Add(die);
         }
-        int modifier = magic ? armour?.magicDefenseModifier ?? 0 : armour?.physicalDefenseModifier ?? 0;
+        int modifier = (magic ? armour?.magicDefenseModifier ?? 0 : armour?.physicalDefenseModifier ?? 0) - DefencePenalty(magic);
         return (pool, modifier);
     }
 
@@ -519,9 +533,21 @@ public partial class Player : Resource
         Godot.Collections.Array<Dice> dice = magic ? armour?.magicDefense : armour?.physicalDefense;
         if (dice != null) foreach (Dice d in dice) if (d != null) pool.Add(d);
         AddRingDefence(pool, magic);
-        int modifier = magic ? armour?.magicDefenseModifier ?? 0 : armour?.physicalDefenseModifier ?? 0;
+        int modifier = (magic ? armour?.magicDefenseModifier ?? 0 : armour?.physicalDefenseModifier ?? 0) - DefencePenalty(magic);
         return (pool, modifier);
     }
+
+    // Calamity Ring: "-1 success on each Block, Resist, and Dodge roll". Block and Resist take it
+    // as a -1 modifier (the roll never goes below 0); a dodge needs one icon more.
+    public int CalamityPenalty => HasRing(Ring.Effect.CALAMITY) ? 1 : 0;
+
+    // The Calamity condition does the same as the ring and adds to it; Corrosion takes 1 off a
+    // Block roll only (Matt, Oct 2026).
+    public int DefencePenalty(bool magic) => CalamityPenalty
+        + (conditions.Contains(EncounterManager.StatusEffect.CALAMITY) ? 1 : 0)
+        + (!magic && conditions.Contains(EncounterManager.StatusEffect.CORROSION) ? 1 : 0);
+
+    public int DodgePenalty => CalamityPenalty + (conditions.Contains(EncounterManager.StatusEffect.CALAMITY) ? 1 : 0);
 
     // What the armour's upgrades add, so the V2 failed dodge's armour-only roll has it too.
     // Magic Stoneplate Ring: +1 black die to Resist. Steel Armour: +1 black die to Block and

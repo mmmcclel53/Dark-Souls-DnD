@@ -23,10 +23,11 @@ repeat = 1
 
 [resource]
 script = ExtResource("1_x")
+bossTreasure = true
 name = "Smelter Sword"
 image = ExtResource("2_x")
 type = 1
-rarity = 4
+rarity = 3
 isUpgrade = false
 numHands = 2
 attackRange = 1

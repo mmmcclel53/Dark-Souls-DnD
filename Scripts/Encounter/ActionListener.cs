@@ -116,6 +116,7 @@ public partial class ActionListener : Control
 	    if (characterTurn != null) {
 	        characterTurn.ActivationEnded += EndCharacterActivation;
 	        characterTurn.AttackResolved += OnAttackResolved;
+	        characterTurn.HomewardBoneUsed += UseHomewardBone;
 	    }
 	    WireNodeClicks();
 
@@ -183,7 +184,7 @@ public partial class ActionListener : Control
 
 	    // A save made in this fight: the board as it was, not the plan's opening.
 	    EncounterSnapshot snapshot = CampaignManager.CurrentSave?.encounter;
-	    if (plan != null && snapshot != null && snapshot.worldNode == WorldMapManager.PendingEncounterNodeId && RestoreSnapshot(snapshot)) {
+	    if (plan != null && snapshot != null && snapshot.worldNode == WorldMapManager.EncounterKey && RestoreSnapshot(snapshot)) {
 	        RestoreSoulDrop();
 	        return;
 	    }
@@ -232,7 +233,7 @@ public partial class ActionListener : Control
 	private void SaveSnapshot(bool characterPhase) {
 	    SaveGame save = CampaignManager.CurrentSave;
 	    if (save == null || !WorldMapManager.HasPendingEncounter) return;
-	    save.encounter = EncounterSnapshot.Capture(WorldMapManager.PendingEncounterNodeId, characterPhase, GetParty());
+	    save.encounter = EncounterSnapshot.Capture(WorldMapManager.EncounterKey, characterPhase, GetParty());
 	    CampaignManager.Autosave(CampaignManager.ENCOUNTER);
 	}
 
@@ -262,6 +263,7 @@ public partial class ActionListener : Control
 	        if (i == snapshot.aggroIndex) EncounterManager.SetAggroHolder(token);
 	    }
 	    playersSpawned = snapshot.characters.Length;
+	    for (int i = 0; i + 1 < snapshot.abyss.Length; i += 2) EncounterManager.GameNodeAtIndex(snapshot.abyss[i])?.SetAbyss(snapshot.abyss[i + 1]);
 
 	    EncounterManager.round = snapshot.round;
 	    EncounterManager.activeCharacterIndex = Mathf.Clamp(snapshot.activeCharacterIndex, 0, snapshot.characters.Length - 1);
@@ -423,6 +425,7 @@ public partial class ActionListener : Control
 	}
 
 	private void BeginCharacterPhase() {
+	    EncounterManager.AgeAbyss();
 	    EncounterManager.activeEnemyIndex = 0;
 	    EncounterManager.phase = EncounterManager.Action.CHARACTER_TURN;
 	    EncounterManager.action = EncounterManager.Action.CHARACTER_TURN;
@@ -467,6 +470,8 @@ public partial class ActionListener : Control
 	    EncounterManager.round++;
 
 	    if (CheckEncounterOver()) return;
+	    // Old Leo Ring counts only the coming enemy phase's hits.
+	    foreach (Node2D model in EncounterManager.players) EncounterManager.GetPlayerToken(model)?.ForgetHurt();
 	    EncounterManager.phase = EncounterManager.Action.ENEMY_MOVE;
 	    EncounterManager.action = EncounterManager.Action.ENEMY_MOVE;
 	}
@@ -566,6 +571,27 @@ public partial class ActionListener : Control
 	    }
 	}
 
+	// Homeward Bone: the party leaves for the last bonfire, neither won nor lost. Conditions come
+	// off and the stamina with them, as the end of any fight; the wounds stay (Claude's call,
+	// Oct 2026). The encounter stays uncleared and its snapshot goes with the autosave.
+	private void UseHomewardBone() {
+	    if (!HomewardBone.Spend()) return;
+	    characterTurn?.End();
+	    portraitPane?.SetSelectedIndex(-1);
+	    EncounterManager.phase = EncounterManager.Action.INACTIVE;
+	    EncounterManager.action = EncounterManager.Action.INACTIVE;
+	    foreach (Node2D playerObj in EncounterManager.players) {
+	        PlayerToken token = EncounterManager.GetPlayerToken(playerObj);
+	        token?.ClearAllConditions();
+	        token?.RecoverAllStamina();
+	    }
+	    WorldMapManager.ReportHomewardBone();
+	    CampaignManager.Autosave(CampaignManager.BONFIRE);
+	    GetTree().ChangeSceneToPacked(ResourceLoader.Load<PackedScene>(BONFIRE_SCENE));
+	}
+
+	private const string BONFIRE_SCENE = "res://Scenes/Bonfire.tscn";
+
 	// The banner first — gold "Victory", or the games' red "You Died" — and the numbers once
 	// it has gone. The outcome itself is already settled and reported by then.
 	private async void ShowOutcome(bool won, int? change, int total) {
@@ -581,9 +607,9 @@ public partial class ActionListener : Control
 	// Returns the souls paid, or null when the win pays nothing: an encounter already won, whose
 	// souls are held, dropped or spent (SoulEconomy, SoulCache).
 	private int? AwardVictory(string worldNodeId) {
-	    // p19: every black and red cube comes off the endurance bars on a win.
+	    // Black cubes come off on a win; the red ones stay until Estus or a rest.
 	    foreach (Node2D playerObj in EncounterManager.players) {
-	        EncounterManager.GetPlayerToken(playerObj)?.RestoreEndurance();
+	        EncounterManager.GetPlayerToken(playerObj)?.RecoverAllStamina();
 	    }
 
 	    int earned = WorldMapManager.ClaimSouls(worldNodeId);

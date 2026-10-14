@@ -9,7 +9,7 @@ using Godot;
 // There is no separate stamina pool — what a character can still spend IS the uncovered
 // part of the bar, so a wound and a sprint compete for the same boxes. Gaining Stamina or
 // Health removes cubes rather than adding a resource, and does nothing when there are none
-// to remove. Encounter-scoped: the bar clears on victory (p19).
+// to remove. A win clears the stamina only; damage stays until Estus or a rest.
 public class Endurance {
 
 	public const int BOXES = 10;
@@ -54,6 +54,11 @@ public class Endurance {
 		damageTaken = Mathf.Clamp(damage, 0, BOXES);
 		staminaSpent = Mathf.Clamp(stamina, 0, BOXES - damageTaken);
 		isDead = false;
+	}
+
+	// A win takes the black cubes off and leaves the red ones: wounds carry to the next fight.
+	public void ClearStamina() {
+		staminaSpent = 0;
 	}
 
 	public void Clear() {

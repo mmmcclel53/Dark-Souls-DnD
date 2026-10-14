@@ -16,6 +16,8 @@ public interface Equipment {
     EquipmentType type { get; set; }
     Rarity rarity { get; set; }
     bool isUpgrade { get; set; }
+    // Boss gear: only ever picked up after beating a boss, never sold or found on the map.
+    bool bossTreasure { get; }
 
     int strengthReq { get; set; }
     int dexterityReq { get; set; }

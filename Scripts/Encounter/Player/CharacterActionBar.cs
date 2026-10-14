@@ -32,6 +32,7 @@ public partial class CharacterActionBar : HBoxContainer
 	[Signal] public delegate void EquipmentSwappedEventHandler();
 	[Signal] public delegate void StartGainChosenEventHandler(bool asHealth);
 	[Signal] public delegate void ChoiceMadeEventHandler(int option);
+	[Signal] public delegate void HomewardBoneChosenEventHandler();
 
 	[Export] public Control crossAnchor;
 	[Export] public EquipmentCross cross;
@@ -411,7 +412,88 @@ public partial class CharacterActionBar : HBoxContainer
 		AddToken(TokenArt.Kind.HEROIC, player.heroicUsed, live && token.CanUseHeroicNow,
 			() => EmitSignal(SignalName.HeroicChosen), $"{Heroic.Name(heroic)}\n{Heroic.Effect(heroic)}");
 		AddToken(TokenArt.Kind.LUCK, player.luckUsed, false, null);
+		AddPartyEstusToken(live && token.CanDrinkPartyEstus);
+		AddHomewardBoneToken(live && HomewardBone.CanUse);
 		AddRingToken(player, Ring.Effect.DIVINE_BLESSING, player.divineBlessingUsed, live && token.CanUseDivineBlessing, UseDivineBlessing);
+	}
+
+	// The party's shared flask, only inside a campaign: the Estus art at the same size as the
+	// character's own tokens, set apart from them, with the charges left on a small drawn badge
+	// at its lower right. Like those tokens it is never dimmed for being unusable right now, and
+	// shows the flipped art once the pool is empty. Drunk like the character's own.
+	private const float PARTY_FLASK_SIZE = 30f;
+	private const float PARTY_FLASK_GAP = 12f;
+
+	private void AddPartyEstusToken(bool usable) {
+		if (CampaignManager.CurrentSave == null) return;
+		int charges = PartyEstus.Charges;
+		tokenRow.AddChild(Spacer(PARTY_FLASK_GAP));
+		Control holder = new Control {
+			Name = PARTY_ESTUS_NAME,
+			CustomMinimumSize = new Vector2(PARTY_FLASK_SIZE, PARTY_FLASK_SIZE),
+			SizeFlagsVertical = SizeFlags.ShrinkCenter,
+			MouseFilter = MouseFilterEnum.Ignore,
+		};
+		TextureButton button = new TextureButton {
+			TextureNormal = TokenArt.For(TokenArt.Kind.ESTUS, charges <= 0),
+			IgnoreTextureSize = true,
+			StretchMode = TextureButton.StretchModeEnum.KeepAspectCentered,
+			FocusMode = FocusModeEnum.None,
+			Disabled = !usable,
+			TooltipText = $"Party Estus: {charges} / {PartyEstus.Max}",
+		};
+		button.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+		if (usable) button.Pressed += () => Callable.From(DrinkPartyEstus).CallDeferred();
+		holder.AddChild(button);
+
+		CountBadge badge = new CountBadge {
+			Text = charges.ToString(),
+			Edge = charges > 0 ? gold : muted,
+			Ink = charges > 0 ? parchment : muted,
+		};
+		badge.Position = new Vector2(PARTY_FLASK_SIZE - badge.Diameter + 2f, PARTY_FLASK_SIZE - badge.Diameter + 2f);
+		holder.AddChild(badge);
+		tokenRow.AddChild(holder);
+	}
+
+	private const string PARTY_ESTUS_NAME = "PartyEstus";
+
+	// The party's Homeward Bones, beside the Party Estus at its size: the bone off its card cut
+	// to a disc, with how many are held on the same badge. Only shown while the party has one.
+	private void AddHomewardBoneToken(bool usable) {
+		int count = HomewardBone.Count;
+		if (CampaignManager.CurrentSave == null || count <= 0) return;
+		tokenRow.AddChild(Spacer(6f));
+		Control holder = new Control {
+			CustomMinimumSize = new Vector2(PARTY_FLASK_SIZE, PARTY_FLASK_SIZE),
+			SizeFlagsVertical = SizeFlags.ShrinkCenter,
+			MouseFilter = MouseFilterEnum.Ignore,
+		};
+		TextureButton button = new TextureButton {
+			TextureNormal = HomewardBone.Token,
+			IgnoreTextureSize = true,
+			StretchMode = TextureButton.StretchModeEnum.KeepAspectCentered,
+			FocusMode = FocusModeEnum.None,
+			Disabled = !usable,
+			TooltipText = $"Homeward Bone: {count}",
+			Material = PlayerToken.AggroMask,
+		};
+		button.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+		if (usable) button.Pressed += () => Callable.From(() => EmitSignal(SignalName.HomewardBoneChosen)).CallDeferred();
+		holder.AddChild(button);
+
+		CountBadge badge = new CountBadge { Text = count.ToString(), Edge = gold, Ink = parchment };
+		badge.Position = new Vector2(PARTY_FLASK_SIZE - badge.Diameter + 2f, PARTY_FLASK_SIZE - badge.Diameter + 2f);
+		holder.AddChild(badge);
+		tokenRow.AddChild(holder);
+	}
+
+	private void DrinkPartyEstus() {
+		if (mode != Mode.ACTIVATION || token == null || !token.CanDrinkPartyEstus) return;
+		token.DrinkPartyEstus();
+		ShowSelected();
+		Control flask = tokenRow?.GetNodeOrNull<Control>(PARTY_ESTUS_NAME);
+		if (flask != null) PopIn.Scale(flask, 1.5f, 0.3f);
 	}
 
 	// A ring used from the bar shows beside the tokens, its art cut to a disc, while worn.
@@ -887,8 +969,9 @@ public partial class CharacterActionBar : HBoxContainer
 		int cost = CombatResolver.DodgeStaminaCost(target, attacker);
 		// Wolf Ring: the dice are already rolled, so the odds are what they came up.
 		int icons = CombatPresenter.Icons(peek);
-		float chance = peek != null ? (icons >= move.dodgeDifficulty ? 1f : 0f) : DodgeChance(dodgePool, move.dodgeDifficulty);
-		bool possible = chance > 0f && dodgePool >= move.dodgeDifficulty && target.CanSpend(cost) && CombatResolver.CanDodge(target);
+		int needed = CombatResolver.DodgeNeeded(target, move);
+		float chance = peek != null ? (icons >= needed ? 1f : 0f) : DodgeChance(dodgePool, needed);
+		bool possible = chance > 0f && dodgePool >= needed && target.CanSpend(cost) && CombatResolver.CanDodge(target);
 
 		Button dodge = Row(false);
 		dodge.Disabled = !possible;
@@ -897,7 +980,7 @@ public partial class CharacterActionBar : HBoxContainer
 		HBoxContainer[] dodgeColumns = Columns(dodgeContent);
 		dodgeColumns[0].AddChild(Icon(dodgeIcon, possible ? dodgeColour : muted, 24f));
 		dodgeColumns[1].AddChild(DiceChip.Create(DiceUtility.DICE_TYPE.DODGE, dodgePool, ChipSize));
-		dodgeColumns[1].AddChild(Badge(move.dodgeDifficulty.ToString(), possible ? gold : muted));
+		dodgeColumns[1].AddChild(Badge(needed.ToString(), possible ? gold : muted));
 		dodgeColumns[2].AddChild(CubeRow.Stamina(cost));
 		if (peek != null) dodgeColumns[2].AddChild(Badge(icons.ToString(), possible ? dodgeColour : attackColour));
 		else dodgeColumns[2].AddChild(Text($"{Mathf.RoundToInt(chance * 100f)}%", 16, possible ? parchment : muted));
@@ -942,9 +1025,10 @@ public partial class CharacterActionBar : HBoxContainer
 			max += dieMax;
 			avg += (double)sum / die.dice.Length;
 		}
-		int best = Mathf.Max(0, strength - max);
-		int worst = Mathf.Max(0, strength - min);
-		int expected = Mathf.Clamp(Mathf.RoundToInt((float)(strength - avg)), best, worst);
+		// A defence roll never goes below nothing (the Calamity Ring's -1 can take it there).
+		int best = Mathf.Max(0, strength - Mathf.Max(0, max));
+		int worst = Mathf.Max(0, strength - Mathf.Max(0, min));
+		int expected = Mathf.Clamp(Mathf.RoundToInt((float)(strength - System.Math.Max(0, avg))), best, worst);
 		return (best, worst, expected);
 	}
 

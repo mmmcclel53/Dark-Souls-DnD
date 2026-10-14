@@ -12,10 +12,11 @@ duration = 4
 
 [resource]
 script = ExtResource("1_x")
+bossTreasure = true
 name = "Smough's Armour"
 image = ExtResource("2_x")
 type = 0
-rarity = 5
+rarity = 3
 isUpgrade = false
 physicalDefense = Array[Object]([ExtResource("4_x"), ExtResource("4_x")])
 physicalDefenseModifier = 0

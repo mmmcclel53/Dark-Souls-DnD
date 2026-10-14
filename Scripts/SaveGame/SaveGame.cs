@@ -34,10 +34,22 @@ public partial class SaveGame : Resource
     [Export] public string worldCurrentNode = "";
     [Export] public string worldLastBonfire = "";
     [Export] public string[] worldClearedNodes = new string[0];
+    // Fog of war (WorldMapManager.Look): the hexes seen at some point, and the ones only glimpsed.
+    [Export] public string[] worldKnownNodes = new string[0];
+    [Export] public string[] worldGlimpsedNodes = new string[0];
+    // Map loot already picked up (WorldMapManager.TakeLoot), and the keys the party holds.
+    [Export] public string[] worldLootTaken = new string[0];
+    [Export] public string[] keys = new string[0];
+    // Ladders, trees and doors the party has opened (WorldMapManager.OpenEdge), by edge id.
+    [Export] public string[] worldOpenEdges = new string[0];
     // Every encounter on the map, rolled once (EncounterGenerator) so a re-fight is the same fight.
     [Export] public EncounterPlan[] encounterPlans = new EncounterPlan[0];
     // The encounter the party is in, or "".
     [Export] public string encounterNode = "";
+    // The roaming threat it is against, when it is one: encounterNode is then the hex it met them on.
+    [Export] public string encounterRoamer = "";
+    // The roaming threats (WorldMapManager.TickRoamers), in the map's order.
+    [Export] public Array<RoamerState> roamers = new Array<RoamerState>();
     // The board at the encounter's last turn boundary; null before the first, or outside a fight.
     [Export] public EncounterSnapshot encounter;
 
@@ -58,6 +70,23 @@ public partial class SaveGame : Resource
     [Export] public string[] merchantStock = new string[0];
     [Export] public bool merchantStocked;
     [Export] public int winsSinceRestock;
+
+    // The party's shared Estus flasks (PartyEstus). -1 is a save from before they existed, set
+    // to the starting pool the first time it is read.
+    [ExportGroup("Party Estus")]
+    [Export] public int estusMax = -1;
+    [Export] public int estusCharges = 0;
+    [Export] public int estusShards = 0;
+
+    // The party's Homeward Bones (HomewardBone), found as map loot.
+    [ExportGroup("Homeward Bones")]
+    [Export] public int homewardBones = 0;
+
+    // A beaten boss's cards, waiting for the party to choose one (BossRoster). Kept here so
+    // quitting before the choice does not lose it.
+    [ExportGroup("Boss Treasure")]
+    [Export] public string[] bossChoice = new string[0];
+    [Export] public string bossChoiceNode = "";
 
     public SaveGame() { }
 

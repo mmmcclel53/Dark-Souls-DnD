@@ -34,10 +34,11 @@ bonusEffects = Array[Object]([SubResource("EE2")])
 
 [resource]
 script = ExtResource("1_x")
+bossTreasure = true
 name = "Bewitched Alonne Sword"
 image = ExtResource("2_x")
 type = 1
-rarity = 2
+rarity = 1
 isUpgrade = false
 numHands = 2
 attackRange = 0

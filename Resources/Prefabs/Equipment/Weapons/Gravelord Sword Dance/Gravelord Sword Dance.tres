@@ -26,10 +26,11 @@ repeat = 1
 
 [resource]
 script = ExtResource("1_x")
+bossTreasure = true
 name = "Gravelord Sword Dance"
 image = ExtResource("2_x")
 type = 1
-rarity = 3
+rarity = 2
 isUpgrade = false
 numHands = 1
 attackRange = 3

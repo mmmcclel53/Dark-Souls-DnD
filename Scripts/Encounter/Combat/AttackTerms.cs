@@ -151,6 +151,8 @@ public readonly struct AttackTerms
 				bonus -= 2;
 			}
 			if (wearer.HasRing(Ring.Effect.RED_TEARSTONE) && wearer.endurance.damageTaken >= 4) bonus += 1;
+			// Calamity Ring: "+1 success on each Attack roll" (its -1 on defence is in Player).
+			if (wearer.HasRing(Ring.Effect.CALAMITY)) bonus += 1;
 		}
 		if (free) cost = 0;
 		// Hollow Soldier Shield: "this weapon gains +1 damage against Hollows".

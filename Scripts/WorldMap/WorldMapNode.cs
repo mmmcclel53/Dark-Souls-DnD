@@ -23,7 +23,13 @@ public partial class WorldMapNode : Control {
 	// The party's dropped souls lie here (SoulCache), drawn as the games' bloodstain. The only
 	// hex that animates, so it is the only one that processes.
 	private bool bloodstain;
-	private float stainTime;
+	// Untaken loot lies here (WorldMapManager.HasLoot), drawn as a twinkling glint; it makes
+	// the hex animate while the party knows of it.
+	private bool lootUntaken;
+	private float animTime;
+	private string roamerLine = "";
+	private WorldSight sight = WorldSight.SEEN;
+	private bool landmarkVisible;
 
 	public bool Cleared { get => cleared; set { cleared = value; QueueRedraw(); } }
 	// Only a reachable hex does anything when clicked, so only a reachable hex shows the hand.
@@ -35,7 +41,52 @@ public partial class WorldMapNode : Control {
 			QueueRedraw();
 		}
 	}
+	public bool LootUntaken {
+		get => lootUntaken;
+		set {
+			if (lootUntaken == value) return;
+			lootUntaken = value;
+			TooltipText = BuildTooltip();
+			UpdateProcessing();
+			QueueRedraw();
+		}
+	}
 	public bool Selected { get => selected; set { selected = value; QueueRedraw(); } }
+	// What a roaming threat in sight on this hex is doing, for the tooltip; "" when none.
+	public string RoamerLine {
+		get => roamerLine;
+		set {
+			if (roamerLine == value) return;
+			roamerLine = value;
+			TooltipText = BuildTooltip();
+		}
+	}
+	// What the party knows of this hex; WorldMap sets it from WorldMapManager.SightOf.
+	public WorldSight Sight {
+		get => sight;
+		set {
+			if (sight == value) return;
+			sight = value;
+			TooltipText = BuildTooltip();
+			UpdateProcessing();
+			QueueRedraw();
+		}
+	}
+
+	// An unexplored hex whose tall structure stands out of the fog (WorldMapManager.LandmarkShows):
+	// only the silhouette is drawn; the hex itself stays unknown, unclickable and untooltipped.
+	public bool LandmarkVisible {
+		get => landmarkVisible;
+		set {
+			if (landmarkVisible == value) return;
+			landmarkVisible = value;
+			QueueRedraw();
+		}
+	}
+
+	// A hex seen only from below: its edge, without terrain or anything on it.
+	private static readonly Color FOG_FACE = new Color(0.20f, 0.21f, 0.25f);
+	private const float STALE_RIM = 0.4f;
 
 	private static Texture2D[] levelIcons;
 	private static Texture2D soulIcon;
@@ -52,6 +103,8 @@ public partial class WorldMapNode : Control {
 	// either orientation).
 	public Vector2 TopFaceCenter => new Vector2(HEX_RADIUS, HEX_RADIUS);
 
+	private int StructureSeed => (int)(data.id.Hash() & 0x7fffffff);
+
 	private float WallHeight => data.elevation * WALL_STEP;
 
 	public override void _Ready() {
@@ -63,12 +116,28 @@ public partial class WorldMapNode : Control {
 		MouseEntered += () => { hovered = true; QueueRedraw(); };
 		MouseExited += () => { hovered = false; QueueRedraw(); };
 		bloodstain = SoulCache.droppedAmount > 0 && SoulCache.droppedWorldNode == data.id;
-		SetProcess(bloodstain);
+		lootUntaken = WorldMapManager.HasLoot(data.id);
+		UpdateProcessing();
 		TooltipText = BuildTooltip();
 	}
 
+	// A pile dropped by a wipe can be walked back onto from the map (a wipe against a roaming
+	// threat drops it on plain ground), so the stain has to be able to go.
+	public void RefreshBloodstain() {
+		bool now = SoulCache.droppedAmount > 0 && SoulCache.droppedWorldNode == data.id;
+		if (now == bloodstain) return;
+		bloodstain = now;
+		TooltipText = BuildTooltip();
+		UpdateProcessing();
+		QueueRedraw();
+	}
+
+	private bool ShowsLoot => lootUntaken && (sight == WorldSight.KNOWN || sight == WorldSight.SEEN);
+
+	private void UpdateProcessing() => SetProcess(bloodstain || ShowsLoot);
+
 	public override void _Process(double delta) {
-		stainTime += (float)delta;
+		animTime += (float)delta;
 		QueueRedraw();
 	}
 
@@ -82,21 +151,27 @@ public partial class WorldMapNode : Control {
 	// Restrict mouse hit detection to the top hex face so clicks on a tall
 	// tile's walls fall through to the tile visually behind them.
 	public override bool _HasPoint(Vector2 point) {
+		if (sight == WorldSight.UNKNOWN) return false;
 		return Geometry2D.IsPointInPolygon(point, HexPoints(TopFaceCenter, HEX_RADIUS, FlatTop));
 	}
 
 	public override void _Draw() {
+		if (sight == WorldSight.UNKNOWN) {
+			if (landmarkVisible) StructureArt.Draw(this, TopFaceCenter, HEX_RADIUS, data.structure, StructureSeed, null, FOG_FACE.Lightened(0.08f) with { A = 0.55f });
+			return;
+		}
+		bool glimpsed = sight == WorldSight.GLIMPSED;
 		Vector2 c = TopFaceCenter;
-		Color face = TerrainColor(data.terrain);
+		Color face = glimpsed ? FOG_FACE : TerrainColor(data.terrain);
 		Vector2[] hex = HexPoints(c, HEX_RADIUS, FlatTop);
 
-		DrawWalls(hex, c, face);
+		DrawWalls(hex, c, face, glimpsed);
 
 		Color drawFace = face;
 		if (hovered && reachable) drawFace = face.Lerp(Colors.White, 0.18f);
 		DrawColoredPolygon(hex, drawFace);
 
-		if (data.terrain == WorldTerrain.VOLCANO)
+		if (data.terrain == WorldTerrain.VOLCANO && !glimpsed)
 			DrawOutline(hex, new Color(0.85f, 0.15f, 0.08f), 4f);
 		else
 			DrawOutline(hex, face.Darkened(0.45f), 1.5f);
@@ -105,6 +180,10 @@ public partial class WorldMapNode : Control {
 			DrawOutline(HexPoints(c, HEX_RADIUS - 3f, FlatTop), new Color(1f, 1f, 1f, 0.85f), 2.5f);
 		if (selected)
 			DrawOutline(HexPoints(c, HEX_RADIUS - 7f, FlatTop), new Color(1f, 0.84f, 0.3f), 3f);
+		if (glimpsed) return;
+
+		StructureArt.Draw(this, c, HEX_RADIUS, data.structure, StructureSeed,
+			TerrainColor(data.terrain).Darkened(0.35f).Lerp(new Color(0.4f, 0.38f, 0.41f), 0.6f));
 
 		if (bloodstain) DrawBloodstainPool(c);
 
@@ -115,11 +194,15 @@ public partial class WorldMapNode : Control {
 
 		if (bloodstain) DrawBloodstainMotes(c);
 
+		Vector2 corner = c + new Vector2(HEX_RADIUS * 0.52f, -HEX_RADIUS * 0.62f);
 		if (WorldMapManager.IsFight(data)) {
-			Vector2 corner = c + new Vector2(HEX_RADIUS * 0.52f, -HEX_RADIUS * 0.62f);
 			if (cleared) DrawClearedBadge(corner);
 			else DrawSoulGlyph(corner);
+		} else if (data.loot == WorldLoot.SOULS) {
+			DrawSoulGlyph(corner);
 		}
+
+		if (ShowsLoot) DrawLootGlint(c + new Vector2(HEX_RADIUS * 0.6f, HEX_RADIUS * 0.42f));
 	}
 
 	// Hex vertices clockwise (y-down coordinates). Pointy-top starts at the top
@@ -149,12 +232,12 @@ public partial class WorldMapNode : Control {
 	// The downward-facing edges get extruded wall quads, with a separator line
 	// per elevation step so tall tiles read as stacked hexes. Pointy-top has
 	// two such edges (SE, SW); flat-top has three (SE, bottom, SW).
-	private void DrawWalls(Vector2[] hex, Vector2 center, Color face) {
+	private void DrawWalls(Vector2[] hex, Vector2 center, Color face, bool glimpsed) {
 		float h = WallHeight;
 		if (h <= 0f) return;
 		Vector2 drop = new Vector2(0, h);
 
-		Color wallBase = data.terrain == WorldTerrain.VOLCANO ? new Color(0.25f, 0.2f, 0.2f) : face;
+		Color wallBase = data.terrain == WorldTerrain.VOLCANO && !glimpsed ? new Color(0.25f, 0.2f, 0.2f) : face;
 		int[] chain = FlatTop ? new[] { 1, 2, 3, 4 } : new[] { 2, 3, 4 };
 
 		for (int i = 0; i < chain.Length - 1; i++) {
@@ -217,12 +300,14 @@ public partial class WorldMapNode : Control {
 		float radius = Mathf.Lerp(20f, 28f, Mathf.Clamp((presence - 1f) / 1.5f, 0f, 1f));
 		const float RIM = 3.5f;
 		Vector2 centre = c + new Vector2(0, -10f);
-		Color tint = cleared ? new Color(0.55f, 0.55f, 0.55f, 0.75f) : Colors.White;
+		bool stale = sight == WorldSight.KNOWN && !cleared;
+		Color tint = stale ? new Color(0f, 0f, 0f, 0.9f) : cleared ? new Color(0.55f, 0.55f, 0.55f, 0.75f) : Colors.White;
 
 		DrawCircle(centre, radius + RIM * 0.5f, new Color(0.06f, 0.05f, 0.05f, cleared ? 0.6f : 0.95f));
 		DrawAvatarDisc(avatar, centre, radius, tint);
 		Color rim = Enemy.TierRimColour(toughest.tier);
 		if (cleared) rim = rim.Lerp(new Color(0.45f, 0.45f, 0.45f), 0.7f);
+		if (stale) rim = rim.Darkened(1f - STALE_RIM);
 		DrawArc(centre, radius, 0, Mathf.Tau, 48, rim, RIM, true);
 		if (data.encounterType == WorldEncounterType.BOSS) DrawBossRing(centre, radius + RIM + 2f);
 
@@ -243,7 +328,10 @@ public partial class WorldMapNode : Control {
 
 	// The avatar art is a printed round token with its own gold rim; this keeps the face and
 	// cuts it to a disc, so the tier rim replaces the printed one.
-	private void DrawAvatarDisc(Texture2D texture, Vector2 centre, float radius, Color tint) {
+	private void DrawAvatarDisc(Texture2D texture, Vector2 centre, float radius, Color tint) =>
+		AvatarDisc(this, texture, centre, radius, tint);
+
+	public static void AvatarDisc(CanvasItem canvas, Texture2D texture, Vector2 centre, float radius, Color tint) {
 		const int SEGMENTS = 40;
 		const float UV_RADIUS = 0.44f;
 		var points = new Vector2[SEGMENTS];
@@ -255,7 +343,7 @@ public partial class WorldMapNode : Control {
 			uvs[i] = new Vector2(0.5f, 0.5f) + dir * UV_RADIUS;
 			colours[i] = tint;
 		}
-		DrawPolygon(points, colours, uvs, texture);
+		canvas.DrawPolygon(points, colours, uvs, texture);
 	}
 
 	private void DrawLevelIcon(Vector2 c, Vector2 box) {
@@ -284,6 +372,20 @@ public partial class WorldMapNode : Control {
 	// on the map, dimmed once they are held, dropped or spent, and lit again when a lost pile
 	// gives them back. Nothing for a fight that pays nothing. It sits in the cleared badge's
 	// corner, which it never shares: a win takes every soul the node has.
+	// One plate for every glyph. It was built on every redraw, and once a souls hex with a glint
+	// redrew every frame that was a StyleBox per frame for the GC to finalise, which is the
+	// fatal "gchandle.is_released()" crash.
+	private static StyleBoxFlat soulPlateBox;
+
+	private static StyleBoxFlat SoulPlateBox(float height) {
+		if (soulPlateBox == null) {
+			soulPlateBox = new StyleBoxFlat { BgColor = SOUL_PLATE, BorderColor = SOUL_RIM };
+			soulPlateBox.SetBorderWidthAll(1);
+			soulPlateBox.SetCornerRadiusAll((int)(height * 0.5f));
+		}
+		return soulPlateBox;
+	}
+
 	private void DrawSoulGlyph(Vector2 corner) {
 		if (soulIcon == null || WorldMapManager.SoulsPaidBy(data.id) <= 0) return;
 		int souls = WorldMapManager.SoulsOnMap(data.id);
@@ -302,10 +404,7 @@ public partial class WorldMapNode : Control {
 		float textWidth = font.GetStringSize(text, HorizontalAlignment.Left, -1, SOUL_FONT_SIZE).X;
 		float width = PAD + ICON + GAP + textWidth + PAD;
 		var plate = new Rect2(corner.X + HEIGHT * 0.5f - width, corner.Y - HEIGHT * 0.5f, width, HEIGHT);
-		var box = new StyleBoxFlat { BgColor = SOUL_PLATE, BorderColor = SOUL_RIM };
-		box.SetBorderWidthAll(1);
-		box.SetCornerRadiusAll((int)(HEIGHT * 0.5f));
-		DrawStyleBox(box, plate);
+		DrawStyleBox(SoulPlateBox(HEIGHT), plate);
 
 		var iconCentre = new Vector2(plate.Position.X + PAD + ICON * 0.5f, corner.Y);
 		DrawCircle(iconCentre, ICON * 0.55f, new Color(1f, 0.85f, 0.5f, 0.22f));
@@ -315,10 +414,30 @@ public partial class WorldMapNode : Control {
 			HorizontalAlignment.Left, -1, SOUL_FONT_SIZE, SOUL_NUMBER);
 	}
 
+	private static readonly Color GLINT = new Color(1f, 0.86f, 0.4f);
+
+	// Loot, without saying what: a small gold four-point star in a soft glow, twinkling slowly,
+	// each hex out of step with its neighbours.
+	private void DrawLootGlint(Vector2 at) {
+		float phase = (data.id.Hash() % 628) / 100f;
+		float twinkle = 0.5f + 0.5f * Mathf.Sin(animTime * 2.2f + phase);
+		float size = 7f + 3f * twinkle;
+		DrawCircle(at, size * 1.9f, GLINT with { A = 0.14f + 0.12f * twinkle });
+		DrawCircle(at, size * 1.2f, GLINT with { A = 0.16f + 0.12f * twinkle });
+		const float WAIST = 0.22f;
+		var star = new Vector2[8];
+		for (int i = 0; i < 8; i++) {
+			float reach = i % 2 == 0 ? size : size * WAIST;
+			star[i] = at + Vector2.FromAngle(-Mathf.Pi / 2f + i * Mathf.Pi / 4f) * reach;
+		}
+		DrawColoredPolygon(star, GLINT.Lerp(Colors.White, 0.35f + 0.25f * twinkle));
+		DrawCircle(at, 1.6f, Colors.White);
+	}
+
 	private static readonly Color STAIN = new Color(0.3f, 1f, 0.5f);
 	private const int STAIN_MOTES = 9;
 
-	private float StainBreath => 0.75f + 0.25f * Mathf.Sin(stainTime * 2f);
+	private float StainBreath => 0.75f + 0.25f * Mathf.Sin(animTime * 2f);
 
 	// A pool of green light on the ground under the encounter's face, breathing slowly: layered
 	// ellipses, squashed to lie flat on the hex, brightest in the middle.
@@ -340,8 +459,8 @@ public partial class WorldMapNode : Control {
 		DrawArc(face, 33f, 0, Mathf.Tau, 48, STAIN.Lerp(Colors.White, 0.3f) with { A = 0.85f * StainBreath }, 2f, true);
 
 		for (int i = 0; i < STAIN_MOTES; i++) {
-			float progress = Mathf.PosMod(stainTime * 0.35f + i / (float)STAIN_MOTES, 1f);
-			float x = Mathf.Sin(i * 2.3f + stainTime * 0.9f) * HEX_RADIUS * 0.55f;
+			float progress = Mathf.PosMod(animTime * 0.35f + i / (float)STAIN_MOTES, 1f);
+			float x = Mathf.Sin(i * 2.3f + animTime * 0.9f) * HEX_RADIUS * 0.55f;
 			Vector2 at = c + new Vector2(x, Mathf.Lerp(12f, -HEX_RADIUS, progress));
 			float alpha = Mathf.Sin(progress * Mathf.Pi);
 			float radius = 2f + (i % 3) * 0.8f;
@@ -357,11 +476,17 @@ public partial class WorldMapNode : Control {
 	}
 
 	private string BuildTooltip() {
+		if (sight == WorldSight.UNKNOWN) return "";
+		if (sight == WorldSight.GLIMPSED) return "Unexplored";
 		string line = $"{data.Title}\n{PrettyTerrain(data.terrain)}, elevation {data.elevation}";
 		if (data.encounterType == WorldEncounterType.ENCOUNTER) line += $"\nEncounter — Level {data.level}";
 		else if (data.encounterType == WorldEncounterType.BOSS) line += $"\n{PrettyBoss(data.boss)} — Level {data.level}";
 		else if (data.encounterType == WorldEncounterType.BONFIRE) line += "\nBonfire";
+		if (data.structure != WorldStructure.NONE) line += $"\n{StructureArt.Name(data.structure)}";
+		string loot = WorldMapManager.LootLine(data.id);
+		if (loot != "") line += $"\n{loot}";
 		if (bloodstain) line += $"\nBloodstain — {SoulCache.droppedAmount} souls";
+		if (roamerLine != "") line += "\n" + roamerLine;
 		return line;
 	}
 

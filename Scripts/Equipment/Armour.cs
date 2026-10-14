@@ -11,6 +11,7 @@ public partial class Armour : Resource, Equipment {
     [Export] public Equipment.EquipmentType type { get; set; }
     [Export] public Equipment.Rarity rarity { get; set; }
     [Export] public bool isUpgrade { get; set; }
+    [Export] public bool bossTreasure { get; set; }
 
     [ExportGroup("Defense")]
     [Export] public Array<Dice> physicalDefense;

@@ -16,6 +16,7 @@ public static class CampaignManager {
         Players = players;
         SaveSlot = slot;
         CurrentSave = save;
+        PartyEstus.Migrate(save);
         WorldMapManager.Reset();
     }
 
@@ -29,6 +30,7 @@ public static class CampaignManager {
         save.RestoreEndurance();
         SaveSlot = slot;
         CurrentSave = save;
+        PartyEstus.Migrate(save);
         WorldMapManager.Reset();
         return true;
     }
@@ -39,7 +41,7 @@ public static class CampaignManager {
         if (!LoadFromSlot(slot)) return null;
         switch (CurrentSave.scene) {
             case ENCOUNTER:
-                if (WorldMapManager.ResumeEncounter(CurrentSave.encounterNode)) return ScenePath(ENCOUNTER);
+                if (WorldMapManager.ResumeEncounter(CurrentSave.encounterNode, CurrentSave.encounterRoamer)) return ScenePath(ENCOUNTER);
                 return ScenePath(WORLD_MAP);
             case WORLD_MAP:
                 return ScenePath(WORLD_MAP);
@@ -63,12 +65,16 @@ public static class CampaignManager {
 
     // Resting at a bonfire clears every endurance bar. p20's ten boxes are HP and Stamina
     // together, so clearing them is both — and nothing else puts them back after a wipe,
-    // since only a *win* clears the bars at the end of an encounter (p19).
+    // since a win takes the stamina off and leaves the wounds. The party's Estus pool refills.
     public static void RestParty() {
+        PartyEstus.Refill();
         if (Players == null) return;
         foreach (Player player in Players) {
             player?.endurance?.Clear();
             player?.RefreshTokens();
+            // Curse lifts only here (Matt, Oct 2026): not on a Homeward Bone, not at an
+            // encounter's end. A wipe's rest on arrival is a rest, so it lifts it too.
+            if (player != null) player.cursed = false;
         }
     }
 

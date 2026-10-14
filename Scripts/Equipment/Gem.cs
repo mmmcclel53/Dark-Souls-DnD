@@ -31,6 +31,7 @@ public partial class Gem : Resource, Equipment {
 	[Export] public Equipment.EquipmentType type { get; set; } = Equipment.EquipmentType.Gem;
 	[Export] public Equipment.Rarity rarity { get; set; } = Equipment.Rarity.COMMON;
 	[Export] public bool isUpgrade { get; set; } = true;
+	[Export] public bool bossTreasure { get; set; }
 
 	[Export] public Effect effect = Effect.NONE;
 

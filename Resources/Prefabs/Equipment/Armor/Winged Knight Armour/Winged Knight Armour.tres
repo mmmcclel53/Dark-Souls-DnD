@@ -6,10 +6,11 @@
 
 [resource]
 script = ExtResource("1_x")
+bossTreasure = true
 name = "Winged Knight Armour"
 image = ExtResource("2_x")
 type = 0
-rarity = 4
+rarity = 3
 isUpgrade = false
 physicalDefense = Array[Object]([ExtResource("3_x")])
 physicalDefenseModifier = 0

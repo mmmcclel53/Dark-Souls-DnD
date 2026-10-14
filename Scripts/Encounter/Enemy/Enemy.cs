@@ -242,16 +242,18 @@ public partial class Enemy : TextureButton
 
 		// The Node icon hits every character sharing the target's node (p25). An attack with
 		// Push shoves each character it hit once the roll is resolved (p25).
-		if (move.isAOE) {
-			foreach (Node2D occupant in EncounterManager.GetPlayersInNode(targetNode, "Player")) {
-				bool hit = await Strike(occupant, move);
-				if (isDead) return;
-				if (hit && move.isPush) await PushAway(occupant);
-			}
-		} else {
-			bool hit = await Strike(target, move);
+		// Abyss lands on the node once the roll is resolved, before anyone is pushed off it.
+		var hits = new List<Node2D>();
+		foreach (Node2D occupant in move.isAOE ? EncounterManager.GetPlayersInNode(targetNode, "Player") : new List<Node2D> { target }) {
+			bool hit = await Strike(occupant, move);
 			if (isDead) return;
-			if (hit && move.isPush) await PushAway(target);
+			if (hit) hits.Add(occupant);
+		}
+		if (move.statusEffect == EncounterManager.StatusEffect.ABYSS) EncounterManager.LayAbyss(targetNode);
+		if (!move.isPush) return;
+		foreach (Node2D occupant in hits) {
+			if (GodotObject.IsInstanceValid(occupant)) await PushAway(occupant);
+			if (isDead) return;
 		}
 	}
 
@@ -325,11 +327,17 @@ public partial class Enemy : TextureButton
 	private async Task EnterNode(GameNode node, EnemyMove move, Vector2I step) {
 		if (move == null || !move.isPush) return;
 
+		var hits = new List<Node2D>();
 		foreach (Node2D occupant in EncounterManager.GetPlayersInNode(node, "Player")) {
 			bool hit = true;
 			if (move.damage > 0) hit = await Strike(occupant, move);
 			if (isDead) return;
-			if (hit && GodotObject.IsInstanceValid(occupant)) await Pushing.Shove(occupant, step);
+			if (hit) hits.Add(occupant);
+		}
+		if (move.statusEffect == EncounterManager.StatusEffect.ABYSS) EncounterManager.LayAbyss(node);
+		foreach (Node2D occupant in hits) {
+			if (GodotObject.IsInstanceValid(occupant)) await Pushing.Shove(occupant, step);
+			if (isDead) return;
 		}
 	}
 
@@ -365,8 +373,9 @@ public partial class Enemy : TextureButton
 		isActivating = activating;
 	}
 
+	// Abyss, Calamity, Corrosion and Curse (the ones after NONE) are characters' only.
 	public void ApplyCondition(EncounterManager.StatusEffect condition) {
-		if (condition == EncounterManager.StatusEffect.NONE) return;
+		if (condition >= EncounterManager.StatusEffect.NONE) return;
 		if (conditions.Add(condition)) ConditionBurst.Play(this, condition);
 	}
 

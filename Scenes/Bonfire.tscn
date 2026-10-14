@@ -285,12 +285,12 @@ color_ramp = SubResource("Gradient_spark_life")
 hue_variation_min = -0.03
 hue_variation_max = 0.03
 
-[node name="Options" type="VBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire" node_paths=PackedStringArray("restButton", "levelUpButton", "merchantButton", "readyButton", "restFeedback", "titleBar", "restAnimation", "levelUp", "merchant")]
+[node name="Options" type="VBoxContainer" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire" node_paths=PackedStringArray("restButton", "levelUpButton", "merchantButton", "reinforceButton", "readyButton", "restFeedback", "titleBar", "restAnimation", "levelUp", "merchant")]
 layout_mode = 1
 anchors_preset = -1
-anchor_left = 0.74
+anchor_left = 0.73
 anchor_top = 0.28
-anchor_right = 0.96
+anchor_right = 0.97
 anchor_bottom = 0.72
 grow_horizontal = 2
 grow_vertical = 2
@@ -305,10 +305,11 @@ levelUpButton = NodePath("Level Up")
 levelUp = NodePath("../../../../../../Level Up Modal")
 merchant = NodePath("../../../../../../Merchant Modal")
 merchantButton = NodePath("Merchant")
+reinforceButton = NodePath("Reinforce Estus")
 readyButton = NodePath("Ready")
 
 [node name="Rest" type="Button" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/Options"]
-custom_minimum_size = Vector2(230, 48)
+custom_minimum_size = Vector2(270, 48)
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_colors/font_color = Color(0.86, 0.78, 0.6, 1)
@@ -328,7 +329,7 @@ theme_override_styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
 text = "Rest"
 
 [node name="Level Up" type="Button" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/Options"]
-custom_minimum_size = Vector2(230, 48)
+custom_minimum_size = Vector2(270, 48)
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_colors/font_color = Color(0.86, 0.78, 0.6, 1)
@@ -348,7 +349,7 @@ theme_override_styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
 text = "Level Up"
 
 [node name="Merchant" type="Button" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/Options"]
-custom_minimum_size = Vector2(230, 48)
+custom_minimum_size = Vector2(270, 48)
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_colors/font_color = Color(0.86, 0.78, 0.6, 1)
@@ -367,8 +368,28 @@ theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_btn_pressed")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
 text = "Merchant"
 
+[node name="Reinforce Estus" type="Button" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/Options"]
+custom_minimum_size = Vector2(270, 48)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_colors/font_color = Color(0.86, 0.78, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.66, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.66, 1)
+theme_override_colors/font_pressed_color = Color(1, 0.95, 0.8, 1)
+theme_override_colors/font_hover_pressed_color = Color(1, 0.95, 0.8, 1)
+theme_override_colors/font_disabled_color = Color(0.6, 0.55, 0.45, 0.6)
+theme_override_fonts/font = SubResource("FontVariation_banner")
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_pressed")
+theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_btn_pressed")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
+text = "Reinforce Estus"
+
 [node name="Ready" type="Button" parent="CanvasLayer/AspectRatioContainer/UI/Board/Bonfire/Options"]
-custom_minimum_size = Vector2(230, 48)
+custom_minimum_size = Vector2(270, 48)
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_colors/font_color = Color(0.86, 0.78, 0.6, 1)

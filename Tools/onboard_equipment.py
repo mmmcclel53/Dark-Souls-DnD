@@ -37,7 +37,7 @@ DUR = dict(INSTANT=0,UNTIL_END_OF_ACTIVATION=1,UNTIL_NEXT_CHARACTER_ACTIVATION=2
     UNTIL_END_OF_ENEMY_ACTIVATION=3,PERMANENT=4)
 DK = dict(PHYSICAL=0,MAGIC=1,BOTH=2)
 # Must match EncounterManager.StatusEffect. Push is not a condition: "Immune to Push" sets pushImmune.
-STATUS = dict(BLEED=0,POISON=1,FROST=2,STAGGER=3,NONE=4)
+STATUS = dict(BLEED=0,POISON=1,FROST=2,STAGGER=3,NONE=4,ABYSS=5,CALAMITY=6,CORROSION=7,CURSE=8)
 COLOUR = dict(Black=0,Blue=1,Orange=2)
 REPEAT_T = dict(FREE=0,ONE_ENEMY=1,ONE_NODE=2)
 # The sheet does not say where a Shift icon sits, only the card art does (p23: before the dice
@@ -267,7 +267,7 @@ def render(item):
 
     # body FIRST — defense dice_array() may register new ext_resources (colours not used by
     # any attack). Header must be rendered only after every add_ext() call has happened.
-    body=['[resource]', f'script = ExtResource("{scr}")', f'name = "{item["name"]}"',
+    body=['[resource]', f'script = ExtResource("{scr}")'] + (['bossTreasure = true'] if item.get("boss") else []) + [f'name = "{item["folder"]}"',
           f'image = ExtResource("{img}")', f'type = {item["type"]}', f'rarity = 1',
           f'isUpgrade = {"true" if item["isUpgrade"] else "false"}']
     if is_weapon:
@@ -352,7 +352,7 @@ def process(csv_path, native_bulk, other_bulk, source):
             if src: break
         if not src: warn(name,"IMAGE NOT FOUND"); continue
 
-        item=dict(cls=cls, type=tint, name=name, folder=folder, isUpgrade=(" - Upgrade" in name),
+        item=dict(cls=cls, type=tint, name=name, folder=folder, isUpgrade=(" - Upgrade" in name), boss=(belongs=="Boss"),
                   outdir=os.path.join(outbase,folder), foldertag=foldertag,
                   imgpath=f"res://Resources/Prefabs/Equipment/{foldertag}/{folder}/{folder}.png",
                   imgsrc=src,
@@ -399,7 +399,14 @@ def main():
             continue
         os.makedirs(it["outdir"], exist_ok=True)
         shutil.copy2(it["imgsrc"], os.path.join(it["outdir"], it["folder"]+".png"))
-        with open(os.path.join(it["outdir"], it["folder"]+".tres"),"w",encoding="utf-8") as f:
+        out = os.path.join(it["outdir"], it["folder"]+".tres")
+        # Rarity is ranked after onboarding (Claude's ranking, Oct 2026), so keep what a file
+        # already has. Godot strips rarity = 0 (STARTER), so a file without the line is Starter.
+        if os.path.exists(out):
+            old = open(out, encoding="utf-8").read()
+            m = re.search(r"(?m)^rarity = (\d+)", old)
+            text = re.sub(r"(?m)^rarity = \d+", f"rarity = {m.group(1) if m else 0}", text)
+        with open(out,"w",encoding="utf-8") as f:
             f.write(text)
         made+=1
     if not dry: print(f"Wrote {made} folders.")

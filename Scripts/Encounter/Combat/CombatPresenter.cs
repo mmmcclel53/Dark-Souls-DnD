@@ -31,7 +31,7 @@ public static class CombatPresenter
 		CombatResolver.AttackOutcome outcome = default;
 		view.recompute = v => {
 			v.total = Sum(v.faces) + move.modifier + terms.bonus;
-			outcome = CombatResolver.ResolveAgainstEnemy(v.total + VersusKind(terms, target), move, target, terms.magic);
+			outcome = CombatResolver.ResolveAgainstEnemy(v.total + VersusKind(terms, target, attacker), move, target, terms.magic);
 			v.lines.Clear();
 			v.lines.Add(EnemyLine(target, terms.magic, outcome));
 		};
@@ -58,8 +58,11 @@ public static class CombatPresenter
 		await Settle(swing);
 	}
 
-	private static int VersusKind(AttackTerms terms, Enemy target) =>
-		target?.data?.kind == EnemyData.Kind.HOLLOW ? terms.vsHollow : 0;
+	// Per target: Hollow Soldier Shield's +1 against Hollows, and the Old Leo Ring's +1 against
+	// an enemy that damaged the attacker in the last enemy phase.
+	private static int VersusKind(AttackTerms terms, Enemy target, PlayerToken attacker) =>
+		(target?.data?.kind == EnemyData.Kind.HOLLOW ? terms.vsHollow : 0)
+		+ (attacker != null && attacker.player.HasRing(Ring.Effect.OLD_LEO) && attacker.WasHurtBy(target) ? 1 : 0);
 
 	// The gems' conditions, after the option's own: every attack on an enemy hits.
 	private static void ApplyAdded(AttackTerms terms, Enemy target) {
@@ -78,7 +81,7 @@ public static class CombatPresenter
 			v.lines.Clear();
 			foreach (Enemy target in targets) {
 				if (!GodotObject.IsInstanceValid(target)) continue;
-				CombatResolver.AttackOutcome outcome = CombatResolver.ResolveAgainstEnemy(v.total + VersusKind(terms, target), move, target, terms.magic);
+				CombatResolver.AttackOutcome outcome = CombatResolver.ResolveAgainstEnemy(v.total + VersusKind(terms, target, attacker), move, target, terms.magic);
 				results.Add((target, outcome));
 				v.lines.Add(EnemyLine(target, terms.magic, outcome));
 			}
@@ -127,7 +130,7 @@ public static class CombatPresenter
 		}
 		CombatResolver.AttackOutcome outcome = default;
 		view.recompute = v => {
-			v.total = Sum(v.faces) + modifier;
+			v.total = Mathf.Max(0, Sum(v.faces) + modifier);
 			outcome = CombatResolver.ResolveAgainstCharacter(move, attacker, v.total);
 			v.lines.Clear();
 			v.lines.Add(AttackerLine(attacker, move, outcome.damage, false));
@@ -141,8 +144,11 @@ public static class CombatPresenter
 		if (shield != null) {
 			CombatResolver.Apply(new CombatResolver.AttackOutcome(outcome.roll, outcome.mitigation, 0, outcome.hit, outcome.condition), target);
 			shield.ApplyDamage(outcome.damage, attacker.Presence);
+			if (outcome.damage > 0) shield.ShedOnHurt();
+			if (outcome.damage > 0) shield.NoteHurtBy(attacker);
 		} else {
 			CombatResolver.Apply(outcome, target, attacker.Presence);
+			if (outcome.damage > 0) target.NoteHurtBy(attacker);
 		}
 		Thorns(target, attacker);
 		await Settle(swing);
@@ -205,7 +211,7 @@ public static class CombatPresenter
 		CombatResolver.AttackOutcome outcome = default;
 		view.recompute = v => {
 			v.total = Sum(v.faces);
-			dodged = v.total >= move.dodgeDifficulty;
+			dodged = v.total >= CombatResolver.DodgeNeeded(target, move);
 			outcome = dodged
 				? new CombatResolver.AttackOutcome(strength, strength, 0, false, EncounterManager.StatusEffect.NONE)
 				: new CombatResolver.AttackOutcome(strength, 0, strength, true, move.statusEffect);
@@ -214,7 +220,7 @@ public static class CombatPresenter
 				portrait = attacker?.data?.GetPortrait(),
 				badge = reveal?.dodgeIcon,
 				badgeTint = DODGE,
-				badgeValue = move.dodgeDifficulty,
+				badgeValue = CombatResolver.DodgeNeeded(target, move),
 				badgeDrop = 0.1f,
 				damage = outcome.damage,
 				dodged = dodged,

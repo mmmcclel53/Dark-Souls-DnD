@@ -54,7 +54,7 @@ public static class CombatResolver
 		foreach (Weapon weapon in new[] { defender.GetLeftHand(), defender.GetRightHand() }) {
 			total += RollPips(magic ? weapon?.magicDefense : weapon?.physicalDefense);
 		}
-		return total;
+		return Mathf.Max(0, total - defender.DefencePenalty(magic));
 	}
 
 	// ----- Resolution -----
@@ -128,9 +128,13 @@ public static class CombatResolver
 		if (!outcome.hit || !GodotObject.IsInstanceValid(target)) return;
 		int before = target.player.endurance.damageTaken;
 		if (outcome.damage > 0) target.ApplyDamage(outcome.damage, attackerPresence);
-		target.ApplyCondition(outcome.condition);
-		// Blue Tearstone Ring: damage suffered from an enemy attack gives 1 stamina back.
 		bool hurt = target.player.endurance.damageTaken > before;
+		// Calamity and Corrosion come off when the attack does damage; one that inflicts them
+		// puts them straight back, as Bleed's does. Abyss goes on the node, not on the character
+		// hit (Enemy lays it).
+		if (hurt) target.ShedOnHurt();
+		if (outcome.condition != EncounterManager.StatusEffect.ABYSS) target.ApplyCondition(outcome.condition);
+		// Blue Tearstone Ring: damage suffered from an enemy attack gives 1 stamina back.
 		if (hurt && !target.player.endurance.isDead && target.player.HasRing(Ring.Effect.BLUE_TEARSTONE)) target.RecoverStamina(1);
 	}
 
@@ -148,6 +152,11 @@ public static class CombatResolver
 		}
 		return pool;
 	}
+
+	// The icons a dodge needs: the attack's difficulty, one more with the Calamity Ring (its
+	// "-1 success on each Dodge roll") and one more under the Calamity condition.
+	public static int DodgeNeeded(PlayerToken target, EnemyMove move) =>
+		move.dodgeDifficulty + (target?.player?.DodgePenalty ?? 0);
 
 	// Tower Shield, Havel's and Stone Greatshield, Smough's Armour: "cannot dodge"; Havel's
 	// Armour: "cannot dodge or walk".
@@ -177,7 +186,7 @@ public static class CombatResolver
 	public static AttackOutcome EnemyAttacksDodging(Enemy attacker, EnemyMove move, PlayerToken target) {
 		int strength = AttackStrength(move, attacker);
 
-		if (RollDodge(target.player) >= move.dodgeDifficulty) {
+		if (RollDodge(target.player) >= DodgeNeeded(target, move)) {
 			return new AttackOutcome(strength, strength, 0, false, EncounterManager.StatusEffect.NONE);
 		}
 

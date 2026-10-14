@@ -15,10 +15,11 @@ condition = 11
 
 [resource]
 script = ExtResource("1_x")
+bossTreasure = true
 name = "Steel Armour"
 image = ExtResource("2_x")
 type = 0
-rarity = 1
+rarity = 4
 isUpgrade = false
 physicalDefense = Array[Object]([ExtResource("4_x")])
 physicalDefenseModifier = 0

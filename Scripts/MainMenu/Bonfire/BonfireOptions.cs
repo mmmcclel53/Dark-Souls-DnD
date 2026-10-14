@@ -5,6 +5,7 @@ public partial class BonfireOptions : VBoxContainer
     [Export] public Button restButton;
     [Export] public Button levelUpButton;
     [Export] public Button merchantButton;
+    [Export] public Button reinforceButton;
     [Export] public Button readyButton;
     [Export] public Label restFeedback;
     // The soul counter hangs under this bar's right end.
@@ -25,12 +26,14 @@ public partial class BonfireOptions : VBoxContainer
         restButton.Pressed      += OnPressedRest;
         levelUpButton.Pressed   += OnPressedLevelUp;
         merchantButton.Pressed  += () => merchant?.Open();
+        if (reinforceButton != null) reinforceButton.Pressed += OnPressedReinforce;
         readyButton.Pressed     += OnPressedReady;
 
         pane = GetNodeOrNull<CharacterPortraitPane>("/root/CharacterPortraitPane");
         modal = GetNodeOrNull<EquipmentModal>("/root/EquipmentModal");
 
         if (restFeedback != null) restFeedback.Visible = false;
+        RefreshReinforce();
         GetNodeOrNull<SoulCounter>("/root/SoulCounter")?.ShowBelow(titleBar);
         restButton.GrabFocus();
 
@@ -115,8 +118,32 @@ public partial class BonfireOptions : VBoxContainer
         restButton.Disabled = !enabled;
         levelUpButton.Disabled = !enabled;
         merchantButton.Disabled = !enabled;
+        if (reinforceButton != null) reinforceButton.Disabled = !enabled;
         readyButton.Disabled = !enabled;
     }
+
+    // Offered only while an Estus Shard is held. A shard becomes a flask, free; the flasks the
+    // pool now holds show as "N / M" on the button, which goes with the last shard.
+    private async void OnPressedReinforce() {
+        if (!PartyEstus.CanReinforce || reinforceButton.Text != REINFORCE_TEXT) return;
+        PartyEstus.Reinforce();
+        CampaignManager.Autosave();
+        reinforceButton.Disabled = true;
+        reinforceButton.Text = $"{PartyEstus.Charges} / {PartyEstus.Max}";
+        PopIn.Scale(reinforceButton, 1.15f, 0.3f);
+        await ToSignal(GetTree().CreateTimer(1.0), SceneTreeTimer.SignalName.Timeout);
+        if (!IsInsideTree()) return;
+        RefreshReinforce();
+    }
+
+    private void RefreshReinforce() {
+        if (reinforceButton == null) return;
+        reinforceButton.Text = REINFORCE_TEXT;
+        reinforceButton.Disabled = resting;
+        reinforceButton.Visible = PartyEstus.CanReinforce;
+    }
+
+    private const string REINFORCE_TEXT = "Reinforce Estus";
 
     // The title bar count is the party pool, not a per-character number (p19).
 

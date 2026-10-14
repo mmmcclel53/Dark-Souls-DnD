@@ -1,6 +1,6 @@
 """Writes a Ring .tres (and copies its card) for each ring Matt typed out, Oct 2026.
 
-    python Tools/onboard_rings.py
+    python Tools/onboard_rings.py [name ...]
 
 Each ring goes to Resources/Prefabs/Equipment/Rings/<Name>/<Name>.tres beside <Name>.png,
 copied from the board game folder. The rule each ring carries is Ring.Effect, an ordinal;
@@ -11,6 +11,7 @@ Re-running overwrites the .tres files; their Effect ordinals do not change.
 """
 import os
 import shutil
+import sys
 
 PROJ = "C:/Users/Matt McClelland/Documents/Game Dev/Godot/Projects/Dark Souls DnD"
 SRC = "C:/Users/Matt McClelland/Documents/Game Dev/Dark Souls Board Game/Images/General Rewards/Armour/Rings"
@@ -20,7 +21,17 @@ OUT = PROJ + "/Resources/Prefabs/Equipment/Rings"
 EFFECT = ["NONE", "BELLOWING_DRAGONCREST", "BLUE_TEARSTONE", "CARTHUS_MILKRING", "CHLORANTHY",
           "COVETOUS_SILVER_SERPENT", "DARK_WOOD_GRAIN", "DIVINE_BLESSING", "DUSK_CROWN", "GREAT_SWAMP",
           "HORNET", "KNIGHT_SLAYER", "MAGIC_STONEPLATE", "OBSCURING", "RED_TEARSTONE", "RING_OF_FAVOUR",
-          "SUN_PRINCESS", "TINY_BEING", "WOLF"]
+          "SUN_PRINCESS", "TINY_BEING", "WOLF", "OLD_LEO", "RING_OF_BLADES", "CALAMITY", "PONTIFFS_LEFT_EYE"]
+
+# Boss treasure: card from the boss's folder, written with bossTreasure = true so it never
+# reaches the Merchant or map loot (Matt, Oct 2026).
+BOSSES = "C:/Users/Matt McClelland/Documents/Game Dev/Dark Souls Board Game/Images/Bosses"
+BOSS_CARD = {
+    "Old Leo Ring": BOSSES + "/1 - Mini/Old Dragonslayer/Old Leo Ring.png",
+    "Ring of Blades": BOSSES + "/2 - Major/The Pursuer/Ring of Blades.png",
+    "Calamity Ring": BOSSES + "/3 - Mega/Black Dragon Kalameet/Calamity Ring.png",
+    "Pontiff's Left Eye": BOSSES + "/3 - Mega/Vordt/Pontiff's Left Eye.png",
+}
 
 RINGS = [
     ("Blue Tearstone Ring", (0, 25, 0, 25), "BLUE_TEARSTONE", "UNCOMMON"),
@@ -39,6 +50,10 @@ RINGS = [
     ("Sun Princess Ring", (30, 0, 0, 25), "SUN_PRINCESS", "EPIC"),
     ("Tiny Being's Ring", (0, 0, 0, 20), "TINY_BEING", "COMMON"),
     ("Wolf Ring", (25, 35, 25, 0), "WOLF", "LEGENDARY"),
+    ("Old Leo Ring", (0, 18, 18, 0), "OLD_LEO", "UNCOMMON"),
+    ("Ring of Blades", (0, 22, 22, 0), "RING_OF_BLADES", "RARE"),
+    ("Calamity Ring", (0, 0, 0, 0), "CALAMITY", "UNCOMMON"),
+    ("Pontiff's Left Eye", (0, 0, 21, 21), "PONTIFFS_LEFT_EYE", "RARE"),
 ]
 
 RING_TYPE = 4      # Equipment.EquipmentType.Ring
@@ -53,7 +68,8 @@ def write(name, reqs, effect, rarity):
     folder = os.path.join(OUT, name)
     os.makedirs(folder, exist_ok=True)
     edited = os.path.join(EDITS, name + ".png")
-    source = edited if os.path.exists(edited) else os.path.join(SRC, name + ".png")
+    boss = name in BOSS_CARD
+    source = edited if os.path.exists(edited) else BOSS_CARD.get(name, os.path.join(SRC, name + ".png"))
     shutil.copyfile(source, os.path.join(folder, name + ".png"))
     s, d, i, f = reqs
     res = f"res://Resources/Prefabs/Equipment/Rings/{name}/{name}"
@@ -65,6 +81,7 @@ def write(name, reqs, effect, rarity):
         "",
         "[resource]",
         'script = ExtResource("1_ring")',
+    ] + (["bossTreasure = true"] if boss else []) + [
         f'name = "{name}"',
         'image = ExtResource("2_art")',
         f"type = {RING_TYPE}",
@@ -82,6 +99,9 @@ def write(name, reqs, effect, rarity):
 
 
 if __name__ == "__main__":
-    for ring in RINGS:
+    # Names on the command line write only those rings; none writes them all.
+    only = set(sys.argv[1:])
+    done = [r for r in RINGS if not only or r[0] in only]
+    for ring in done:
         write(*ring)
-    print(f"{len(RINGS)} rings written to {OUT}")
+    print(f"{len(done)} rings written to {OUT}")

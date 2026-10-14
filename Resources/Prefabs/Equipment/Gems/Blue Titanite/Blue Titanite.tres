@@ -5,6 +5,7 @@
 
 [resource]
 script = ExtResource("1_gem")
+bossTreasure = true
 name = "Blue Titanite"
 image = ExtResource("2_art")
 type = 5

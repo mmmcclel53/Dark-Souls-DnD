@@ -14,6 +14,10 @@ public static class ConditionArt
 			EncounterManager.StatusEffect.POISON => "Poison",
 			EncounterManager.StatusEffect.FROST => "Frost",
 			EncounterManager.StatusEffect.STAGGER => "Stagger",
+			EncounterManager.StatusEffect.ABYSS => "Abyss",
+			EncounterManager.StatusEffect.CALAMITY => "Calamity",
+			EncounterManager.StatusEffect.CORROSION => "Corrosion",
+			EncounterManager.StatusEffect.CURSE => "Curse",
 			_ => null,
 		};
 		Texture2D texture = file == null ? null : GD.Load<Texture2D>($"res://Resources/Images/Sprites/Statuses/{file}.png");
@@ -26,6 +30,10 @@ public static class ConditionArt
 		EncounterManager.StatusEffect.POISON => new Color(0.35f, 0.8f, 0.3f),
 		EncounterManager.StatusEffect.FROST => new Color(0.45f, 0.75f, 1f),
 		EncounterManager.StatusEffect.STAGGER => new Color(0.95f, 0.8f, 0.3f),
+		EncounterManager.StatusEffect.ABYSS => new Color(0.3f, 0.45f, 1f),
+		EncounterManager.StatusEffect.CALAMITY => new Color(1f, 0.7f, 0.2f),
+		EncounterManager.StatusEffect.CORROSION => new Color(0.6f, 0.9f, 0.2f),
+		EncounterManager.StatusEffect.CURSE => new Color(0.75f, 0.68f, 0.55f),
 		_ => Colors.White,
 	};
 }

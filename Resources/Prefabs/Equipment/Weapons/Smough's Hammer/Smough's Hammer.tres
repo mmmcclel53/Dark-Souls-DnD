@@ -35,6 +35,7 @@ bonusEffects = Array[Object]([SubResource("EE2")])
 
 [resource]
 script = ExtResource("1_x")
+bossTreasure = true
 name = "Smough's Hammer"
 image = ExtResource("2_x")
 type = 1

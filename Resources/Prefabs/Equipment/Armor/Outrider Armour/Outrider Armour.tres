@@ -6,6 +6,7 @@
 
 [resource]
 script = ExtResource("1_x")
+bossTreasure = true
 name = "Outrider Armour"
 image = ExtResource("2_x")
 type = 0

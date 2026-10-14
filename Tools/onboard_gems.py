@@ -1,6 +1,6 @@
 """Writes a Gem .tres (and copies its card) for each gem Matt typed out, Oct 2026.
 
-    python Tools/onboard_gems.py
+    python Tools/onboard_gems.py [name ...]
 
 Each gem goes to Resources/Prefabs/Equipment/Gems/<Name>/<Name>.tres beside <Name>.png,
 copied from the board game folder. The rule each gem carries is Gem.Effect, an ordinal;
@@ -8,6 +8,7 @@ EFFECT below must match that enum's order. Requirements are (Str, Dex, Int, Fait
 """
 import os
 import shutil
+import sys
 
 PROJ = "C:/Users/Matt McClelland/Documents/Game Dev/Godot/Projects/Dark Souls DnD"
 SRC = "C:/Users/Matt McClelland/Documents/Game Dev/Dark Souls Board Game/Images/General Rewards/Weapons/Gems"
@@ -20,11 +21,24 @@ EFFECT = ["NONE", "BLACK_DIE", "BLEED", "BLACK_DIE_MAGIC", "DAMAGE_MAGIC", "REAC
 # Cards edited for this project, used in place of the board game folder's.
 EDITS = PROJ + "/Tools/CardEdits"
 
+# Boss treasure: these come from a boss's folder and are written with bossTreasure = true, so
+# they never reach the Merchant or map loot. The card art is the one listed here.
+BOSSES = "C:/Users/Matt McClelland/Documents/Game Dev/Dark Souls Board Game/Images/Bosses"
+BOSS_CARD = {
+    # The Black Knight's card; it used to be onboarded from General Rewards as ordinary treasure.
+    "Blue Titanite": BOSSES + "/1 - Mini/Black Knight/13_blue_titanite.png",
+    # The Titanite Demon and the Stray Demon each pay a "Titanite" (+1 damage, no requirements).
+    # The catalogue is keyed by name, so both pay this one gem; the Stray Demon's card is
+    # Bosses/3 - Mega/Stray Demon/Titanite.png.
+    "Titanite": BOSSES + "/1 - Mini/Titanite Demon/Titanite.png",
+}
+
 # Name, requirements (Str, Dex, Int, Faith), effect, rarity (Claude's ranking, agreed with Matt).
 GEMS = [
     ("Blessed Gem", (0, 0, 0, 25), "BLACK_DIE", "UNCOMMON"),
     ("Blood Gem", (15, 0, 0, 0), "BLEED", "UNCOMMON"),
     ("Blue Titanite", (0, 0, 20, 0), "BLACK_DIE_MAGIC", "EPIC"),
+    ("Titanite", (0, 0, 0, 0), "DAMAGE", "COMMON"),
     ("Carthus Flame Arc", (0, 0, 30, 0), "DAMAGE_MAGIC", "RARE"),
     ("Crystal Gem", (0, 0, 25, 0), "BLACK_DIE", "UNCOMMON"),
     ("Crystal Magic Weapon", (0, 0, 30, 0), "DAMAGE_MAGIC", "RARE"),
@@ -48,7 +62,8 @@ def write(name, reqs, effect, rarity):
     folder = os.path.join(OUT, name)
     os.makedirs(folder, exist_ok=True)
     edited = os.path.join(EDITS, name + ".png")
-    source = edited if os.path.exists(edited) else os.path.join(SRC, name + ".png")
+    boss = name in BOSS_CARD
+    source = edited if os.path.exists(edited) else BOSS_CARD.get(name, os.path.join(SRC, name + ".png"))
     shutil.copyfile(source, os.path.join(folder, name + ".png"))
     s, d, i, f = reqs
     res = f"res://Resources/Prefabs/Equipment/Gems/{name}/{name}"
@@ -60,6 +75,7 @@ def write(name, reqs, effect, rarity):
         "",
         "[resource]",
         'script = ExtResource("1_gem")',
+    ] + (["bossTreasure = true"] if boss else []) + [
         f'name = "{name}"',
         'image = ExtResource("2_art")',
         f"type = {GEM_TYPE}",
@@ -77,6 +93,9 @@ def write(name, reqs, effect, rarity):
 
 
 if __name__ == "__main__":
-    for gem in GEMS:
+    # Names on the command line write only those gems; none writes them all.
+    only = set(sys.argv[1:])
+    done = [g for g in GEMS if not only or g[0] in only]
+    for gem in done:
         write(*gem)
-    print(f"{len(GEMS)} gems written to {OUT}")
+    print(f"{len(done)} gems written to {OUT}")
