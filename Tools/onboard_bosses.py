@@ -120,10 +120,16 @@ def copy_art(source, folder_name, *target):
     return res_path(folder_name, *target)
 
 
-def portrait(crop, card):
-    # The activation bar's 3:4 face, inside the avatar's circle so the title stays out of it.
+def portrait(crop, card, framed=None):
+    # The activation bar's 3:4 face. `framed` (centre x, top, bottom) is set by hand per boss to
+    # show as much of the art as fits between the title and the Block/Resist shield; without
+    # it, the face inside the avatar's circle.
     from PIL import Image
     w, h = Image.open(card).size
+    if framed:
+        cx, top, bottom = framed
+        width = 0.75 * (bottom - top) * h / w
+        return f"Rect2({cx - width / 2:.4f}, {top:.4f}, {width:.4f}, {bottom - top:.4f})"
     cx, cy, d = crop
     width = d * 0.8
     height = width * 4 / 3 * w / h
@@ -181,7 +187,7 @@ def write(folder, shown, kind, final, treasure):
                      f"range = {UNLIMITED_RANGE if rng is None else rng}", f"dodge = {dodge}", f"repeat = {repeat}",
                      f"heatUp = {'true' if heat_up else 'false'}", f"pillars = {'true' if smashes else 'false'}",
                      f"actions = Array[Object]([{', '.join(f'SubResource(\"{a}\")' for a in action_ids)}])", ""]
-        props += ['cardTexture = ExtResource("5_data")', f"portraitRegion = {portrait(fight['crop'], data_card)}",
+        props += ['cardTexture = ExtResource("5_data")', f"portraitRegion = {portrait(fight['crop'], data_card, fight.get('portrait'))}",
                   f"threatLevel = {fight['threat']}", f"health = {fight['health']}",
                   f"physicalDefense = {fight['block']}", f"magicalDefense = {fight['resist']}",
                   f"heatUp = {fight['heat_up']}", f"deckSize = {fight['deck']}", f"ability = {ABILITY[fight['ability']]}",

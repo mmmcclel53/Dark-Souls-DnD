@@ -16,6 +16,7 @@ statusEffect = 1
 
 [resource]
 script = ExtResource("4_data")
+portraitRegion = Rect2(0.1717, 0.1800, 0.2965, 0.3000)
 enemyName = "Undead Rat"
 cardTexture = ExtResource("2_card")
 avatarTexture = ExtResource("3_avatar")

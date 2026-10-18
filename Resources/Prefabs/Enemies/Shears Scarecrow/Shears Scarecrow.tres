@@ -59,6 +59,7 @@ statusEffect = 4
 
 [resource]
 script = ExtResource("4_data")
+portraitRegion = Rect2(0.3229, 0.1350, 0.3543, 0.3270)
 enemyName = "Shears Scarecrow"
 family = 1
 cardTexture = ExtResource("2_card")

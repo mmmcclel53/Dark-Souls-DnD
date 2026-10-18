@@ -33,6 +33,7 @@ statusEffect = 4
 
 [resource]
 script = ExtResource("4_data")
+portraitRegion = Rect2(0.3294, 0.1600, 0.3412, 0.3150)
 enemyName = "Demonic Foliage"
 family = 1
 cardTexture = ExtResource("2_card")

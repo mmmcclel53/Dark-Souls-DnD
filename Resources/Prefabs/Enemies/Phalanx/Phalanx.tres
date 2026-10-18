@@ -33,6 +33,7 @@ statusEffect = 4
 
 [resource]
 script = ExtResource("4_data")
+portraitRegion = Rect2(0.3281, 0.1350, 0.3439, 0.3270)
 enemyName = "Phalanx"
 family = 5
 cardTexture = ExtResource("2_card")

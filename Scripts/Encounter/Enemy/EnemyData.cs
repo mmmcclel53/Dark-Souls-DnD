@@ -26,7 +26,7 @@ public partial class EnemyData : Resource {
 	// Where the enemy's art sits on the card, as fractions of the card so the two card
 	// sizes in the set share one default. The activation bar shows this crop rather than
 	// the round board icon; nudge it per enemy when the art is off-centre.
-	[Export] public Rect2 portraitRegion = new Rect2(0.27f, 0.14f, 0.46f, 0.325f);
+	[Export] public Rect2 portraitRegion = new Rect2(0.3367f, 0.135f, 0.3266f, 0.327f);
 
 	[Export] public int threatLevel = 1;
 	[Export] public int health = 1;

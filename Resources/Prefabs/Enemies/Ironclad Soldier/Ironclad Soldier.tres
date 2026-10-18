@@ -20,6 +20,7 @@ statusEffect = 3
 
 [resource]
 script = ExtResource("4_data")
+portraitRegion = Rect2(0.3274, 0.1350, 0.3453, 0.3270)
 enemyName = "Ironclad Soldier"
 family = 2
 cardTexture = ExtResource("2_card")

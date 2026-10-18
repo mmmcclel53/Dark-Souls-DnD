@@ -15,6 +15,7 @@ statusEffect = 0
 
 [resource]
 script = ExtResource("4_data")
+portraitRegion = Rect2(0.3276, 0.1350, 0.3448, 0.3270)
 enemyName = "Skeleton Soldier"
 family = 4
 cardTexture = ExtResource("2_card")

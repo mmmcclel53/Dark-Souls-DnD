@@ -33,6 +33,7 @@ statusEffect = 4
 
 [resource]
 script = ExtResource("4_data")
+portraitRegion = Rect2(0.2465, 0.1450, 0.3470, 0.3300)
 enemyName = "Engorged Zombie"
 family = 5
 cardTexture = ExtResource("2_card")

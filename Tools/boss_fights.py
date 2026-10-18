@@ -67,7 +67,8 @@ FIGHTS = {
         "threat": 10, "health": 24, "block": 3, "resist": 1, "heat_up": 12, "deck": 4,
         "ability": "HEAVY_BLOWS",
         "tile": "castle",
-        "crop": (0.62, 0.27, 0.36),
+        "crop": (0.585, 0.27, 0.36),
+        "portrait": (0.55, 0.118, 0.42),
         "cards": [
             ("Moves/tile008.png", "Backhand Shaft Strike", 1, 1, 1, False,
              [move(1, "front", "nearest", push=True), attack(5, area=True, arcs="FR", weak="L")]),
@@ -94,7 +95,8 @@ FIGHTS = {
         "threat": 10, "health": 26, "block": 2, "resist": 1, "heat_up": 12, "deck": 4,
         "ability": "FLYING_HIGH",
         "tile": "castle",
-        "crop": (0.50, 0.28, 0.44),
+        "crop": (0.45, 0.28, 0.44),
+        "portrait": (0.37, 0.112, 0.42),
         "cards": [
             ("Moves/tile026.png", "Electric Breath", 1, 2, 1, False,
              [move(0, "front", "nearest"), attack(4, magic=True, area=True, arcs="FL", weak="R")]),
@@ -121,6 +123,7 @@ FIGHTS = {
         "ability": "ICE_IN_HIS_VEINS",
         "tile": "generic",
         "crop": (0.58, 0.29, 0.38),
+        "portrait": (0.58, 0.14, 0.42),
         "cards": [
             ("Moves/tile035.png", "Overhand Slash", 1, 1, 1, False,
              [move(1, "left", push=True), attack(5, area=True, arcs="RB", weak="F")]),
@@ -148,6 +151,7 @@ FIGHTS = {
         "ability": "TITANITE_CONSTRUCT",
         "tile": "generic",
         "crop": (0.50, 0.285, 0.44),
+        "portrait": (0.5, 0.118, 0.425),
         "cards": [
             ("Moves/tile018.png", "Lightning Bolt", None, 2, 1, False,
              [move(1, "back", push=True), attack(5, target="aggro", magic=True)]),
@@ -175,6 +179,7 @@ FIGHTS = {
         "ability": "PARRY",
         "tile": "castle",
         "crop": (0.56, 0.26, 0.32),
+        "portrait": (0.52, 0.135, 0.42),
         "cards": [
             ("Moves/02_overhead_swing.png", "Overhead Swing", 2, 2, 1, False,
              [attack(4, area=True, arcs="F", weak="B"), move(2, "front", "aggro", push=True)]),
@@ -204,6 +209,7 @@ FIGHTS = {
         "ability": "BRUTAL_IMPACT",
         "tile": "generic",
         "crop": (0.50, 0.25, 0.38),
+        "portrait": (0.5, 0.135, 0.42),
         "cards": [
             ("Moves/02_overhead_chop.png", "Overhead Chop", 1, 1, 1, False,
              [move(1, "front", "nearest", push=True), attack(5, target="nearest", node=True, weak="LR", condition="stagger", push=True)]),
@@ -233,7 +239,8 @@ FIGHTS = {
         "threat": 10, "health": 25, "block": 1, "resist": 1, "heat_up": 15, "deck": 4,
         "ability": "ROYAL_PROTECTION",
         "tile": "river boss",
-        "crop": (0.55, 0.31, 0.34),
+        "crop": (0.76, 0.31, 0.34),
+        "portrait": (0.74, 0.195, 0.43),
         "summon": "res://Resources/Prefabs/Enemies/Undead Rat/Undead Rat.tres", "summon_at_start": 4,
         "cards": [
             ("Moves/Charge.jpg", "Charge", 0, 2, 1, False,
@@ -260,6 +267,7 @@ FIGHTS = {
         "ability": "PILLARS_OF_WOE",
         "tile": "Asylum Demon & Stray Demon",
         "crop": (0.48, 0.26, 0.40),
+        "portrait": (0.49, 0.122, 0.425),
         "cards": [
             ("Moves/tile001.png", "Delayed Hammer Drive", 0, 1, 1, False,
              [pillar(), move(2, "front", "aggro", push=True, damage=5, weak="B", condition="stagger")]),
@@ -291,6 +299,7 @@ FIGHTS = {
         "ability": "CORRUPTED_DRAGONSLAYER",
         "tile": "castle",
         "crop": (0.53, 0.285, 0.36),
+        "portrait": (0.54, 0.162, 0.425),
         "cards": [
             ("Moves/tile001.png", "Leaping Darkness", 1, 1, 1, False,
              [leap("aggro"), attack(4, magic=True, area=True, arcs="FRBL")]),

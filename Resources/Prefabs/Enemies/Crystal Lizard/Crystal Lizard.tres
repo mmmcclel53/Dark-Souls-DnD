@@ -20,6 +20,7 @@ statusEffect = 4
 
 [resource]
 script = ExtResource("4_data")
+portraitRegion = Rect2(0.3431, 0.1050, 0.3537, 0.3350)
 enemyName = "Crystal Lizard"
 family = 1
 cardTexture = ExtResource("2_card")
