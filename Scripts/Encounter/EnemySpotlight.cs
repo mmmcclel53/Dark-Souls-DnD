@@ -35,6 +35,41 @@ public partial class EnemySpotlight : Node
 	public Task PreviewAttack(Enemy enemy, GameNode targetNode, PlayerToken target, bool towardsNearest) =>
 		Preview(enemy, new List<GameNode> { targetNode }, attackNodeColour, target, towardsNearest, attackSeconds);
 
+	// A boss's attack: every node it reaches lit alike, and every character it targets ringed.
+	// `nearest` is pinned with the Nearest marker when the attack went after the nearest.
+	public async Task PreviewArea(Enemy enemy, List<GameNode> nodes, List<PlayerToken> targets, PlayerToken nearest) {
+		if (enemy == null || !IsInstanceValid(enemy)) return;
+		var rings = new List<TokenHighlight> { TokenHighlight.Attach(enemy, enemyColour) };
+		foreach (PlayerToken target in targets) {
+			if (target != null && IsInstanceValid(target)) rings.Add(TokenHighlight.Attach(target, targetColour));
+		}
+		if (nearest != null) NearestMarker.Pin(nearest);
+
+		var previous = new Dictionary<GameNode, Color>();
+		var lit = new List<(GameNode node, Color colour)>();
+		foreach (GameNode node in nodes) {
+			if (node == null || previous.ContainsKey(node)) continue;
+			previous[node] = node.ClickTarget.Modulate;
+			node.Highlight(attackNodeColour);
+			lit.Add((node, attackNodeColour));
+		}
+
+		await Hold(attackSeconds * 1.4f, elapsed => Breathe(lit, elapsed));
+
+		foreach (var pair in previous) {
+			if (IsInstanceValid(pair.Key)) pair.Key.ClickTarget.Modulate = pair.Value;
+		}
+		foreach (TokenHighlight ring in rings) TokenHighlight.Detach(ring);
+		NearestMarker.Pin(null);
+	}
+
+	private void Breathe(List<(GameNode node, Color colour)> lit, float elapsed) {
+		float wave = 0.5f + 0.5f * Mathf.Sin(elapsed * Mathf.Tau * 1.2f);
+		foreach ((GameNode node, Color colour) in lit) {
+			if (IsInstanceValid(node)) node.ClickTarget.Modulate = new Color(colour, Mathf.Min(1f, colour.A + pulseStrength * wave));
+		}
+	}
+
 	private async Task Preview(Enemy enemy, List<GameNode> nodes, Color lastColour, PlayerToken target,
 			bool towardsNearest, float seconds) {
 		if (enemy == null || !IsInstanceValid(enemy)) return;

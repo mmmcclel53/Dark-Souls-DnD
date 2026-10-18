@@ -14,6 +14,8 @@ public partial class CharacterState : Resource
 	[Export] public Vector2I lastStep;
 	// Magic Barrier and the like, which last into the enemy phase: (die type, defence kind) pairs.
 	[Export] public int[] defenceBuffs = new int[0];
+	// Where it stands against a boss's base, on the boss's node (PlayerToken.bossSide).
+	[Export] public Vector2I bossSide;
 
 	public static CharacterState Of(PlayerToken token, int partyIndex) {
 		List<int> buffs = new List<int>();
@@ -28,6 +30,7 @@ public partial class CharacterState : Resource
 			faraamUsed = token.faraamUsed,
 			lastStep = token.lastStep,
 			defenceBuffs = buffs.ToArray(),
+			bossSide = token.bossSide,
 		};
 	}
 
@@ -38,6 +41,10 @@ public partial class CharacterState : Resource
 		foreach (int condition in conditions) player.conditions.Add((EncounterManager.StatusEffect)condition);
 		token.faraamUsed = faraamUsed;
 		token.lastStep = lastStep;
+		if (bossSide != Vector2I.Zero && token.GetParent()?.GetParent() is Control node && BossArcs.BossOn(node) != null) {
+			token.bossSide = bossSide;
+			EncounterManager.FixPositioning(node);
+		}
 
 		player.defenceBuffs.Clear();
 		for (int i = 0; i + 1 < defenceBuffs.Length; i += 2) {

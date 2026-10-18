@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=7 format=3 uid="uid://b76gp38q41ej"]
+
+[ext_resource type="Script" uid="uid://vgcsex11gg6y" path="res://Scripts/Encounter/Enemy/EnemyMove.cs" id="1_move"]
+[ext_resource type="Texture2D" uid="uid://8gxdvlosaaxd" path="res://Resources/Prefabs/Enemies/Undead Rat/Undead Rat.jpg" id="2_card"]
+[ext_resource type="Texture2D" uid="uid://6ysqckh3ouuq" path="res://Resources/Prefabs/Enemies/Undead Rat/Undead Rat - Avatar.png" id="3_avatar"]
+[ext_resource type="Script" uid="uid://ddswtnf0bwh4s" path="res://Scripts/Encounter/Enemy/EnemyData.cs" id="4_data"]
+
+[sub_resource type="Resource" id="Resource_move0"]
+script = ExtResource("1_move")
+direction = 2
+
+[sub_resource type="Resource" id="Resource_move1"]
+script = ExtResource("1_move")
+damage = 2
+statusEffect = 1
+
+[resource]
+script = ExtResource("4_data")
+enemyName = "Undead Rat"
+cardTexture = ExtResource("2_card")
+avatarTexture = ExtResource("3_avatar")
+moves = Array[ExtResource("1_move")]([SubResource("Resource_move0"), SubResource("Resource_move1")])

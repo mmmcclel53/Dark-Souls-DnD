@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bwk2ceoed5hy0"
-path="res://.godot/imported/preview_art.png-50eff68f579acca0343999b63c3036ba.ctex"
+uid="uid://boc2i2ddjfmcm"
+path="res://.godot/imported/Defensive Swipe.png-1d3f701cdaeedf7b21e025487b35a071.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Tools/BossAvatars/preview_art.png"
-dest_files=["res://.godot/imported/preview_art.png-50eff68f579acca0343999b63c3036ba.ctex"]
+source_file="res://Resources/Prefabs/Bosses/Heavy Knight/Cards/Defensive Swipe.png"
+dest_files=["res://.godot/imported/Defensive Swipe.png-1d3f701cdaeedf7b21e025487b35a071.ctex"]
 
 [params]
 

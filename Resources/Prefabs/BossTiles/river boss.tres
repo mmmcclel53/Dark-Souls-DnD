@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="BoardLayout" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bosses/BoardLayout.cs" id="1_layout"]
+
+[resource]
+script = ExtResource("1_layout")
+tile = "river boss"
+nodeSize = 0.16
+cells = PackedInt32Array(10, 11, 16, 17, 18, 19, 22, 23, 24, 25, 26, 29, 30, 31, 32, 37, 38)
+centres = PackedVector2Array(0.167, 0.177, 0.325, 0.041, 0.167, 0.492, 0.332, 0.333, 0.5, 0.175, 0.66, 0.041, 0.165, 0.808, 0.333, 0.649, 0.5, 0.5, 0.664, 0.331, 0.832, 0.173, 0.331, 0.96, 0.497, 0.808, 0.665, 0.649, 0.832, 0.492, 0.665, 0.96, 0.832, 0.808)
+entrances = PackedInt32Array(29, 37)
+pillars = PackedInt32Array()
+bossSpawn = 24
+bossFacing = Vector2i(-1, 1)

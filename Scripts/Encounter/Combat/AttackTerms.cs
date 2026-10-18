@@ -155,6 +155,9 @@ public readonly struct AttackTerms
 			if (wearer.HasRing(Ring.Effect.CALAMITY)) bonus += 1;
 		}
 		if (free) cost = 0;
+		// The Gargoyle's Flying High: once it has heated up, attacking from its node costs 1 more,
+		// even an attack that is otherwise free (Matt, Oct 2026).
+		if (!move.IsSupport && !move.IsMovementOnly && FlyingHigh(attacker)) cost += 1;
 		// Hollow Soldier Shield: "this weapon gains +1 damage against Hollows".
 		int vsHollow = 0;
 		if (weapon?.passives != null) {
@@ -163,6 +166,11 @@ public readonly struct AttackTerms
 			}
 		}
 		return new AttackTerms(cost, range, aoe, move.isNotZeroRange, extra, reuses, boosted, bonus, selfDamage, magic, conditions, hollow, vsHollow);
+	}
+
+	private static bool FlyingHigh(PlayerToken attacker) {
+		Enemy boss = BossArcs.BossOn(attacker?.GetParent()?.GetParent() as Control);
+		return boss != null && boss.boss.ability == BossData.Ability.FLYING_HIGH && boss.behaviour.heated;
 	}
 
 	// Simple Gem: the weapon's highest printed cost, every option tied at it (Matt).

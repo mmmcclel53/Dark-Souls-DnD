@@ -21,6 +21,8 @@ public partial class ActionListener : Control
 	[Export] public PackedScene enemyScene;
 	// Standalone runs only: a campaign encounter spawns its saved EncounterPlan instead.
 	[Export] public Array<EnemyData> enemies;
+	// Standalone runs only: fight this boss on its own tile instead of `enemies`.
+	[Export] public BossData standaloneBoss;
 	[Export] public Node nodesParent;
 	// The printed tile under the grid; a plan names its own.
 	[Export] public TextureRect boardArt;
@@ -76,6 +78,11 @@ public partial class ActionListener : Control
 	        characterTurn.OnPickNode(node);
 	        return;
 	    }
+	    // So does a Backstab's Shift, made after a dodge.
+	    if (characterTurn != null && characterTurn.isBackstabShifting) {
+	        characterTurn.OnBackstabNodeClicked(node);
+	        return;
+	    }
 	    // A dodge's free step happens inside the enemy phase, so it is asked before the phase.
 	    if (characterTurn != null && characterTurn.isDodgeStepping) {
 	        characterTurn.OnDodgeStepNodeClicked(node);
@@ -103,10 +110,12 @@ public partial class ActionListener : Control
 		EncounterManager.characterTurn = characterTurn;
 		EncounterManager.dodgePrompt = GetNode<DodgePrompt>("%Dodge Prompt");
 		EncounterManager.pushPrompt = GetNode<PushPrompt>("%Push Prompt");
+		EncounterManager.summon = (data, node) => SpawnEnemy(data, 1, node);
 		EncounterManager.spotlight = new EnemySpotlight();
 		AddChild(EncounterManager.spotlight);
 		phaseBanner = new PhaseBanner();
 		AddChild(phaseBanner);
+		AddChild(new BossDeckPanel());
 		BoardFx.punch = new ScreenPunch();
 		AddChild(BoardFx.punch);
 
@@ -167,6 +176,19 @@ public partial class ActionListener : Control
 	    Random random = new Random();
 	    List<GameNode> enemyNodes = new List<GameNode>();
 
+	    // A boss is fought on its own printed tile, laid out before anything reads the nodes.
+	    EncounterPlan plan = WorldMapManager.GetPendingPlan();
+	    BossData boss = FightingBoss(plan);
+	    BoardLayout layout = boss != null ? BoardLayout.Load(boss.tile) : null;
+	    if (layout != null) {
+	        pathGrid.ApplyLayout(layout);
+	        if (boardArt != null && ResourceLoader.Exists(layout.TilePath)) {
+	            boardArt.Texture = ResourceLoader.Load<Texture2D>(layout.TilePath);
+	            // Tile 2 is drawn mirrored; a boss tile's circles were measured as printed.
+	            boardArt.FlipH = false;
+	        }
+	    }
+
 	    foreach (GameNode gameNode in nodesParent.GetChildren()) {
 	        EncounterManager.nodes.Add(gameNode);
 	        if (gameNode.isEnemySpawn) {
@@ -179,8 +201,7 @@ public partial class ActionListener : Control
 	        }
 	    }
 
-	    EncounterPlan plan = WorldMapManager.GetPendingPlan();
-	    if (plan != null && boardArt != null && ResourceLoader.Exists(plan.TilePath)) boardArt.Texture = ResourceLoader.Load<Texture2D>(plan.TilePath);
+	    if (layout == null && plan != null && boardArt != null && ResourceLoader.Exists(plan.TilePath)) boardArt.Texture = ResourceLoader.Load<Texture2D>(plan.TilePath);
 
 	    // A save made in this fight: the board as it was, not the plan's opening.
 	    EncounterSnapshot snapshot = CampaignManager.CurrentSave?.encounter;
@@ -193,7 +214,14 @@ public partial class ActionListener : Control
 	    if (snapshot != null) CampaignManager.CurrentSave.encounter = null;
 	    CampaignManager.Autosave(CampaignManager.ENCOUNTER);
 
-	    if (plan != null && enemyNodes.Count > 0) {
+	    if (layout != null) {
+	        GameNode bossNode = EncounterManager.GameNodeAtIndex(layout.bossSpawn);
+	        SpawnBoss(boss, BossBehaviour.Start(boss, layout.bossFacing), bossNode);
+	        // Royal Protection: the rats it brings, on the nodes round it.
+	        if (boss.summon != null && boss.summonAtStart > 0) {
+	            foreach (GameNode node in Enemy.SpreadAround(bossNode, layout.bossFacing, boss.summonAtStart)) SpawnEnemy(boss.summon, 1, node);
+	        }
+	    } else if (plan != null && enemyNodes.Count > 0) {
 	        foreach (EncounterSpawn spawn in plan.spawns) {
 	            if (spawn.Data == null) continue;
 	            SpawnEnemy(spawn.Data, spawn.tier, enemyNodes[spawn.spawnSlot % enemyNodes.Count]);
@@ -210,6 +238,15 @@ public partial class ActionListener : Control
 	    RestoreSoulDrop();
 	}
 
+	// The boss a campaign boss node is fought against, once it has its behaviour cards (until
+	// then the plan's stand-in encounter is fought); or a standalone run's.
+	private BossData FightingBoss(EncounterPlan plan) {
+	    if (plan == null) return standaloneBoss != null && standaloneBoss.Playable ? standaloneBoss : null;
+	    if (!string.IsNullOrEmpty(WorldMapManager.PendingRoamerId)) return null;
+	    BossData boss = BossRoster.Get(plan.boss);
+	    return boss != null && boss.Playable ? boss : null;
+	}
+
 	private Enemy SpawnEnemy(EnemyData enemyData, int tier, Control node) {
 		Node2D enemy = (Node2D)enemyScene.Instantiate();
 		// Must be set before the node enters the tree, since _Ready builds the
@@ -217,11 +254,23 @@ public partial class ActionListener : Control
 		Enemy spawned = enemy.GetChild<Enemy>(0);
 		spawned.data = enemyData;
 		spawned.tier = tier;
-		spawned.ActivationFinished += OnEnemyActivationFinished;
+		return Place(enemy, spawned, node);
+	}
 
-		EncounterManager.ScaleToken(enemy, node.Size.X);
-		EncounterManager.MovePlayer(enemy, node, null);
-		EncounterManager.enemies.Add(enemy);
+	private Enemy SpawnBoss(BossData boss, BossBehaviour behaviour, Control node) {
+		Node2D model = (Node2D)enemyScene.Instantiate();
+		Enemy spawned = model.GetChild<Enemy>(0);
+		spawned.MakeBoss(boss, behaviour);
+		Place(model, spawned, node);
+		EncounterManager.bossPanel?.Track(spawned);
+		return spawned;
+	}
+
+	private Enemy Place(Node2D model, Enemy spawned, Control node) {
+		spawned.ActivationFinished += OnEnemyActivationFinished;
+		EncounterManager.ScaleToken(model, node.Size.X);
+		EncounterManager.MovePlayer(model, node, null);
+		EncounterManager.enemies.Add(model);
 		return spawned;
 	}
 
@@ -246,12 +295,15 @@ public partial class ActionListener : Control
 	        if (state.partyIndex < 0 || state.partyIndex >= party.Length || EncounterManager.GameNodeAtIndex(state.gridIndex) == null) return false;
 	    }
 	    foreach (EnemyState state in snapshot.enemies) {
-	        if (state.Data == null || EncounterManager.GameNodeAtIndex(state.gridIndex) == null) return false;
+	        if ((state.Boss == null && state.Data == null) || EncounterManager.GameNodeAtIndex(state.gridIndex) == null) return false;
 	    }
 
 	    // In saved order, which is still threat order: not re-sorted, so ties keep their places.
 	    foreach (EnemyState state in snapshot.enemies) {
-	        Enemy enemy = SpawnEnemy(state.Data, state.tier, EncounterManager.GameNodeAtIndex(state.gridIndex));
+	        BossData boss = state.Boss;
+	        Enemy enemy = boss != null
+	            ? SpawnBoss(boss, state.Behaviour(boss), EncounterManager.GameNodeAtIndex(state.gridIndex))
+	            : SpawnEnemy(state.Data, state.tier, EncounterManager.GameNodeAtIndex(state.gridIndex));
 	        enemy.Restore(state.health, state.conditions);
 	    }
 
@@ -264,6 +316,10 @@ public partial class ActionListener : Control
 	    }
 	    playersSpawned = snapshot.characters.Length;
 	    for (int i = 0; i + 1 < snapshot.abyss.Length; i += 2) EncounterManager.GameNodeAtIndex(snapshot.abyss[i])?.SetAbyss(snapshot.abyss[i + 1]);
+	    foreach (int index in snapshot.pillarsDown ?? new int[0]) {
+	        GameNode pillar = EncounterManager.GameNodeAtIndex(index);
+	        if (pillar?.pillar == GameNode.Pillar.STANDING) EncounterManager.BreakPillar(pillar, false);
+	    }
 
 	    EncounterManager.round = snapshot.round;
 	    EncounterManager.activeCharacterIndex = Mathf.Clamp(snapshot.activeCharacterIndex, 0, snapshot.characters.Length - 1);
@@ -460,6 +516,9 @@ public partial class ActionListener : Control
 	    characterTurn?.End();
 	    PlayerToken ended = ActiveCharacter();
 	    ended?.EndActivation();
+	    // The Black Knight's Parry, after the activation's own conditions come off, so the
+	    // Stagger lasts into the character's next activation.
+	    if (ended != null && ended.parried) ended.ApplyCondition(EncounterManager.StatusEffect.STAGGER);
 	    await OfferFaraam(ended);
 	    endingActivation = false;
 

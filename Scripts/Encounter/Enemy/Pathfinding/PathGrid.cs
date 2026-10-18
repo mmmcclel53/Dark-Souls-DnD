@@ -35,6 +35,37 @@ public partial class PathGrid : Control {
 		}
 	}
 
+	// A printed boss tile: every node it lists goes on its circle at its size, with its entrance
+	// and spawn flags, and every other node is taken off the board. The scene's own anchors are
+	// Tile 2's (Board Geometry in CLAUDE.md).
+	public void ApplyLayout(BoardLayout layout) {
+		if (layout == null) return;
+		var centres = new System.Collections.Generic.Dictionary<int, Vector2>();
+		for (int i = 0; i < layout.cells.Length && i < layout.centres.Length; i++) centres[layout.cells[i]] = layout.centres[i];
+
+		float half = layout.nodeSize * 0.5f;
+		for (int index = 0; index < nodesParent.GetChildCount(); index++) {
+			if (nodesParent.GetChild(index) is not GameNode node) continue;
+			bool on = centres.TryGetValue(index, out Vector2 centre);
+			node.isDisabled = !on;
+			node.isEntrance = on && System.Array.IndexOf(layout.entrances, index) >= 0;
+			node.isEnemySpawn = on && System.Array.IndexOf(layout.enemySpawns, index) >= 0;
+			node.statusEffect = EncounterManager.StatusEffect.NONE;
+			node.SetPillar(on && System.Array.IndexOf(layout.pillars, index) >= 0 ? GameNode.Pillar.STANDING : GameNode.Pillar.NONE);
+			// Hidden, not just transparent: Tile 2's anchors overlap this tile's circles, and an
+			// invisible button there would still take their clicks.
+			node.Visible = on;
+			if (!on) continue;
+			node.AnchorLeft = centre.X - half;
+			node.AnchorRight = centre.X + half;
+			node.AnchorTop = centre.Y - half;
+			node.AnchorBottom = centre.Y + half;
+			node.OffsetLeft = node.OffsetRight = node.OffsetTop = node.OffsetBottom = 0f;
+		}
+		CreateGrid();
+		CallDeferred(nameof(RescaleModels));
+	}
+
 	public int MaxSize {
 		get {
 			return EncounterManager.gridSize * EncounterManager.gridSize;
@@ -52,7 +83,7 @@ public partial class PathGrid : Control {
 				if (node.isDisabled) {
 					control.Modulate = new Color(0,0,0,0);
 				}
-				bool walkable = !node.isDisabled;
+				bool walkable = !node.isDisabled && node.pillar != GameNode.Pillar.STANDING;
 				grid[x,y] = new PathNode(walkable, x, y);
 			}
 		}
@@ -87,6 +118,8 @@ public partial class PathGrid : Control {
 	// Only terrain blocks movement. A full node is still enterable — arriving on one pushes
 	// a model that was already there off it (p10), so it must stay pathable.
 	public bool IsBlocked(PathNode node) => !node.walkable;
+
+	public bool IsStandingPillar(PathNode node) => GameNodeAt(node).pillar == GameNode.Pillar.STANDING;
 
 	public bool HasRoom(PathNode node) => !EncounterManager.IsNodeFull(GameNodeAt(node));
 

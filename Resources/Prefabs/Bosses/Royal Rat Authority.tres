@@ -1,10 +1,142 @@
-[gd_resource type="Resource" script_class="BossData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="BossData" load_steps=27 format=3 uid="uid://b42i8n56peo4b"]
 
-[ext_resource type="Script" path="res://Scripts/Bosses/BossData.cs" id="1_boss"]
+[ext_resource type="Script" uid="uid://bv1pyfr0wiq3b" path="res://Scripts/Bosses/BossData.cs" id="1_boss"]
+[ext_resource type="Texture2D" uid="uid://b6rxx6fadh0dk" path="res://Resources/Prefabs/Bosses/Royal Rat Authority/Royal Rat Authority - Avatar.png" id="2_avatar"]
+[ext_resource type="Script" uid="uid://xl4talsicsmc" path="res://Scripts/Bosses/BossCard.cs" id="3_card"]
+[ext_resource type="Script" uid="uid://dfwo3lbbtqk77" path="res://Scripts/Bosses/BossAction.cs" id="4_action"]
+[ext_resource type="Texture2D" uid="uid://n3usitvfolhb" path="res://Resources/Prefabs/Bosses/Royal Rat Authority/Royal Rat Authority.jpg" id="5_data"]
+[ext_resource type="Resource" uid="uid://b76gp38q41ej" path="res://Resources/Prefabs/Enemies/Undead Rat/Undead Rat.tres" id="6_summon"]
+[ext_resource type="Texture2D" uid="uid://rqamqh6dlat4" path="res://Resources/Prefabs/Bosses/Royal Rat Authority/Cards/Charge.jpg" id="c0_art"]
+[ext_resource type="Texture2D" uid="uid://d4ec3au60dxth" path="res://Resources/Prefabs/Bosses/Royal Rat Authority/Cards/Double Swipe.jpg" id="c1_art"]
+[ext_resource type="Texture2D" uid="uid://ctss5caltmxs6" path="res://Resources/Prefabs/Bosses/Royal Rat Authority/Cards/Stomp.jpg" id="c2_art"]
+[ext_resource type="Texture2D" uid="uid://0p4rypgv5ca5" path="res://Resources/Prefabs/Bosses/Royal Rat Authority/Cards/Acid Breath.jpg" id="c3_art"]
+[ext_resource type="Texture2D" uid="uid://dxhy2l5poxevp" path="res://Resources/Prefabs/Bosses/Royal Rat Authority/Cards/Call for Help.jpg" id="c4_art"]
+[ext_resource type="Texture2D" uid="uid://bjq5vmvjk08tf" path="res://Resources/Prefabs/Bosses/Royal Rat Authority/Cards/Spin.jpg" id="c5_art"]
+
+[sub_resource type="Resource" id="a0_0"]
+script = ExtResource("4_action")
+target = 1
+push = true
+nodes = 3
+damage = 4
+weak = 4
+
+[sub_resource type="Resource" id="card0"]
+script = ExtResource("3_card")
+cardName = "Charge"
+texture = ExtResource("c0_art")
+dodge = 2
+actions = Array[ExtResource("4_action")]([SubResource("a0_0")])
+
+[sub_resource type="Resource" id="a1_0"]
+script = ExtResource("4_action")
+target = 2
+nodes = 1
+
+[sub_resource type="Resource" id="a1_1"]
+script = ExtResource("4_action")
+kind = 1
+target = 2
+push = true
+damage = 4
+area = true
+arcs = 11
+weak = 4
+
+[sub_resource type="Resource" id="card1"]
+script = ExtResource("3_card")
+cardName = "Double Swipe"
+texture = ExtResource("c1_art")
+range = 1
+repeat = 2
+actions = Array[ExtResource("4_action")]([SubResource("a1_0"), SubResource("a1_1")])
+
+[sub_resource type="Resource" id="a2_0"]
+script = ExtResource("4_action")
+target = 2
+push = true
+nodes = 2
+damage = 2
+
+[sub_resource type="Resource" id="a2_1"]
+script = ExtResource("4_action")
+kind = 1
+target = 2
+push = true
+damage = 5
+area = true
+arcs = 1
+weak = 8
+
+[sub_resource type="Resource" id="card2"]
+script = ExtResource("3_card")
+cardName = "Stomp"
+texture = ExtResource("c2_art")
+dodge = 2
+actions = Array[ExtResource("4_action")]([SubResource("a2_0"), SubResource("a2_1")])
+
+[sub_resource type="Resource" id="a3_0"]
+script = ExtResource("4_action")
+kind = 1
+target = 2
+damage = 5
+magic = true
+area = true
+arcs = 11
+weak = 4
+condition = 1
+
+[sub_resource type="Resource" id="card3"]
+script = ExtResource("3_card")
+cardName = "Acid Breath"
+texture = ExtResource("c3_art")
+range = 1
+dodge = 2
+heatUp = true
+actions = Array[ExtResource("4_action")]([SubResource("a3_0")])
+
+[sub_resource type="Resource" id="a4_0"]
+script = ExtResource("4_action")
+kind = 7
+nodes = 2
+
+[sub_resource type="Resource" id="card4"]
+script = ExtResource("3_card")
+cardName = "Call for Help"
+texture = ExtResource("c4_art")
+heatUp = true
+actions = Array[ExtResource("4_action")]([SubResource("a4_0")])
+
+[sub_resource type="Resource" id="a5_0"]
+script = ExtResource("4_action")
+kind = 1
+target = 2
+push = true
+damage = 6
+area = true
+arcs = 15
+
+[sub_resource type="Resource" id="card5"]
+script = ExtResource("3_card")
+cardName = "Spin"
+texture = ExtResource("c5_art")
+range = 1
+dodge = 2
+heatUp = true
+actions = Array[ExtResource("4_action")]([SubResource("a5_0")])
 
 [resource]
 script = ExtResource("1_boss")
 bossName = "Royal Rat Authority"
-kind = 0
-final = false
-treasure = PackedStringArray()
+cardTexture = ExtResource("5_data")
+avatarTexture = ExtResource("2_avatar")
+portraitRegion = Rect2(0.414, 0.1741, 0.272, 0.2718)
+health = 25
+physicalDefense = 1
+magicalDefense = 1
+heatUp = 15
+ability = 9
+cards = Array[ExtResource("3_card")]([SubResource("card0"), SubResource("card1"), SubResource("card2"), SubResource("card3"), SubResource("card4"), SubResource("card5")])
+tile = "river boss"
+summon = ExtResource("6_summon")
+summonAtStart = 4

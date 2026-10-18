@@ -27,7 +27,7 @@ public static class CombatPresenter
 
 	// `terms` is the attack as made: its extra dice, bonus, magic and added conditions.
 	public static async Task<CombatResolver.AttackOutcome> CharacterAttacks(PlayerToken attacker, PlayerMove move, Weapon weapon, Enemy target, AttackTerms terms) {
-		RollReveal.View view = AttackView(weapon, move, Roll(WithExtra(move.damage, terms.extraDice)), attacker?.player, terms.bonus);
+		RollReveal.View view = AttackView(weapon, move, Roll(WithExtra(move.damage, WeakArcDie(terms.extraDice, attacker, new[] { target }))), attacker?.player, terms.bonus);
 		CombatResolver.AttackOutcome outcome = default;
 		view.recompute = v => {
 			v.total = Sum(v.faces) + move.modifier + terms.bonus;
@@ -44,6 +44,7 @@ public static class CombatPresenter
 
 		CombatResolver.Apply(outcome, target);
 		ApplyAdded(terms, target);
+		NoteParry(attacker, target, outcome);
 		await Settle(swing);
 		return outcome;
 	}
@@ -64,6 +65,22 @@ public static class CombatPresenter
 		(target?.data?.kind == EnemyData.Kind.HOLLOW ? terms.vsHollow : 0)
 		+ (attacker != null && attacker.player.HasRing(Ring.Effect.OLD_LEO) && attacker.WasHurtBy(target) ? 1 : 0);
 
+	// The Black Knight's Parry (Matt, Oct 2026): any attack in a character's own activation that
+	// did it no wounds gives the character Stagger at the end of that activation.
+	private static void NoteParry(PlayerToken attacker, Enemy target, CombatResolver.AttackOutcome outcome) {
+		if (attacker == null || !attacker.isActivating || outcome.damage > 0) return;
+		if (target?.boss?.ability == BossData.Ability.PARRY) attacker.parried = true;
+	}
+
+	// p28: attacking a boss from one of its weak arcs gains a black die. A Node attack rolls
+	// once for everything on the node, so a boss there gives the one roll its die.
+	private static List<Dice> WeakArcDie(List<Dice> extra, PlayerToken attacker, IEnumerable<Enemy> targets) {
+		foreach (Enemy target in targets) {
+			if (BossArcs.InWeakArc(attacker, target) && Heroic.BlackDie != null) return new List<Dice>(extra) { Heroic.BlackDie };
+		}
+		return extra;
+	}
+
 	// The gems' conditions, after the option's own: every attack on an enemy hits.
 	private static void ApplyAdded(AttackTerms terms, Enemy target) {
 		if (terms.conditions == null || !GodotObject.IsInstanceValid(target)) return;
@@ -73,7 +90,7 @@ public static class CombatPresenter
 	// The Node icon: one roll, compared separately against each enemy on the node (p23).
 	// One stroke across the node, and an impact on each enemy it reaches.
 	public static async Task<List<CombatResolver.AttackOutcome>> CharacterAttacksNode(PlayerToken attacker, PlayerMove move, Weapon weapon, GameNode node, List<Enemy> targets, AttackTerms terms) {
-		RollReveal.View view = AttackView(weapon, move, Roll(WithExtra(move.damage, terms.extraDice)), attacker?.player, terms.bonus);
+		RollReveal.View view = AttackView(weapon, move, Roll(WithExtra(move.damage, WeakArcDie(terms.extraDice, attacker, targets))), attacker?.player, terms.bonus);
 		List<(Enemy target, CombatResolver.AttackOutcome outcome)> results = new List<(Enemy, CombatResolver.AttackOutcome)>();
 		view.recompute = v => {
 			v.total = Sum(v.faces) + move.modifier + terms.bonus;
@@ -100,6 +117,7 @@ public static class CombatPresenter
 		foreach ((Enemy target, CombatResolver.AttackOutcome outcome) in results) {
 			CombatResolver.Apply(outcome, target);
 			ApplyAdded(terms, target);
+			NoteParry(attacker, target, outcome);
 			outcomes.Add(outcome);
 		}
 		await Settle(swing);
@@ -112,6 +130,7 @@ public static class CombatPresenter
 	// `armourOnly` is the V2 failed dodge: the armour slot's dice alone, not the full Block.
 	public static async Task<CombatResolver.AttackOutcome> EnemyAttacks(Enemy attacker, EnemyMove move, PlayerToken target, AttackSlash swing = null, bool armourOnly = false) {
 		Player player = target.player;
+		bool staggered = target.HasCondition(EncounterManager.StatusEffect.STAGGER);
 		(List<Dice> pool, int modifier) = armourOnly ? player.GetArmourPool(move.isMagic) : player.GetDefensePool(move.isMagic);
 		RollReveal reveal = EncounterManager.rollReveal;
 		RollReveal.View view = new RollReveal.View {
@@ -150,6 +169,8 @@ public static class CombatPresenter
 			CombatResolver.Apply(outcome, target, attacker.Presence);
 			if (outcome.damage > 0) target.NoteHurtBy(attacker);
 		}
+		HeavyBlows(attacker, target, view.total);
+		BrutalImpact(attacker, move, target, staggered, outcome);
 		Thorns(target, attacker);
 		await Settle(swing);
 		return outcome;
@@ -179,6 +200,25 @@ public static class CombatPresenter
 			}
 		}
 		return null;
+	}
+
+	// The Winged Knight's Heavy Blows: a Block or Resist roll of 3 or more against it puts a
+	// stamina cube on the roller's bar (Matt, Oct 2026: Resist counts, the roll's total as
+	// shown, nothing when no box is free). Placed once the hit has landed, so the cube can
+	// never be what lets the damage kill.
+	private static void HeavyBlows(Enemy attacker, PlayerToken target, int roll) {
+		if (attacker?.boss?.ability != BossData.Ability.HEAVY_BLOWS || roll < 3 || !GodotObject.IsInstanceValid(target)) return;
+		if (target.player.endurance.isDead || !target.CanSpend(1)) return;
+		target.SpendStamina(1);
+	}
+
+	// The Heavy Knight's Brutal Impact: an attack inflicting Stagger that hits a character already
+	// Staggered also puts a stamina cube on their bar; nothing without a free box (Matt).
+	private static void BrutalImpact(Enemy attacker, EnemyMove move, PlayerToken target, bool staggered, CombatResolver.AttackOutcome outcome) {
+		if (attacker?.boss?.ability != BossData.Ability.BRUTAL_IMPACT || !staggered || !outcome.hit) return;
+		if (move.statusEffect != EncounterManager.StatusEffect.STAGGER || !GodotObject.IsInstanceValid(target)) return;
+		if (target.player.endurance.isDead || !target.CanSpend(1)) return;
+		target.SpendStamina(1);
 	}
 
 	// Armour of Thorns: after a Block or Resist roll against an enemy in your node, it suffers

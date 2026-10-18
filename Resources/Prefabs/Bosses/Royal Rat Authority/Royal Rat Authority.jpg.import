@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c3kg08dopjyur"
-path="res://.godot/imported/preview_ink.png-72e8c85ebd5202697732c0bb66195a1d.ctex"
+uid="uid://n3usitvfolhb"
+path="res://.godot/imported/Royal Rat Authority.jpg-7c977af9c7fc93d8d390aafa3fac34a7.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Tools/BossAvatars/preview_ink.png"
-dest_files=["res://.godot/imported/preview_ink.png-72e8c85ebd5202697732c0bb66195a1d.ctex"]
+source_file="res://Resources/Prefabs/Bosses/Royal Rat Authority/Royal Rat Authority.jpg"
+dest_files=["res://.godot/imported/Royal Rat Authority.jpg-7c977af9c7fc93d8d390aafa3fac34a7.ctex"]
 
 [params]
 

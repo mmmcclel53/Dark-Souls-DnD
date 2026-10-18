@@ -33,6 +33,9 @@ public partial class PlayerToken : TextureButton
 	// The last node step this character took: their push on an enemy sharing their node
 	// carries on in this direction (Pushing).
 	public Vector2I lastStep { get; set; }
+	// On a boss's node: the compass step from the boss's centre to where this character stands
+	// touching its base, which is the arc it is in (BossArcs). Zero anywhere else.
+	public Vector2I bossSide { get; set; }
 	// Berserk Charge's free node, which neither costs nor counts as the Walk.
 	public int freeSteps { get; private set; }
 
@@ -122,7 +125,12 @@ public partial class PlayerToken : TextureButton
 	public int attackRolls;
 
 	// Rules p22: a character gains 2 Stamina and the Aggro token when they activate.
+	// The Black Knight's Parry: an attack this activation that did it no damage. Read as the
+	// activation ends (ActionListener), when it gives Stagger.
+	public bool parried;
+
 	public void BeginActivation() {
+		parried = false;
 		int gain = StartGain();
 		if (player.HasRing(Ring.Effect.TINY_BEING) && endurance.damageTaken > 0 && CanBeHealed) {
 			pendingStartGain = gain;

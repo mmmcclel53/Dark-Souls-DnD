@@ -1,10 +1,213 @@
-[gd_resource type="Resource" script_class="BossData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="BossData" load_steps=40 format=3 uid="uid://cd108eq4vm5q6"]
 
-[ext_resource type="Script" path="res://Scripts/Bosses/BossData.cs" id="1_boss"]
+[ext_resource type="Script" uid="uid://bv1pyfr0wiq3b" path="res://Scripts/Bosses/BossData.cs" id="1_boss"]
+[ext_resource type="Texture2D" uid="uid://4e3of08xjg7f" path="res://Resources/Prefabs/Bosses/Asylum Demon/Asylum Demon - Avatar.png" id="2_avatar"]
+[ext_resource type="Script" uid="uid://xl4talsicsmc" path="res://Scripts/Bosses/BossCard.cs" id="3_card"]
+[ext_resource type="Script" uid="uid://dfwo3lbbtqk77" path="res://Scripts/Bosses/BossAction.cs" id="4_action"]
+[ext_resource type="Texture2D" uid="uid://7nccb6cqvfi0" path="res://Resources/Prefabs/Bosses/Asylum Demon/Asylum Demon.png" id="5_data"]
+[ext_resource type="Texture2D" uid="uid://bb7dpwschk1tv" path="res://Resources/Prefabs/Bosses/Asylum Demon/Cards/Delayed Hammer Drive.png" id="c0_art"]
+[ext_resource type="Texture2D" uid="uid://cauc23d2sh86t" path="res://Resources/Prefabs/Bosses/Asylum Demon/Cards/Leaping Hammer Smash.png" id="c1_art"]
+[ext_resource type="Texture2D" uid="uid://bll4jtwhr4418" path="res://Resources/Prefabs/Bosses/Asylum Demon/Cards/Ground Pound.png" id="c2_art"]
+[ext_resource type="Texture2D" uid="uid://dgmijmvl452io" path="res://Resources/Prefabs/Bosses/Asylum Demon/Cards/Hammer Drive.png" id="c3_art"]
+[ext_resource type="Texture2D" uid="uid://dk62ii6i50jv6" path="res://Resources/Prefabs/Bosses/Asylum Demon/Cards/Retreating Sweep.png" id="c4_art"]
+[ext_resource type="Texture2D" uid="uid://1cubbj6uu212" path="res://Resources/Prefabs/Bosses/Asylum Demon/Cards/Mighty Hammer Smash.png" id="c5_art"]
+[ext_resource type="Texture2D" uid="uid://dx7i0wg0nxyx1" path="res://Resources/Prefabs/Bosses/Asylum Demon/Cards/Crushing Leaps.png" id="c6_art"]
+[ext_resource type="Texture2D" uid="uid://cfqwscf0khbc3" path="res://Resources/Prefabs/Bosses/Asylum Demon/Cards/Lumbering Swings.png" id="c7_art"]
+[ext_resource type="Texture2D" uid="uid://bhqag68y6r7ba" path="res://Resources/Prefabs/Bosses/Asylum Demon/Cards/Sweeping Strikes.png" id="c8_art"]
+
+[sub_resource type="Resource" id="a0_0"]
+script = ExtResource("4_action")
+target = 1
+push = true
+nodes = 2
+damage = 5
+weak = 4
+condition = 3
+
+[sub_resource type="Resource" id="card0"]
+script = ExtResource("3_card")
+cardName = "Delayed Hammer Drive"
+texture = ExtResource("c0_art")
+pillars = true
+actions = Array[ExtResource("4_action")]([SubResource("a0_0")])
+
+[sub_resource type="Resource" id="a1_0"]
+script = ExtResource("4_action")
+kind = 5
+target = 1
+push = true
+damage = 4
+
+[sub_resource type="Resource" id="a1_1"]
+script = ExtResource("4_action")
+target = 1
+
+[sub_resource type="Resource" id="card1"]
+script = ExtResource("3_card")
+cardName = "Leaping Hammer Smash"
+texture = ExtResource("c1_art")
+actions = Array[ExtResource("4_action")]([SubResource("a1_0"), SubResource("a1_1")])
+
+[sub_resource type="Resource" id="a2_0"]
+script = ExtResource("4_action")
+kind = 1
+push = true
+damage = 5
+area = true
+arcs = 15
+condition = 3
+
+[sub_resource type="Resource" id="card2"]
+script = ExtResource("3_card")
+cardName = "Ground Pound"
+texture = ExtResource("c2_art")
+range = 1
+pillars = true
+actions = Array[ExtResource("4_action")]([SubResource("a2_0")])
+
+[sub_resource type="Resource" id="a3_0"]
+script = ExtResource("4_action")
+target = 1
+push = true
+nodes = 2
+damage = 4
+weak = 4
+condition = 3
+
+[sub_resource type="Resource" id="card3"]
+script = ExtResource("3_card")
+cardName = "Hammer Drive"
+texture = ExtResource("c3_art")
+dodge = 2
+actions = Array[ExtResource("4_action")]([SubResource("a3_0")])
+
+[sub_resource type="Resource" id="a4_0"]
+script = ExtResource("4_action")
+kind = 1
+push = true
+damage = 4
+area = true
+arcs = 11
+weak = 4
+
+[sub_resource type="Resource" id="a4_1"]
+script = ExtResource("4_action")
+nodes = 1
+arm = 1
+
+[sub_resource type="Resource" id="card4"]
+script = ExtResource("3_card")
+cardName = "Retreating Sweep"
+texture = ExtResource("c4_art")
+range = 1
+actions = Array[ExtResource("4_action")]([SubResource("a4_0"), SubResource("a4_1")])
+
+[sub_resource type="Resource" id="a5_0"]
+script = ExtResource("4_action")
+kind = 5
+target = 2
+push = true
+damage = 5
+
+[sub_resource type="Resource" id="a5_1"]
+script = ExtResource("4_action")
+target = 2
+
+[sub_resource type="Resource" id="card5"]
+script = ExtResource("3_card")
+cardName = "Mighty Hammer Smash"
+texture = ExtResource("c5_art")
+pillars = true
+actions = Array[ExtResource("4_action")]([SubResource("a5_0"), SubResource("a5_1")])
+
+[sub_resource type="Resource" id="a6_0"]
+script = ExtResource("4_action")
+kind = 5
+target = 2
+push = true
+damage = 5
+
+[sub_resource type="Resource" id="a6_1"]
+script = ExtResource("4_action")
+kind = 5
+target = 1
+push = true
+damage = 5
+
+[sub_resource type="Resource" id="card6"]
+script = ExtResource("3_card")
+cardName = "Crushing Leaps"
+texture = ExtResource("c6_art")
+heatUp = true
+actions = Array[ExtResource("4_action")]([SubResource("a6_0"), SubResource("a6_1")])
+
+[sub_resource type="Resource" id="a7_0"]
+script = ExtResource("4_action")
+target = 1
+push = true
+nodes = 2
+
+[sub_resource type="Resource" id="a7_1"]
+script = ExtResource("4_action")
+kind = 1
+push = true
+damage = 4
+area = true
+arcs = 11
+weak = 4
+
+[sub_resource type="Resource" id="card7"]
+script = ExtResource("3_card")
+cardName = "Lumbering Swings"
+texture = ExtResource("c7_art")
+range = 1
+repeat = 2
+heatUp = true
+pillars = true
+actions = Array[ExtResource("4_action")]([SubResource("a7_0"), SubResource("a7_1")])
+
+[sub_resource type="Resource" id="a8_0"]
+script = ExtResource("4_action")
+target = 1
+push = true
+nodes = 1
+
+[sub_resource type="Resource" id="a8_1"]
+script = ExtResource("4_action")
+kind = 1
+damage = 4
+area = true
+arcs = 9
+weak = 4
+
+[sub_resource type="Resource" id="a8_2"]
+script = ExtResource("4_action")
+kind = 1
+damage = 4
+area = true
+arcs = 3
+weak = 4
+
+[sub_resource type="Resource" id="card8"]
+script = ExtResource("3_card")
+cardName = "Sweeping Strikes"
+texture = ExtResource("c8_art")
+range = 1
+dodge = 2
+heatUp = true
+actions = Array[ExtResource("4_action")]([SubResource("a8_0"), SubResource("a8_1"), SubResource("a8_2")])
 
 [resource]
 script = ExtResource("1_boss")
 bossName = "Asylum Demon"
-kind = 0
-final = false
-treasure = PackedStringArray("Demon's Great Hammer")
+treasure = PackedStringArray("Demon\'s Great Hammer")
+cardTexture = ExtResource("5_data")
+avatarTexture = ExtResource("2_avatar")
+portraitRegion = Rect2(0.32, 0.105, 0.32, 0.3101)
+health = 34
+physicalDefense = 1
+magicalDefense = 1
+heatUp = 16
+ability = 8
+cards = Array[ExtResource("3_card")]([SubResource("card0"), SubResource("card1"), SubResource("card2"), SubResource("card3"), SubResource("card4"), SubResource("card5"), SubResource("card6"), SubResource("card7"), SubResource("card8")])
+tile = "Asylum Demon & Stray Demon"

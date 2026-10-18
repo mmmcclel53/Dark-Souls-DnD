@@ -56,6 +56,10 @@ public static partial class EncounterManager {
     public static EnemySpotlight spotlight;
     // Registers itself on ready; it sits after the board in the scene so Reset cannot wipe it.
     public static RollReveal rollReveal;
+    // The boss's behaviour cards beside the board; registers itself on ready like the reveal.
+    public static BossDeckPanel bossPanel;
+    // Brings an enemy onto a node mid-fight (a boss's summon); ActionListener's spawn.
+    public static System.Func<EnemyData, Control, Enemy> summon;
 
     // Settings
     public static bool showEnemyInfo = true;
@@ -77,6 +81,7 @@ public static partial class EncounterManager {
         characterTurn = null;
         pushPrompt = null;
         rollReveal = null;
+        bossPanel = null;
         selectedPlayer = null;
         partyDefeated = false;
         deathGridIndex = -1;
@@ -142,9 +147,10 @@ public static partial class EncounterManager {
     public static async System.Threading.Tasks.Task ResolveOverflow(GameNode node, Node2D arrival) {
         if (node == null || NodeOccupancy(node) <= MAX_MODELS_PER_NODE) return;
 
+        // A boss is only ever pushed by another boss (p21), so it is never the one to go.
         List<Node2D> candidates = new List<Node2D>();
         foreach (Node2D occupant in GetAllPlayersInNode(node)) {
-            if (occupant != arrival) candidates.Add(occupant);
+            if (occupant != arrival && !(GetEnemy(occupant)?.isBoss ?? false)) candidates.Add(occupant);
         }
         if (candidates.Count == 0) return;
 
@@ -153,8 +159,20 @@ public static partial class EncounterManager {
             : candidates[0];
         if (pushed == null) return;
 
-        GameNode destination = EnemyMovement.PushDestination(pathGrid.NodeFromObj(pushed));
+        GameNode destination = BossArcs.BossOn(node) is Enemy boss && GetPlayerToken(pushed) is PlayerToken token
+            ? OverflowInArc(boss, token)
+            : EnemyMovement.PushDestination(pathGrid.NodeFromObj(pushed));
         if (destination != null && destination != node) MovePlayer(pushed, destination, node, true);
+    }
+
+    // Off a boss's node, a character stays in its arc (p28): the first neighbour there with room.
+    private static GameNode OverflowInArc(Enemy boss, PlayerToken token) {
+        BossAction.Arcs arcs = BossArcs.OfCharacter(boss, token);
+        foreach (PathNode neighbour in pathGrid.GetNeighbours(pathGrid.NodeFromObj((Node2D)boss.GetParent()))) {
+            GameNode candidate = pathGrid.GameNodeAt(neighbour);
+            if (!pathGrid.IsBlocked(neighbour) && pathGrid.HasRoom(neighbour) && (BossArcs.OfNode(boss, candidate) & arcs) != 0) return candidate;
+        }
+        return EnemyMovement.PushDestination(pathGrid.NodeFromObj((Node2D)token.GetParent()));
     }
 
     private static string ArrivalName(Node2D arrival) {
@@ -185,6 +203,34 @@ public static partial class EncounterManager {
         if (node == null) return;
         node.SetAbyss(ABYSS_PHASES);
         foreach (Node2D model in GetPlayersInNode(node, "Player")) GetPlayerToken(model)?.ApplyCondition(StatusEffect.ABYSS);
+    }
+
+    // Pillars of Woe (Matt, Oct 2026): a smashed pillar is open floor for the rest of the fight,
+    // and every character on its node or a node beside it suffers 1 damage and Stagger. Not an
+    // attack, so there is no Block or Dodge, as with Poison. Returns whether one fell.
+    public const int PILLAR_DAMAGE = 1;
+
+    public static bool SmashPillar(GameNode node) {
+        if (node == null || node.pillar != GameNode.Pillar.STANDING) return false;
+        BreakPillar(node, true);
+        BoardFx.camera?.Shake(4f, 0.3f);
+        Vector2I at = BossArcs.GridOf(node);
+        foreach (Node2D model in players.ToArray()) {
+            PlayerToken token = GetPlayerToken(model);
+            if (token == null || model.GetParent() is not GameNode on) continue;
+            Vector2I there = BossArcs.GridOf(on);
+            if (Mathf.Max(Mathf.Abs(there.X - at.X), Mathf.Abs(there.Y - at.Y)) > 1) continue;
+            token.ApplyDamage(PILLAR_DAMAGE);
+            token.ApplyCondition(StatusEffect.STAGGER);
+        }
+        return true;
+    }
+
+    // Also how a snapshot puts back the pillars already down, without the collapse.
+    public static void BreakPillar(GameNode node, bool animate) {
+        node.SetPillar(GameNode.Pillar.BROKEN, animate);
+        Vector2I at = BossArcs.GridOf(node);
+        if (pathGrid?.grid != null) pathGrid.grid[at.X, at.Y].walkable = true;
     }
 
     // The end of an enemy phase: every token is one phase older, and the spent ones fade.
@@ -267,6 +313,10 @@ public static partial class EncounterManager {
         for (int i = 0; i < models.Count; i++) node.MoveChild(models[i], first + i);
 
         float baseScale = nodeSize / (TOKEN_ART_SIZE * 2f);
+        if (GetEnemy(models[0])?.isBoss ?? false) {
+            PlaceAroundBoss(models, baseScale, nodeSize);
+            return;
+        }
         if (Presence(models[0]) >= OVERLAP_PRESENCE) {
             Place(models[0], Vector2.Zero, baseScale * Presence(models[0]), nodeSize);
             Vector2[] front = models.Count == 2
@@ -336,6 +386,75 @@ public static partial class EncounterManager {
         }
     }
 
+    // A boss stands in the middle of its node at full size, and each character touches its base
+    // in the arc it is in (p28), at PlayerToken.bossSide. Two in the same place stand either
+    // side of it.
+    private static void PlaceAroundBoss(List<Node2D> models, float baseScale, float nodeSize) {
+        Enemy boss = GetEnemy(models[0]);
+        Place(models[0], Vector2.Zero, baseScale * boss.Presence, nodeSize);
+        var bySide = new Dictionary<Vector2I, List<Node2D>>();
+        for (int i = 1; i < models.Count; i++) {
+            Vector2I side = GetPlayerToken(models[i])?.bossSide ?? Vector2I.Zero;
+            if (side == Vector2I.Zero) side = boss.facing;
+            if (!bySide.ContainsKey(side)) bySide[side] = new List<Node2D>();
+            bySide[side].Add(models[i]);
+        }
+        foreach (var (side, standing) in bySide) {
+            for (int i = 0; i < standing.Count; i++) {
+                float spread = standing.Count == 1 ? 0f : (i - (standing.Count - 1) * 0.5f) * BOSS_SIDE_SPREAD;
+                Place(standing[i], SideOffset(boss, side, Presence(standing[i])).Rotated(spread), baseScale * Presence(standing[i]), nodeSize);
+            }
+        }
+    }
+
+    // Radians between two characters sharing a place by a boss.
+    private const float BOSS_SIDE_SPREAD = 0.42f;
+
+    // Where a model of this presence stands at a side of the boss, from the node's centre in
+    // node widths: just touching the base, a little over the boss's rim.
+    public static Vector2 SideOffset(Enemy boss, Vector2I side, float presence = 1f) =>
+        BossArcs.ScreenDirection(side) * (0.25f * boss.Presence * 0.9f + 0.25f * presence);
+
+    // A character's place around a boss follows its moves (p28). Arriving on the boss's node it
+    // stays in the arc it came from (the first, if it was on a line: a character choosing one
+    // sets bossSide before it moves); leaving, it has none. A boss arriving on characters puts
+    // each in the arc that faced it before the move (p29); those it leaves behind have none.
+    private static void UpdateBossSides(Node2D obj, Control newNode, Control oldNode) {
+        PlayerToken token = GetPlayerToken(obj);
+        if (token != null) {
+            Enemy boss = BossArcs.BossOn(newNode);
+            if (boss == null) token.bossSide = Vector2I.Zero;
+            else if (token.bossSide == Vector2I.Zero) token.bossSide = ArrivalSide(boss, oldNode as GameNode, newNode as GameNode);
+            return;
+        }
+        Enemy mover = GetEnemy(obj);
+        if (mover == null || !mover.isBoss) return;
+        if (oldNode != null) {
+            foreach (Node2D left in GetPlayersInNode(oldNode, "Player")) {
+                PlayerToken leftToken = GetPlayerToken(left);
+                if (leftToken != null) leftToken.bossSide = Vector2I.Zero;
+            }
+        }
+        foreach (Node2D there in GetPlayersInNode(newNode, "Player")) {
+            PlayerToken thereToken = GetPlayerToken(there);
+            if (thereToken == null) continue;
+            Vector2I from = oldNode is GameNode was && newNode is GameNode now ? BossArcs.GridOf(now) - BossArcs.GridOf(was) : Vector2I.Zero;
+            BossAction.Arcs arcs = BossArcs.Of(from, mover.facing);
+            thereToken.bossSide = arcs == BossAction.Arcs.NONE ? mover.facing : BossArcs.Centre(mover.facing, FirstArc(arcs));
+        }
+    }
+
+    private static Vector2I ArrivalSide(Enemy boss, GameNode from, GameNode bossNode) {
+        if (from == null || bossNode == null) return boss.facing;
+        BossAction.Arcs arcs = BossArcs.Of(BossArcs.GridOf(from) - BossArcs.GridOf(bossNode), boss.facing);
+        return arcs == BossAction.Arcs.NONE ? boss.facing : BossArcs.Centre(boss.facing, FirstArc(arcs));
+    }
+
+    private static BossAction.Arcs FirstArc(BossAction.Arcs arcs) {
+        foreach (BossAction.Arcs arc in BossArcs.Split(arcs)) return arc;
+        return BossAction.Arcs.FRONT;
+    }
+
     // `at` is from the node's centre in node widths.
     private static void Place(Node2D model, Vector2 at, float scale, float nodeSize) {
         model.Scale = new Vector2(scale, scale);
@@ -357,11 +476,12 @@ public static partial class EncounterManager {
 
         if (oldNode != null) {
             oldNode.RemoveChild(obj);
-            FixPositioning(oldNode);
         }
 
         // The node's button stays first, under the models, so a model can be clicked.
         newNode.AddChild(obj);
+        UpdateBossSides(obj, newNode, oldNode);
+        if (oldNode != null) FixPositioning(oldNode);
         FixPositioning(newNode);
 
         foreach (KeyValuePair<Node2D, Vector2> pair in before) {

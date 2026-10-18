@@ -23,6 +23,15 @@ public partial class ConditionBurst : Node2D
 		BoardFloat.Icon(token, ConditionArt.Icon(condition), Colors.White, 0.15f);
 	}
 
+	// The same rings in any colour and with no icon: a boss heating up.
+	public static void Flare(Control token, Color colour) {
+		if (token == null || !IsInstanceValid(token) || !token.IsInsideTree() || token.IsQueuedForDeletion()) return;
+		ConditionBurst burst = BoardFx.Spawn(new ConditionBurst { colour = colour, seconds = 0.9f, Material = BoardFx.Additive() });
+		if (burst == null) return;
+		burst.at = burst.GetGlobalTransform().AffineInverse() * BoardFx.GlobalCentre(token);
+		burst.r = BoardFx.LocalRadius(burst, token);
+	}
+
 	public override void _Process(double delta) {
 		age += (float)delta;
 		if (age >= seconds) {

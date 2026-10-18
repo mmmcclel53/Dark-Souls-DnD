@@ -25,6 +25,9 @@ public partial class CharacterTurn : Node
 	[Export] public CharacterActionBar actionBar;
 
 	[Export] public Color moveColour = new Color(0.79f, 0.64f, 0.29f, 0.45f);
+	// A step that costs nothing right now: the Walk, a Shift, Berserk Charge's free node, the
+	// second node of a paid-for dodge step. Gold steps cost stamina, ghosted on the bar on hover.
+	[Export] public Color freeMoveColour = new Color(0.45f, 0.75f, 1f, 0.5f);
 	[Export] public Color targetColour = new Color(0.64f, 0.17f, 0.13f, 0.55f);
 	[Export] public Color targetRingColour = new Color(0.85f, 0.18f, 0.12f);
 	[Export] public Color pickRingColour = new Color(0.95f, 0.8f, 0.4f);
@@ -43,6 +46,12 @@ public partial class CharacterTurn : Node
 	private readonly List<Enemy> targetable = new List<Enemy>();
 	private readonly List<GameNode> targetNodes = new List<GameNode>();
 	private readonly List<GameNode> shiftNodes = new List<GameNode>();
+	// Places by a boss's base lit as steps (p28), alongside the lit nodes.
+	private readonly List<ArcSpot> arcSpots = new List<ArcSpot>();
+	// What each lit step costs, by the control hovered (a node's button or an arc spot), so
+	// hovering a step ghosts its stamina on the bar as hovering an attack row does.
+	private readonly Dictionary<Control, int> stepCosts = new Dictionary<Control, int>();
+	private readonly HashSet<Control> hoverWired = new HashSet<Control>();
 
 	// The attack under way, from the moment it is paid for until its last use.
 	private class Underway
@@ -100,7 +109,10 @@ public partial class CharacterTurn : Node
 				else if (underway != null) Done();
 				else EmitSignal(SignalName.ActivationEnded);
 			};
-			actionBar.DodgeStepEnded += () => EmitSignal(SignalName.DodgeStepEnded);
+			actionBar.DodgeStepEnded += () => {
+				if (shift != null) shift.TrySetResult(false);
+				else EmitSignal(SignalName.DodgeStepEnded);
+			};
 			actionBar.HeroicChosen += UseHeroic;
 			actionBar.HomewardBoneChosen += UseHomewardBone;
 			actionBar.EquipmentSwapped += OnEquipmentSwapped;
@@ -178,16 +190,35 @@ public partial class CharacterTurn : Node
 		actionBar?.ShowIdle();
 	}
 
+	// On a boss's node the step may go to any arc or any neighbouring node, whatever its arc (p28).
 	private void LightDodgeStep(PlayerToken token) {
 		ClearHighlights();
+		int cost = dodgeStepPaid ? 0 : DODGE_STEP_COST;
 		foreach (GameNode node in AdjacentNodes(token)) {
-			node.Highlight(moveColour, true);
+			if (BossArcs.BossOn(node) != null) continue;
+			LightStep(node, cost);
 			highlighted.Add(node);
 		}
+		ShowSides(StepSides(token, anyArc: true), DodgeToSide, cost);
+	}
+
+	private async void DodgeToSide(Enemy boss, Vector2I side) {
+		if (dodger == null) return;
+		PlayerToken stepping = dodger;
+		if (!dodgeStepPaid && !stepping.SpendStamina(DODGE_STEP_COST)) return;
+		dodgeStepPaid = true;
+		ClearHighlights();
+		await StepBeside(stepping, boss, side);
+		dodgeStepsLeft--;
+		if (dodgeStepsLeft > 0 && dodger == stepping && GodotObject.IsInstanceValid(stepping)) {
+			LightDodgeStep(stepping);
+			return;
+		}
+		EmitSignal(SignalName.DodgeStepEnded);
 	}
 
 	public async void OnDodgeStepNodeClicked(GameNode node) {
-		if (dodger == null || !highlighted.Contains(node)) return;
+		if (dodger == null || PickSpotOn(node) || !highlighted.Contains(node)) return;
 
 		PlayerToken stepping = dodger;
 		Node2D self = (Node2D)stepping.GetParent();
@@ -214,10 +245,19 @@ public partial class CharacterTurn : Node
 		ClearHighlights();
 		if (active == null || isTargeting || underway != null || !active.CanStep()) return;
 
-		foreach (GameNode node in AdjacentNodes(active)) {
-			node.Highlight(moveColour, true);
+		int cost = active.NextStepCost();
+		foreach (GameNode node in StepNodes(active)) {
+			LightStep(node, cost);
 			highlighted.Add(node);
 		}
+		ShowSides(StepSides(active), StepToSide, cost);
+	}
+
+	private async void StepToSide(Enemy boss, Vector2I side) {
+		if (active == null || isTargeting || underway != null || !active.TakeStep()) return;
+		ClearHighlights();
+		await StepBeside(active, boss, side);
+		if (active != null) Refresh();
 	}
 
 	// Async because arriving on a full node opens the push prompt and waits on it.
@@ -228,11 +268,12 @@ public partial class CharacterTurn : Node
 			ShiftStep(node);
 			return;
 		}
-		if (isTargeting) {
+		if (isTargeting && targetNodes.Contains(node)) {
 			if (ArmedTerms.aoe) ResolveAgainstNode(node);
 			else PickOnlyTargetOn(node);
 			return;
 		}
+		if (PickSpotOn(node) || isTargeting) return;
 		if (underway != null || !highlighted.Contains(node)) return;
 
 		Node2D self = (Node2D)active.GetParent();
@@ -246,6 +287,110 @@ public partial class CharacterTurn : Node
 		await EncounterManager.ResolveOverflow(node, self);
 
 		if (active != null) Refresh();
+	}
+
+	// ----- Bosses (p28) -----
+
+	private static Enemy BossHere(PlayerToken token) => BossArcs.BossOn(token?.GetParent()?.GetParent() as Control);
+
+	// A walk, run or Shift: the neighbouring nodes, but off a boss's node only those in an arc
+	// the character is in, and never the boss's node itself, which is entered by an arc instead.
+	private static List<GameNode> StepNodes(PlayerToken token) {
+		List<GameNode> nodes = AdjacentNodes(token);
+		Enemy here = BossHere(token);
+		if (here != null) nodes = nodes.FindAll(n => BossArcs.CanLeaveTo(here, token, n));
+		nodes.RemoveAll(n => BossArcs.BossOn(n) != null);
+		return nodes;
+	}
+
+	// The places by a boss the same step can go: round it to the next arc from its node, or into
+	// the arcs the character is in from a neighbouring node. `anyArc` is the dodge's.
+	private static List<(Enemy boss, Vector2I side)> StepSides(PlayerToken token, bool anyArc = false) {
+		var sides = new List<(Enemy, Vector2I)>();
+		Enemy here = BossHere(token);
+		if (here != null) {
+			foreach (Vector2I side in anyArc ? BossArcs.AnySides(here, token) : BossArcs.AroundSides(here, token)) sides.Add((here, side));
+			return sides;
+		}
+		foreach (GameNode node in AdjacentNodes(token)) {
+			if (BossArcs.BossOn(node) is not Enemy boss) continue;
+			foreach (Vector2I side in BossArcs.EntrySides(boss, token)) sides.Add((boss, side));
+		}
+		return sides;
+	}
+
+	private void ShowSides(List<(Enemy boss, Vector2I side)> sides, System.Action<Enemy, Vector2I> onPick, int cost) {
+		foreach ((Enemy boss, Vector2I side) in sides) {
+			Enemy capturedBoss = boss;
+			Vector2I capturedSide = side;
+			ArcSpot spot = ArcSpot.Show(capturedBoss, capturedSide, StepColour(cost), () => onPick(capturedBoss, capturedSide));
+			if (spot == null) continue;
+			arcSpots.Add(spot);
+			CostOnHover(spot, cost);
+		}
+	}
+
+	private Color StepColour(int cost) => cost == 0 ? freeMoveColour : moveColour;
+
+	private void LightStep(GameNode node, int cost) {
+		node.Highlight(StepColour(cost), true);
+		CostOnHover(node.ClickTarget, cost);
+	}
+
+	private void CostOnHover(Control control, int cost) {
+		stepCosts[control] = cost;
+		if (!hoverWired.Add(control)) return;
+		control.MouseEntered += () => {
+			if (stepCosts.TryGetValue(control, out int stamina) && stamina > 0) actionBar?.endurance?.SetGhost(stamina, 0, 0);
+		};
+		control.MouseExited += () => {
+			if (stepCosts.ContainsKey(control)) actionBar?.endurance?.ClearGhost();
+		};
+	}
+
+	// A boss's node is entered by the places lit against its base, not lit itself, so a click on
+	// the node, or on the boss when it is not what the click attacks, takes the lit place
+	// nearest the click.
+	// A click under a lit place goes to it whatever caught it: a character token standing on the
+	// next node can overlap the place.
+	private bool PickSpotOn(GameNode node) {
+		ArcSpot nearest = null;
+		float best = float.MaxValue;
+		Vector2 click = node.GetGlobalMousePosition();
+		foreach (ArcSpot spot in arcSpots) {
+			if (!GodotObject.IsInstanceValid(spot) || !spot.ContainsGlobal(click)) continue;
+			spot.onPick?.Invoke();
+			return true;
+		}
+		foreach (ArcSpot spot in arcSpots) {
+			if (!GodotObject.IsInstanceValid(spot) || spot.GetParent() != node) continue;
+			float distance = (spot.GetGlobalTransform() * (spot.Size * 0.5f)).DistanceTo(click);
+			if (distance < best) {
+				best = distance;
+				nearest = spot;
+			}
+		}
+		nearest?.onPick?.Invoke();
+		return nearest != null;
+	}
+
+	// Onto the boss's node at `side`, or round the boss when already on it.
+	private static async Task StepBeside(PlayerToken token, Enemy boss, Vector2I side) {
+		if (!GodotObject.IsInstanceValid(token) || !GodotObject.IsInstanceValid(boss)) return;
+		Node2D self = (Node2D)token.GetParent();
+		GameNode bossNode = (GameNode)boss.GetParent().GetParent();
+		token.bossSide = side;
+		if (self.GetParent() == bossNode) {
+			Vector2 before = TokenMotion.VisualPosition(self);
+			EncounterManager.FixPositioning(bossNode);
+			TokenMotion.Glide(self, before, lift: true);
+			return;
+		}
+		PathNode from = EncounterManager.pathGrid.NodeFromObj(self);
+		if (!EncounterManager.MovePlayer(self, bossNode, (Control)self.GetParent())) return;
+		token.lastStep = Pushing.Step(from, EncounterManager.pathGrid.NodeFromObj(self));
+		EncounterManager.ApplyNodeHazard(bossNode, self);
+		await EncounterManager.ResolveOverflow(bossNode, self);
 	}
 
 	private static List<GameNode> AdjacentNodes(PlayerToken token) {
@@ -357,11 +502,20 @@ public partial class CharacterTurn : Node
 
 	private void ShowShiftOptions() {
 		if (shiftLeft <= 0 || active == null) return;
-		foreach (GameNode node in AdjacentNodes(active)) {
-			node.Highlight(moveColour, true);
+		foreach (GameNode node in StepNodes(active)) {
+			LightStep(node, 0);
 			shiftNodes.Add(node);
 			if (!highlighted.Contains(node)) highlighted.Add(node);
 		}
+		ShowSides(StepSides(active), ShiftToSide, 0);
+	}
+
+	private async void ShiftToSide(Enemy boss, Vector2I side) {
+		if (active == null || shiftLeft <= 0 || (underway == null && !Commit())) return;
+		ClearHighlights();
+		await StepBeside(active, boss, side);
+		if (active == null || underway == null) return;
+		AfterShift();
 	}
 
 	// A Shift step: free, and not the Walk or a Run. The first one commits the attack.
@@ -377,7 +531,10 @@ public partial class CharacterTurn : Node
 			await EncounterManager.ResolveOverflow(node, self);
 		}
 		if (active == null || underway == null) return;
+		AfterShift();
+	}
 
+	private void AfterShift() {
 		shiftLeft--;
 		if (shiftLeft > 0) Refresh();
 		else if (shiftingAfter) NextUse();
@@ -896,7 +1053,7 @@ public partial class CharacterTurn : Node
 		if (assassin.heroic != Heroic.Kind.BACKSTAB || assassin.player.heroicUsed) return;
 
 		System.Func<Weapon, PlayerMove, bool> reaches = (weapon, move) =>
-			GodotObject.IsInstanceValid(enemy) && AttackTerms.For(assassin, weapon, move, free: true).Reaches(assassin, enemy);
+			GodotObject.IsInstanceValid(enemy) && ReachesWithShift(assassin, enemy, move, AttackTerms.For(assassin, weapon, move, free: true));
 		if (!AnyAttack(assassin.player, reaches)) return;
 
 		backstabChoice = new TaskCompletionSource<(Weapon, PlayerMove)>();
@@ -906,23 +1063,163 @@ public partial class CharacterTurn : Node
 		actionBar.ShowIdle();
 
 		if (chosenMove == null || !GodotObject.IsInstanceValid(assassin) || !GodotObject.IsInstanceValid(enemy) || enemy.isDead) return;
+		AttackTerms terms = AttackTerms.For(assassin, chosenWeapon, chosenMove, free: true);
+
+		// The option in full, as any attack makes it (Matt, Oct 2026): each use its Shift before
+		// the dice, the roll and its Shift after, as many uses as its Repeat, all at the enemy
+		// dodged. Passing before the first step or roll gives the Backstab back; either commits.
+		for (int use = 0; use < chosenMove.Uses; use++) {
+			if (!GodotObject.IsInstanceValid(assassin) || !GodotObject.IsInstanceValid(enemy) || enemy.isDead || EncounterManager.partyDefeated) return;
+			bool lastUse = use == chosenMove.Uses - 1;
+			if (chosenMove.ShiftBefore > 0) {
+				// Pass before anything is done gives the Backstab back; once committed the button
+				// skips just this use, and the next comes with its own Shift (Matt, Oct 2026).
+				string end = use == 0 ? "Pass" : lastUse ? "Done" : "Skip";
+				(bool attack, bool stepped) = await BackstabShift(assassin, enemy, chosenWeapon, chosenMove.ShiftBefore, true, terms, end, lastUse);
+				if (stepped && GodotObject.IsInstanceValid(assassin) && !assassin.player.heroicUsed) SpendBackstab(assassin);
+				if (!GodotObject.IsInstanceValid(assassin) || !GodotObject.IsInstanceValid(enemy) || enemy.isDead) return;
+				if (!attack) {
+					if (assassin.player.heroicUsed && !lastUse) continue;
+					return;
+				}
+			} else if (!terms.Reaches(assassin, enemy)) {
+				return;
+			}
+			if (!assassin.player.heroicUsed) {
+				SpendBackstab(assassin);
+				await CrimsonRobes(assassin);
+				assassin.SufferOwnDamage(terms.selfDamage);
+			}
+			if (terms.aoe && enemy.GetParent()?.GetParent() is GameNode node) {
+				List<Enemy> targets = EnemiesOn(node);
+				List<CombatResolver.AttackOutcome> outcomes = await CombatPresenter.CharacterAttacksNode(assassin, chosenMove, chosenWeapon, node, targets, terms);
+				AfterRoll(assassin, terms, outcomes);
+				await PushHit(assassin, chosenMove, targets);
+			} else {
+				CombatResolver.AttackOutcome outcome = await CombatPresenter.CharacterAttacks(assassin, chosenMove, chosenWeapon, enemy, terms);
+				AfterRoll(assassin, terms, new[] { outcome });
+				await PushHit(assassin, chosenMove, new[] { enemy });
+			}
+			await Riders(assassin, chosenWeapon, chosenMove, interactive: false);
+			if (chosenMove.ShiftAfter > 0 && GodotObject.IsInstanceValid(assassin) && !EncounterManager.partyDefeated) {
+				await BackstabShift(assassin, enemy, chosenWeapon, chosenMove.ShiftAfter, false, terms, "Done", lastUse);
+			}
+		}
+	}
+
+	private static void SpendBackstab(PlayerToken assassin) {
 		assassin.player.heroicUsed = true;
 		assassin.OnHeroicUsed();
-		await CrimsonRobes(assassin);
+	}
 
-		AttackTerms terms = AttackTerms.For(assassin, chosenWeapon, chosenMove, free: true);
-		assassin.SufferOwnDamage(terms.selfDamage);
-		if (terms.aoe && enemy.GetParent()?.GetParent() is GameNode node) {
-			List<Enemy> targets = EnemiesOn(node);
-			List<CombatResolver.AttackOutcome> outcomes = await CombatPresenter.CharacterAttacksNode(assassin, chosenMove, chosenWeapon, node, targets, terms);
-			AfterRoll(assassin, terms, outcomes);
-			await PushHit(assassin, chosenMove, targets);
-		} else {
-			CombatResolver.AttackOutcome outcome = await CombatPresenter.CharacterAttacks(assassin, chosenMove, chosenWeapon, enemy, terms);
-			AfterRoll(assassin, terms, new[] { outcome });
-			await PushHit(assassin, chosenMove, new[] { enemy });
+	// In reach now, or after the option's Shift before the dice.
+	private static bool ReachesWithShift(PlayerToken assassin, Enemy enemy, PlayerMove move, AttackTerms terms) {
+		if (terms.Reaches(assassin, enemy)) return true;
+		int distance = EnemyMovement.Distance((Node2D)assassin.GetParent(), (Node2D)enemy.GetParent());
+		return move.ShiftBefore > 0 && distance - move.ShiftBefore <= terms.range;
+	}
+
+	// ----- Backstab's Shift (p23) -----
+	//
+	// The option's free steps, before or after its dice, made inside the enemy's activation like
+	// the dodge step: the neighbours (and the places by a boss) light blue, the bar shows the
+	// weapon with Pass (before the first use) or Done. Before the dice, the enemy dodged is ringed
+	// while it can be reached, and a click on it (or its node) makes the attack.
+
+	private TaskCompletionSource<bool> shift;
+	private PlayerToken shifter;
+	private Enemy shiftTarget;
+	private int shiftSteps;
+	private bool shiftBeforeDice;
+	private bool shiftStepped;
+	private AttackTerms shiftTerms;
+	public bool isBackstabShifting => shift != null;
+
+	// (whether to attack, whether a step was taken)
+	private async Task<(bool, bool)> BackstabShift(PlayerToken assassin, Enemy enemy, Weapon weapon, int steps, bool beforeDice, AttackTerms terms, string endLabel, bool lastUse) {
+		shifter = assassin;
+		shiftWeapon = weapon;
+		shiftLastUse = lastUse;
+		shiftTarget = enemy;
+		shiftSteps = steps;
+		shiftBeforeDice = beforeDice;
+		shiftStepped = false;
+		shiftTerms = terms;
+		shift = new TaskCompletionSource<bool>();
+		actionBar?.ShowShiftStep(assassin, weapon, endLabel);
+		LightBackstabShift();
+
+		bool attack = await shift.Task;
+
+		shift = null;
+		ClearHighlights();
+		actionBar?.ShowIdle();
+		return (attack, shiftStepped);
+	}
+
+	private Weapon shiftWeapon;
+	private bool shiftLastUse;
+
+	private bool ShiftTargetInReach =>
+		shiftBeforeDice && GodotObject.IsInstanceValid(shiftTarget) && !shiftTarget.isDead && shiftTerms.Reaches(shifter, shiftTarget);
+
+	private void LightBackstabShift() {
+		ClearHighlights();
+		if (!GodotObject.IsInstanceValid(shifter)) return;
+		if (shiftSteps > 0) {
+			foreach (GameNode node in StepNodes(shifter)) {
+				LightStep(node, 0);
+				highlighted.Add(node);
+			}
+			ShowSides(StepSides(shifter), BackstabToSide, 0);
 		}
-		await Riders(assassin, chosenWeapon, chosenMove, interactive: false);
+		if (ShiftTargetInReach) targetRings.Add(TokenHighlight.Attach(shiftTarget, targetRingColour));
+	}
+
+	public async void OnBackstabNodeClicked(GameNode node) {
+		if (shift == null) return;
+		if (shiftSteps > 0 && highlighted.Contains(node)) {
+			Node2D self = (Node2D)shifter.GetParent();
+			PathNode from = EncounterManager.pathGrid.NodeFromObj(self);
+			ClearHighlights();
+			if (EncounterManager.MovePlayer(self, node, (Control)self.GetParent())) {
+				shifter.lastStep = Pushing.Step(from, EncounterManager.pathGrid.NodeFromObj(self));
+				EncounterManager.ApplyNodeHazard(node, self);
+				await EncounterManager.ResolveOverflow(node, self);
+			}
+			AfterBackstabStep();
+			return;
+		}
+		if (ShiftTargetInReach && node == shiftTarget.GetParent()?.GetParent()) {
+			shift.TrySetResult(true);
+			return;
+		}
+		if (shiftSteps > 0) PickSpotOn(node);
+	}
+
+	private async void BackstabToSide(Enemy boss, Vector2I side) {
+		if (shift == null || shiftSteps <= 0) return;
+		ClearHighlights();
+		await StepBeside(shifter, boss, side);
+		AfterBackstabStep();
+	}
+
+	private void AfterBackstabStep() {
+		if (shift == null) return;
+		shiftSteps--;
+		shiftStepped = true;
+		if (shiftSteps <= 0 && !shiftBeforeDice) {
+			shift.TrySetResult(false);
+			return;
+		}
+		// Out of steps with the enemy out of reach: nothing left in this use, so on to the next.
+		if (shiftSteps <= 0 && !ShiftTargetInReach) {
+			shift.TrySetResult(false);
+			return;
+		}
+		// Committed now: the button skips this use rather than giving the Backstab back.
+		if (shiftBeforeDice) actionBar?.ShowShiftStep(shifter, shiftWeapon, shiftLastUse ? "Done" : "Skip");
+		LightBackstabShift();
 	}
 
 	private static bool AnyAttack(Player player, System.Func<Weapon, PlayerMove, bool> reaches) {
@@ -953,6 +1250,13 @@ public partial class CharacterTurn : Node
 		highlighted.Clear();
 		targetNodes.Clear();
 		shiftNodes.Clear();
+		foreach (ArcSpot spot in arcSpots) {
+			hoverWired.Remove(spot);
+			if (GodotObject.IsInstanceValid(spot)) spot.QueueFree();
+		}
+		arcSpots.Clear();
+		if (stepCosts.Count > 0) actionBar?.endurance?.ClearGhost();
+		stepCosts.Clear();
 
 		foreach (TokenHighlight ring in targetRings) TokenHighlight.Detach(ring);
 		targetRings.Clear();

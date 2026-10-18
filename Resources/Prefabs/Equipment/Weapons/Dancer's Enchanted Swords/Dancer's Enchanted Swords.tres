@@ -1,16 +1,16 @@
-[gd_resource type="Resource" script_class="Weapon" load_steps=8 format=3 uid="uid://0pooli55bssb"]
+[gd_resource type="Resource" script_class="Weapon" load_steps=9 format=3 uid="uid://0pooli55bssb"]
 
-[ext_resource type="Script" path="res://Scripts/Equipment/Weapon.cs" id="1_x"]
-[ext_resource type="Texture2D" path="res://Resources/Prefabs/Equipment/Weapons/Dancer's Enchanted Swords/Dancer's Enchanted Swords.png" id="2_x"]
-[ext_resource type="Script" path="res://Scripts/Encounter/Player/PlayerMove.cs" id="3_x"]
-[ext_resource type="Resource" path="res://Resources/Prefabs/Dice/Blue Dice.tres" id="4_x"]
-[ext_resource type="Resource" path="res://Resources/Prefabs/Dice/Black Dice.tres" id="5_x"]
+[ext_resource type="Script" uid="uid://belq7o1svfbh8" path="res://Scripts/Equipment/EquipmentEffect.cs" id="1_lfn6i"]
+[ext_resource type="Script" uid="uid://c6wgrbh73rpq4" path="res://Scripts/Equipment/Weapon.cs" id="1_x"]
+[ext_resource type="Texture2D" uid="uid://cvegtxm0qy8rj" path="res://Resources/Prefabs/Equipment/Weapons/Dancer's Enchanted Swords/Dancer's Enchanted Swords.png" id="2_x"]
+[ext_resource type="Script" uid="uid://ck1wiiu36h1nh" path="res://Scripts/Encounter/Player/PlayerMove.cs" id="3_x"]
+[ext_resource type="Resource" uid="uid://beglixal73dym" path="res://Resources/Prefabs/Dice/Blue Dice.tres" id="4_x"]
+[ext_resource type="Resource" uid="uid://dwwspf5u6xxwa" path="res://Resources/Prefabs/Dice/Black Dice.tres" id="5_x"]
 
 [sub_resource type="Resource" id="PM0"]
 script = ExtResource("3_x")
 staminaCost = 2
 damage = Array[Object]([ExtResource("4_x")])
-attackRange = 0
 isMagic = true
 bonusMovement = 1
 repeat = 2
@@ -19,27 +19,22 @@ repeat = 2
 script = ExtResource("3_x")
 staminaCost = 4
 damage = Array[Object]([ExtResource("5_x"), ExtResource("4_x")])
-attackRange = 0
 isMagic = true
 bonusMovement = 1
 repeat = 2
 
 [resource]
 script = ExtResource("1_x")
-bossTreasure = true
 name = "Dancer's Enchanted Swords"
 image = ExtResource("2_x")
 type = 1
 rarity = 2
-isUpgrade = false
+bossTreasure = true
 numHands = 2
-attackRange = 0
 attacks = Array[Object]([SubResource("PM0"), SubResource("PM1")])
 physicalDefense = null
 magicDefense = null
 dodgeAbility = 1
 upgradeSlots = 1
-strengthReq = 0
 dexterityReq = 36
 intelligenceReq = 26
-faithReq = 0

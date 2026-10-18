@@ -289,6 +289,15 @@ public partial class WorldMapNode : Control {
 	private void DrawEncounter(Vector2 c) {
 		EncounterSpawn toughest = WorldMapManager.GetPlan(data.id)?.Toughest;
 		Texture2D avatar = toughest?.Data?.avatarTexture;
+		int health = toughest?.Health ?? 1;
+		int tier = toughest?.tier ?? 1;
+		// A boss fought as itself shows its own face; a stand-in shows the stand-in's.
+		BossData boss = data.encounterType == WorldEncounterType.BOSS ? WorldMapManager.BossAt(data.id) : null;
+		if (boss != null && boss.Playable && boss.avatarTexture != null) {
+			avatar = boss.avatarTexture;
+			health = boss.health;
+			tier = 1;
+		}
 		if (avatar == null) {
 			DrawLevelIcon(c, new Vector2(72f, 72f));
 			return;
@@ -296,7 +305,7 @@ public partial class WorldMapNode : Control {
 
 		// Beefier enemies loom larger here too, on the board's presence scale but compressed
 		// to fit the hex: radius 20 for a normal face, up to 28 from ×2.5 presence.
-		float presence = Enemy.PresenceFor(toughest.Health);
+		float presence = Enemy.PresenceFor(health);
 		float radius = Mathf.Lerp(20f, 28f, Mathf.Clamp((presence - 1f) / 1.5f, 0f, 1f));
 		const float RIM = 3.5f;
 		Vector2 centre = c + new Vector2(0, -10f);
@@ -305,7 +314,7 @@ public partial class WorldMapNode : Control {
 
 		DrawCircle(centre, radius + RIM * 0.5f, new Color(0.06f, 0.05f, 0.05f, cleared ? 0.6f : 0.95f));
 		DrawAvatarDisc(avatar, centre, radius, tint);
-		Color rim = Enemy.TierRimColour(toughest.tier);
+		Color rim = Enemy.TierRimColour(tier);
 		if (cleared) rim = rim.Lerp(new Color(0.45f, 0.45f, 0.45f), 0.7f);
 		if (stale) rim = rim.Darkened(1f - STALE_RIM);
 		DrawArc(centre, radius, 0, Mathf.Tau, 48, rim, RIM, true);

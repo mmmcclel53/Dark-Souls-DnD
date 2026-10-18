@@ -25,6 +25,33 @@ public static class ConditionArt
 		return texture;
 	}
 
+	// For a status's tooltip (StatusIcon). Null is the Aggro token.
+	public static string Name(EncounterManager.StatusEffect? condition) => condition switch {
+		null => "Aggro",
+		EncounterManager.StatusEffect.BLEED => "Bleed",
+		EncounterManager.StatusEffect.POISON => "Poison",
+		EncounterManager.StatusEffect.FROST => "Frostbite",
+		EncounterManager.StatusEffect.STAGGER => "Stagger",
+		EncounterManager.StatusEffect.ABYSS => "Abyss",
+		EncounterManager.StatusEffect.CALAMITY => "Calamity",
+		EncounterManager.StatusEffect.CORROSION => "Corrosion",
+		EncounterManager.StatusEffect.CURSE => "Curse",
+		_ => "",
+	};
+
+	public static string Description(EncounterManager.StatusEffect? condition) => condition switch {
+		null => "Enemies that hunt the Aggro token come for this character first.",
+		EncounterManager.StatusEffect.BLEED => "The next damage suffered is 2 more, then Bleed comes off.",
+		EncounterManager.StatusEffect.POISON => "Suffer 1 damage at the end of this activation, then Poison comes off.",
+		EncounterManager.StatusEffect.FROST => "Walking, running and dodging cost 1 more stamina. Comes off at the end of this activation.",
+		EncounterManager.StatusEffect.STAGGER => "Weapon attacks cost 1 more stamina. Comes off at the end of this activation.",
+		EncounterManager.StatusEffect.ABYSS => "Suffer 2 damage at the end of this activation, then Abyss comes off.",
+		EncounterManager.StatusEffect.CALAMITY => "-1 on Block and Resist rolls, and dodging needs one more success. Comes off when an attack deals damage.",
+		EncounterManager.StatusEffect.CORROSION => "-1 on Block rolls. Comes off when an attack deals damage.",
+		EncounterManager.StatusEffect.CURSE => "Suffer 1 damage at the end of every activation, and nothing heals. Only resting at a bonfire lifts it.",
+		_ => "",
+	};
+
 	public static Color Colour(EncounterManager.StatusEffect condition) => condition switch {
 		EncounterManager.StatusEffect.BLEED => new Color(0.85f, 0.18f, 0.12f),
 		EncounterManager.StatusEffect.POISON => new Color(0.35f, 0.8f, 0.3f),

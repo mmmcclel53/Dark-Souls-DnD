@@ -13,7 +13,12 @@ using System.Threading.Tasks;
 // direction), through PushPrompt.ChooseNode, whichever side is pushing. With one
 // candidate it is taken without asking, and with none the model is not moved.
 //
-// A character whose gear is immune to Push (Black Iron Greatshield) is never moved.
+// A character whose gear is immune to Push (Black Iron Greatshield) is never moved, and a
+// boss is never pushed by a character's attack (p21).
+//
+// Pushed by a boss, a character stays in the arc it was in (p28): of the nodes ahead, only
+// those in that arc. When a wall leaves none, it goes to an open neighbouring node along the
+// wall instead (p28), the players choosing (Matt, Oct 2026: both rules at once).
 //
 // The over-full node push (p10) is not this: it has no pusher, and keeps
 // EnemyMovement.PushDestination.
@@ -57,12 +62,14 @@ public static class Pushing
 
 	// Returns false when there was nowhere to go and the model stayed put. Awaited, because
 	// with more than one way to go the players are asked.
-	public static async Task<bool> Shove(Node2D model, Vector2I direction) {
+	public static async Task<bool> Shove(Node2D model, Vector2I direction, Enemy boss = null) {
 		PathGrid grid = EncounterManager.pathGrid;
 		if (grid == null || !GodotObject.IsInstanceValid(model)) return false;
 		if (EncounterManager.GetPlayerToken(model)?.player?.IsPushImmune() ?? false) return false;
+		if (EncounterManager.GetEnemy(model)?.isBoss ?? false) return false;
 
 		List<GameNode> options = Destinations(grid.NodeFromObj(model), direction);
+		if (boss != null) options = InArc(boss, model, options);
 		if (options.Count == 0) return false;
 		GameNode destination = options[0];
 		if (options.Count > 1 && EncounterManager.pushPrompt != null) {
@@ -72,5 +79,52 @@ public static class Pushing
 		if (!EncounterManager.MovePlayer(model, destination, (Control)model.GetParent(), stumble: true)) return false;
 		EncounterManager.ApplyNodeHazard(destination, model);
 		return true;
+	}
+
+	// A boss's leap (p29): onto any open neighbouring node, the players choosing, never back onto
+	// `avoid` (the node the boss leapt from, which it still stands on). False when it stayed.
+	public static async Task<bool> ShoveAnywhere(Node2D model, GameNode avoid) {
+		PathGrid grid = EncounterManager.pathGrid;
+		if (grid == null || !GodotObject.IsInstanceValid(model)) return false;
+		if (EncounterManager.GetPlayerToken(model)?.player?.IsPushImmune() ?? false) return false;
+		List<GameNode> options = new List<GameNode>();
+		foreach (PathNode neighbour in grid.GetNeighbours(grid.NodeFromObj(model))) {
+			GameNode node = grid.GameNodeAt(neighbour);
+			if (node != avoid && BossArcs.BossOn(node) == null && !grid.IsBlocked(neighbour) && grid.HasRoom(neighbour)) options.Add(node);
+		}
+		if (options.Count == 0) return false;
+		GameNode destination = options[0];
+		if (options.Count > 1 && EncounterManager.pushPrompt != null) destination = await EncounterManager.pushPrompt.ChooseNode(model, options);
+		if (destination == null || !GodotObject.IsInstanceValid(model)) return false;
+		if (!EncounterManager.MovePlayer(model, destination, (Control)model.GetParent(), stumble: true)) return false;
+		EncounterManager.ApplyNodeHazard(destination, model);
+		return true;
+	}
+
+	private static List<GameNode> InArc(Enemy boss, Node2D model, List<GameNode> ahead) {
+		PlayerToken token = EncounterManager.GetPlayerToken(model);
+		if (token == null || !GodotObject.IsInstanceValid(boss)) return ahead;
+		BossAction.Arcs arcs = BossArcs.OfCharacter(boss, token);
+		GameNode bossNode = boss.GetParent()?.GetParent() as GameNode;
+		List<GameNode> inArc = ahead.FindAll(n => n != bossNode && (BossArcs.OfNode(boss, n) & arcs) != 0);
+		if (inArc.Count > 0) return inArc;
+
+		List<GameNode> open = new List<GameNode>();
+		List<GameNode> byWall = new List<GameNode>();
+		PathGrid grid = EncounterManager.pathGrid;
+		foreach (PathNode neighbour in grid.GetNeighbours(grid.NodeFromObj(model))) {
+			GameNode node = grid.GameNodeAt(neighbour);
+			if (node == bossNode || grid.IsBlocked(neighbour) || !grid.HasRoom(neighbour)) continue;
+			open.Add(node);
+			if (ByWall(neighbour)) byWall.Add(node);
+		}
+		return byWall.Count > 0 ? byWall : open;
+	}
+
+	// A node at the tile's edge: something next to it is off the board.
+	private static bool ByWall(PathNode node) {
+		PathGrid grid = EncounterManager.pathGrid;
+		List<PathNode> neighbours = grid.GetNeighbours(node);
+		return neighbours.Count < 8 || neighbours.Exists(n => grid.IsBlocked(n));
 	}
 }

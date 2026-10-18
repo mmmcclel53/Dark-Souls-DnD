@@ -14,6 +14,8 @@ using System.Threading.Tasks;
 //          hold is the aim, and Land looses it down the line.
 //   ORB    a spell gathering in the caster's hand; the hold is the charge, and Land sends
 //          it streaking to the target.
+//   SLAM   a boss's leap (LeapMotion): the boss itself is the blow, hanging over the target
+//          through the hold, and Land drops it onto them. Nothing is drawn but the impact.
 //
 // The hold is the point. An enemy's attack waits over the character through the Block-or-
 // Dodge choice and the roll; a character's waits while their own roll is shown. Nothing
@@ -27,7 +29,7 @@ using System.Threading.Tasks;
 public partial class AttackSlash : Node2D
 {
 	public enum Style { CHARACTER, ENEMY }
-	public enum Form { BLADE, ARROW, ORB }
+	public enum Form { BLADE, ARROW, ORB, SLAM }
 	public enum Result { HIT, BLOCKED, DODGED }
 
 	public readonly struct Blow {
@@ -178,6 +180,11 @@ public partial class AttackSlash : Node2D
 
 		// The camera creeps in on an enemy's held attack; a character's hold is too short.
 		if (style == Style.ENEMY) BoardFx.camera?.Focus(focusGlobal, focusZoom, focusSeconds);
+		if (form == Form.SLAM) {
+			holding = true;
+			holdTime = 0f;
+			return;
+		}
 		Nudge(form == Form.BLADE ? lunge : lunge * 0.5f, windupSeconds, Tween.EaseType.Out);
 
 		Tween tween = CreateTween().SetParallel(true);
@@ -203,11 +210,19 @@ public partial class AttackSlash : Node2D
 		holding = false;
 		if (style == Style.ENEMY) BoardFx.camera?.Release(releaseSeconds);
 
-		float toContact = form == Form.BLADE ? bladeContactSeconds : FlightSeconds();
+		float toContact = form == Form.BLADE ? bladeContactSeconds : form == Form.SLAM ? 0.14f : FlightSeconds();
 		List<Blow> landed = new List<Blow>(blows);
 		// A dodge starts as the attack comes in, timed to be clear of it at contact.
 		foreach (Blow blow in landed) {
 			if (blow.result == Result.DODGED && IsInstanceValid(blow.target)) Sidestep(blow.target, toContact);
+		}
+
+		if (form == Form.SLAM) {
+			if (LeapMotion.IsAirborne(attacker)) await LeapMotion.Drop(attacker.GetParent() as Node2D);
+			if (!IsInsideTree()) return;
+			foreach (Blow blow in landed) Strike(blow);
+			finishing = true;
+			return;
 		}
 
 		Tween tween = CreateTween();

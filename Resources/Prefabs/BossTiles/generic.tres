@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="BoardLayout" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bosses/BoardLayout.cs" id="1_layout"]
+
+[resource]
+script = ExtResource("1_layout")
+tile = "generic"
+nodeSize = 0.16
+cells = PackedInt32Array(9, 10, 11, 15, 16, 17, 18, 19, 22, 23, 24, 25, 26, 29, 30, 31, 32, 33, 37, 38, 39)
+centres = PackedVector2Array(0.042, 0.324, 0.165, 0.177, 0.325, 0.039, 0.042, 0.64, 0.165, 0.491, 0.332, 0.334, 0.499, 0.174, 0.659, 0.037, 0.164, 0.807, 0.332, 0.648, 0.497, 0.489, 0.663, 0.332, 0.83, 0.171, 0.33, 0.965, 0.496, 0.804, 0.664, 0.645, 0.831, 0.488, 0.958, 0.331, 0.664, 0.964, 0.831, 0.803, 0.958, 0.647)
+entrances = PackedInt32Array(29, 37)
+pillars = PackedInt32Array()
+bossSpawn = 24
+bossFacing = Vector2i(-1, 1)

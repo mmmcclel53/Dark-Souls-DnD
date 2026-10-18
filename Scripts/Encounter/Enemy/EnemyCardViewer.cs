@@ -29,12 +29,15 @@ public partial class EnemyCardViewer : CanvasLayer
 		overlay.MouseFilter = Control.MouseFilterEnum.Ignore;
 	}
 
-	public void ShowCard(EnemyData data) {
-		if (overlay == null || data?.cardTexture == null) return;
+	public void ShowCard(EnemyData data) => ShowTexture(data?.cardTexture);
+
+	// Any printed card: a boss's behaviour cards show here too (BossDeckPanel).
+	public void ShowTexture(Texture2D texture) {
+		if (overlay == null || texture == null) return;
 
 		if (cardImage != null) {
-			cardImage.Texture = data.cardTexture;
-			Vector2 cardSize = data.cardTexture.GetSize();
+			cardImage.Texture = texture;
+			Vector2 cardSize = texture.GetSize();
 			float height = overlay.GetViewportRect().Size.Y * heightFraction;
 			cardImage.CustomMinimumSize = new Vector2(height * cardSize.X / cardSize.Y, height);
 		}

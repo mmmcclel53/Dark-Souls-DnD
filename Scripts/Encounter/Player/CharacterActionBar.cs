@@ -105,7 +105,7 @@ public partial class CharacterActionBar : HBoxContainer
 		cardPreview = new CardPreview();
 		AddChild(cardPreview);
 		WatchCrossForPreview();
-		if (aggroBadge != null) aggroBadge.Material = PlayerToken.AggroMask;
+		if (aggroBadge != null) aggroBadge = WithStatusTooltip(aggroBadge);
 		BuildPillStyles();
 
 		if (endTurnButton != null) endTurnButton.Pressed += OnEndPressed;
@@ -138,6 +138,7 @@ public partial class CharacterActionBar : HBoxContainer
 			PlayerToken holder = EncounterManager.aggroHolder;
 			aggroBadge.Visible = shown != null && GodotObject.IsInstanceValid(holder) && holder.player == shown;
 		}
+		ShowRimStatuses();
 		if (shown == null) return;
 		Endurance bar = shown.endurance;
 		if (bar.staminaSpent == shownSpent && bar.damageTaken == shownDamage) return;
@@ -316,6 +317,28 @@ public partial class CharacterActionBar : HBoxContainer
 
 		if (endTurnButton != null) {
 			endTurnButton.Text = "End Dodge";
+			EnableEndTurn(true);
+		}
+		SetPanelStyle(false);
+		Dim(false);
+	}
+
+	// Backstab's Shift (CharacterTurn.BackstabShift): the weapon up top, nothing to choose on
+	// the rows, the steps lit on the board. End reads Pass before the dice and Done after.
+	public void ShowShiftStep(PlayerToken shifter, Weapon weapon, string endLabel) {
+		if (shifter == null) return;
+		mode = Mode.DODGE_STEP;
+		token = null;
+
+		ShowCharacter(shifter.player);
+		cross?.Show(shifter.player);
+		cross?.SetRaised(weapon);
+		cross?.SetDefending(null);
+		BuildHeader(weapon);
+		ClearChildren(rows);
+
+		if (endTurnButton != null) {
+			endTurnButton.Text = endLabel;
 			EnableEndTurn(true);
 		}
 		SetPanelStyle(false);
@@ -569,6 +592,57 @@ public partial class CharacterActionBar : HBoxContainer
 
 	public Control KeywordIcon(RuleIcons.Kind kind) => Keyword(kind, ChipSize, 0);
 
+	// The shown character's conditions round the avatar's rim, clockwise from just under the
+	// Aggro token (which keeps its own badge, so it is not repeated here). Each has the status
+	// tooltip (StatusIcon). Rebuilt only when the set changes.
+	[Export] public float rimStatusSize = 24f;
+	[Export] public float rimStatusStep = 21f;      // degrees between neighbours
+	[Export] public float rimStatusStart = -16f;    // the first one's angle, 0 is to the right
+	private readonly List<StatusIcon> rimStatuses = new List<StatusIcon>();
+	private int rimMask = -1;
+	private Player rimFor;
+
+	// The scene's Aggro badge, swapped for a StatusIcon in the same place so it has the tooltip.
+	private static Control WithStatusTooltip(Control badge) {
+		StatusIcon icon = StatusIcon.For(null, badge.Size.X);
+		icon.Visible = badge.Visible;
+		badge.GetParent().AddChild(icon);
+		icon.AnchorLeft = badge.AnchorLeft; icon.AnchorRight = badge.AnchorRight;
+		icon.AnchorTop = badge.AnchorTop; icon.AnchorBottom = badge.AnchorBottom;
+		icon.OffsetLeft = badge.OffsetLeft; icon.OffsetRight = badge.OffsetRight;
+		icon.OffsetTop = badge.OffsetTop; icon.OffsetBottom = badge.OffsetBottom;
+		icon.GrowHorizontal = badge.GrowHorizontal;
+		badge.QueueFree();
+		return icon;
+	}
+
+	private void ShowRimStatuses() {
+		if (avatar == null) return;
+		int mask = StatusIcon.Mask(shown, false);
+		if (mask == rimMask && shown == rimFor) return;
+		bool sameCharacter = shown == rimFor && rimMask >= 0;
+		var had = new HashSet<EncounterManager.StatusEffect?>();
+		foreach (StatusIcon old in rimStatuses) {
+			had.Add(old.condition);
+			if (GodotObject.IsInstanceValid(old)) old.QueueFree();
+		}
+		rimStatuses.Clear();
+		rimMask = mask;
+		rimFor = shown;
+
+		Vector2 centre = avatar.Size * 0.5f;
+		float radius = Mathf.Min(avatar.Size.X, avatar.Size.Y) * 0.5f + 2f;
+		List<EncounterManager.StatusEffect?> statuses = StatusIcon.Of(shown, false);
+		for (int i = 0; i < statuses.Count; i++) {
+			StatusIcon icon = StatusIcon.For(statuses[i], rimStatusSize);
+			float angle = Mathf.DegToRad(rimStatusStart + i * rimStatusStep);
+			icon.Position = centre + Vector2.FromAngle(angle) * radius - icon.Size * 0.5f;
+			avatar.AddChild(icon);
+			rimStatuses.Add(icon);
+			if (sameCharacter && !had.Contains(statuses[i])) PopIn.Scale(icon);
+		}
+	}
+
 	public Texture2D AggroArt => (aggroBadge as TextureRect)?.Texture;
 
 	// ----- Tiny Being's Ring -----
@@ -695,6 +769,8 @@ public partial class CharacterActionBar : HBoxContainer
 		List<Dice> pool = new List<Dice>();
 		if (move.damage != null) pool.AddRange(move.damage);
 		pool.AddRange(terms.extraDice);
+		// Standing in a boss's weak arc: a black die more against it (p28).
+		if (BossArcs.InAnyWeakArc(owner) && Heroic.BlackDie != null) pool.Add(Heroic.BlackDie);
 		// Shift sits where the card prints it: before the dice moves before the roll (p23).
 		if (move.ShiftBefore > 0) content.AddChild(Keyword(RuleIcons.Kind.SHIFT, ChipSize, move.ShiftBefore));
 		foreach (DiceChip chip in DiceChip.ForPool(pool, ChipSize)) content.AddChild(chip);

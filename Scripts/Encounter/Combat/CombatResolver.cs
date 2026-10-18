@@ -67,6 +67,9 @@ public static class CombatResolver
 			: ((magic ?? move.isMagic) ? target.magicalDefense : target.physicalDefense);
 
 		int damage = Mathf.Max(0, attackRoll - mitigation);
+		// The Titanite Demon's Titanite Construct: 3 or more from one attack roll is 1 less. Counted
+		// after Block or Resist, before Bleed's +2 (Matt).
+		if (target.boss?.ability == BossData.Ability.TITANITE_CONSTRUCT && damage >= 3) damage -= 1;
 		return new AttackOutcome(attackRoll, mitigation, damage, true, move.statusEffect);
 	}
 

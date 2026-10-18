@@ -18,12 +18,14 @@ public partial class CharacterPortrait : Control
     [Export] public TickBar endurance;
     [Export] public Panel selectionBorder;
     [Export] public Panel activeBorder;
-    [Export] public Container statusEffectsContainer;
+    // Every condition, top down to the right of the art, at most STATUSES_TALL to a column
+    // before the next one starts; the Aggro token under the portrait (Matt, Oct 2026). The arrow
+    // stands beyond the columns.
+    [Export] public Container statuses;
     [Export] public Control activeArrow;
-
-    // Ordered to match EncounterManager.StatusEffect: BLEED, POISON, FROST, STAGGER.
-    [Export] public Array<TextureRect> conditionIcons;
-    [Export] public TextureRect aggroIcon;
+    [Export] public float statusSize = 18f;
+    private const int STATUSES_TALL = 4;
+    private StatusIcon aggro;
 
     // Every character avatar is 3:4, so the frame is too — a square frame cropped the art.
     // A BG3-style strip: the bar carries the active character's full readout, so these
@@ -46,8 +48,12 @@ public partial class CharacterPortrait : Control
         if (avatarButton != null)
             avatarButton.Pressed += () => EmitSignal(SignalName.PortraitClicked);
         if (selectionBorder != null) selectionBorder.Visible = false;
-        if (aggroIcon != null) aggroIcon.Material = PlayerToken.AggroMask;
         if (activeBorder != null) activeBorder.Visible = false;
+        CenterContainer aggroRow = new CenterContainer { MouseFilter = MouseFilterEnum.Ignore };
+        aggro = StatusIcon.For(null, statusSize);
+        aggro.Visible = false;
+        aggroRow.AddChild(aggro);
+        AddChild(aggroRow);
         if (activeArrow != null) {
             activeArrow.Visible = false;
             activeArrow.Draw += DrawArrow;
@@ -109,8 +115,8 @@ public partial class CharacterPortrait : Control
         if (activeArrow == null) return;
         arrowTime += (float)delta;
         float nudge = Mathf.Sin(arrowTime * Mathf.Tau * arrowBobRate) * arrowBob;
-        activeArrow.OffsetLeft = arrowLeft + nudge;
-        activeArrow.OffsetRight = arrowRight + nudge;
+        activeArrow.OffsetLeft = arrowLeft + arrowShift + nudge;
+        activeArrow.OffsetRight = arrowRight + arrowShift + nudge;
     }
 
     public void Refresh() {
@@ -138,21 +144,42 @@ public partial class CharacterPortrait : Control
             damageOverlay.OffsetBottom = 0;
         }
 
-        if (conditionIcons != null) {
-            for (int i = 0; i < conditionIcons.Count; i++) {
-                TextureRect icon = conditionIcons[i];
-                if (icon == null) continue;
-                bool shown = player.conditions.Contains((EncounterManager.StatusEffect)i);
-                // A condition landing pops in; the first fill of the strip does not.
-                if (shown && !icon.Visible && !first) PopIn.Scale(icon);
-                icon.Visible = shown;
-            }
-        }
-        if (aggroIcon != null) aggroIcon.Visible = HasAggro();
-        if (statusEffectsContainer != null) statusEffectsContainer.Visible = shownConditions != 0;
-
+        ShowStatuses(first);
         ApplyActiveState(IsActivating());
     }
+
+    private void ShowStatuses(bool first) {
+        if (statuses == null) return;
+        var had = new System.Collections.Generic.HashSet<EncounterManager.StatusEffect?>();
+        foreach (Node child in statuses.GetChildren()) {
+            if (child is StatusIcon old) had.Add(old.condition);
+            child.QueueFree();
+        }
+        bool holding = HasAggro();
+        if (aggro != null) {
+            if (holding && !aggro.Visible && !first) PopIn.Scale(aggro);
+            aggro.Visible = holding;
+        }
+        var now = StatusIcon.Of(player, false);
+        foreach (EncounterManager.StatusEffect? status in now) {
+            StatusIcon icon = StatusIcon.For(status, statusSize);
+            statuses.AddChild(icon);
+            // A status landing pops in; the first fill does not.
+            if (!first && !had.Contains(status)) PopIn.Scale(icon);
+        }
+        int columns = (now.Count + STATUSES_TALL - 1) / STATUSES_TALL;
+        float wide = columns * (statusSize + 2f);
+        statuses.OffsetRight = statuses.OffsetLeft + Mathf.Max(wide, 1f);
+        statuses.AnchorBottom = 0f;
+        statuses.OffsetBottom = statuses.OffsetTop + STATUSES_TALL * (statusSize + 2f) - 2f;
+        arrowShift = wide;
+        if (activeArrow != null) {
+            activeArrow.OffsetLeft = arrowLeft + arrowShift;
+            activeArrow.OffsetRight = arrowRight + arrowShift;
+        }
+    }
+
+    private float arrowShift;
 
     // The holder is a board token, which is gone outside an encounter.
     private bool HasAggro() {
@@ -160,13 +187,5 @@ public partial class CharacterPortrait : Control
         return GodotObject.IsInstanceValid(holder) && holder.player == player;
     }
 
-    private int ConditionMask() {
-        if (player == null) return 0;
-
-        int mask = HasAggro() ? 1 << 4 : 0;
-        for (int i = 0; i < 4; i++) {
-            if (player.conditions.Contains((EncounterManager.StatusEffect)i)) mask |= 1 << i;
-        }
-        return mask;
-    }
+    private int ConditionMask() => StatusIcon.Mask(player, HasAggro());
 }

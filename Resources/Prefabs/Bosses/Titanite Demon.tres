@@ -1,6 +1,288 @@
-[gd_resource type="Resource" script_class="BossData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="BossData" load_steps=38 format=3]
 
 [ext_resource type="Script" path="res://Scripts/Bosses/BossData.cs" id="1_boss"]
+[ext_resource type="Texture2D" path="res://Resources/Prefabs/Bosses/Titanite Demon/Titanite Demon - Avatar.png" id="2_avatar"]
+[ext_resource type="Script" path="res://Scripts/Bosses/BossCard.cs" id="3_card"]
+[ext_resource type="Script" path="res://Scripts/Bosses/BossAction.cs" id="4_action"]
+[ext_resource type="Texture2D" path="res://Resources/Prefabs/Bosses/Titanite Demon/Titanite Demon.png" id="5_data"]
+[ext_resource type="Texture2D" path="res://Resources/Prefabs/Bosses/Titanite Demon/Cards/Lightning Bolt.png" id="c0_art"]
+[ext_resource type="Texture2D" path="res://Resources/Prefabs/Bosses/Titanite Demon/Cards/Tail Whip.png" id="c1_art"]
+[ext_resource type="Texture2D" path="res://Resources/Prefabs/Bosses/Titanite Demon/Cards/Grab & Smash.png" id="c2_art"]
+[ext_resource type="Texture2D" path="res://Resources/Prefabs/Bosses/Titanite Demon/Cards/Vicious Swing.png" id="c3_art"]
+[ext_resource type="Texture2D" path="res://Resources/Prefabs/Bosses/Titanite Demon/Cards/Double Swing.png" id="c4_art"]
+[ext_resource type="Texture2D" path="res://Resources/Prefabs/Bosses/Titanite Demon/Cards/Vaulting Slam.png" id="c5_art"]
+[ext_resource type="Texture2D" path="res://Resources/Prefabs/Bosses/Titanite Demon/Cards/Double Pole Crush.png" id="c6_art"]
+[ext_resource type="Texture2D" path="res://Resources/Prefabs/Bosses/Titanite Demon/Cards/Sweeping Strike.png" id="c7_art"]
+
+[sub_resource type="Resource" id="a0_0"]
+script = ExtResource("4_action")
+kind = 0
+target = 0
+push = true
+nodes = 1
+arm = 1
+damage = 0
+weak = 0
+condition = 4
+
+[sub_resource type="Resource" id="a0_1"]
+script = ExtResource("4_action")
+kind = 1
+target = 1
+push = false
+damage = 5
+magic = true
+area = false
+node = false
+arcs = 0
+weak = 0
+condition = 4
+
+[sub_resource type="Resource" id="card0"]
+script = ExtResource("3_card")
+cardName = "Lightning Bolt"
+texture = ExtResource("c0_art")
+range = 99
+dodge = 2
+repeat = 1
+heatUp = false
+pillars = false
+actions = Array[Object]([SubResource("a0_0"), SubResource("a0_1")])
+
+[sub_resource type="Resource" id="a1_0"]
+script = ExtResource("4_action")
+kind = 0
+target = 2
+push = true
+nodes = 2
+arm = 0
+damage = 0
+weak = 0
+condition = 4
+
+[sub_resource type="Resource" id="a1_1"]
+script = ExtResource("4_action")
+kind = 1
+target = 0
+push = true
+damage = 4
+magic = false
+area = true
+node = false
+arcs = 14
+weak = 1
+condition = 4
+
+[sub_resource type="Resource" id="card1"]
+script = ExtResource("3_card")
+cardName = "Tail Whip"
+texture = ExtResource("c1_art")
+range = 1
+dodge = 2
+repeat = 1
+heatUp = false
+pillars = false
+actions = Array[Object]([SubResource("a1_0"), SubResource("a1_1")])
+
+[sub_resource type="Resource" id="a2_0"]
+script = ExtResource("4_action")
+kind = 0
+target = 2
+push = false
+nodes = 0
+arm = 0
+damage = 0
+weak = 0
+condition = 4
+
+[sub_resource type="Resource" id="a2_1"]
+script = ExtResource("4_action")
+kind = 1
+target = 2
+push = true
+damage = 6
+magic = false
+area = false
+node = false
+arcs = 0
+weak = 2
+condition = 4
+
+[sub_resource type="Resource" id="card2"]
+script = ExtResource("3_card")
+cardName = "Grab & Smash"
+texture = ExtResource("c2_art")
+range = 1
+dodge = 1
+repeat = 1
+heatUp = false
+pillars = false
+actions = Array[Object]([SubResource("a2_0"), SubResource("a2_1")])
+
+[sub_resource type="Resource" id="a3_0"]
+script = ExtResource("4_action")
+kind = 4
+target = 0
+push = false
+
+[sub_resource type="Resource" id="a3_1"]
+script = ExtResource("4_action")
+kind = 1
+target = 0
+push = false
+damage = 5
+magic = false
+area = true
+node = false
+arcs = 7
+weak = 8
+condition = 4
+
+[sub_resource type="Resource" id="card3"]
+script = ExtResource("3_card")
+cardName = "Vicious Swing"
+texture = ExtResource("c3_art")
+range = 1
+dodge = 1
+repeat = 1
+heatUp = false
+pillars = false
+actions = Array[Object]([SubResource("a3_0"), SubResource("a3_1")])
+
+[sub_resource type="Resource" id="a4_0"]
+script = ExtResource("4_action")
+kind = 0
+target = 2
+push = true
+nodes = 1
+arm = 0
+damage = 0
+weak = 0
+condition = 4
+
+[sub_resource type="Resource" id="a4_1"]
+script = ExtResource("4_action")
+kind = 1
+target = 0
+push = false
+damage = 4
+magic = false
+area = true
+node = false
+arcs = 1
+weak = 4
+condition = 4
+
+[sub_resource type="Resource" id="card4"]
+script = ExtResource("3_card")
+cardName = "Double Swing"
+texture = ExtResource("c4_art")
+range = 1
+dodge = 1
+repeat = 2
+heatUp = false
+pillars = false
+actions = Array[Object]([SubResource("a4_0"), SubResource("a4_1")])
+
+[sub_resource type="Resource" id="a5_0"]
+script = ExtResource("4_action")
+kind = 5
+target = 1
+push = true
+damage = 6
+condition = 4
+
+[sub_resource type="Resource" id="a5_1"]
+script = ExtResource("4_action")
+kind = 0
+target = 1
+push = false
+nodes = 0
+arm = 0
+damage = 0
+weak = 0
+condition = 4
+
+[sub_resource type="Resource" id="card5"]
+script = ExtResource("3_card")
+cardName = "Vaulting Slam"
+texture = ExtResource("c5_art")
+range = 0
+dodge = 2
+repeat = 1
+heatUp = true
+pillars = false
+actions = Array[Object]([SubResource("a5_0"), SubResource("a5_1")])
+
+[sub_resource type="Resource" id="a6_0"]
+script = ExtResource("4_action")
+kind = 1
+target = 0
+push = false
+damage = 5
+magic = false
+area = true
+node = false
+arcs = 1
+weak = 0
+condition = 4
+
+[sub_resource type="Resource" id="a6_1"]
+script = ExtResource("4_action")
+kind = 0
+target = 0
+push = true
+nodes = 1
+arm = 1
+damage = 0
+weak = 0
+condition = 4
+
+[sub_resource type="Resource" id="card6"]
+script = ExtResource("3_card")
+cardName = "Double Pole Crush"
+texture = ExtResource("c6_art")
+range = 2
+dodge = 1
+repeat = 2
+heatUp = true
+pillars = false
+actions = Array[Object]([SubResource("a6_0"), SubResource("a6_1")])
+
+[sub_resource type="Resource" id="a7_0"]
+script = ExtResource("4_action")
+kind = 0
+target = 0
+push = true
+nodes = 2
+arm = 1
+damage = 0
+weak = 0
+condition = 4
+
+[sub_resource type="Resource" id="a7_1"]
+script = ExtResource("4_action")
+kind = 1
+target = 0
+push = false
+damage = 6
+magic = false
+area = true
+node = false
+arcs = 11
+weak = 4
+condition = 4
+
+[sub_resource type="Resource" id="card7"]
+script = ExtResource("3_card")
+cardName = "Sweeping Strike"
+texture = ExtResource("c7_art")
+range = 2
+dodge = 1
+repeat = 1
+heatUp = true
+pillars = false
+actions = Array[Object]([SubResource("a7_0"), SubResource("a7_1")])
 
 [resource]
 script = ExtResource("1_boss")
@@ -8,3 +290,15 @@ bossName = "Titanite Demon"
 kind = 0
 final = false
 treasure = PackedStringArray("Titanite Catch Pole", "Titanite")
+avatarTexture = ExtResource("2_avatar")
+cardTexture = ExtResource("5_data")
+portraitRegion = Rect2(0.3240, 0.1088, 0.3520, 0.3524)
+threatLevel = 10
+health = 22
+physicalDefense = 3
+magicalDefense = 2
+heatUp = 10
+deckSize = 4
+ability = 4
+cards = Array[Object]([SubResource("card0"), SubResource("card1"), SubResource("card2"), SubResource("card3"), SubResource("card4"), SubResource("card5"), SubResource("card6"), SubResource("card7")])
+tile = "generic"

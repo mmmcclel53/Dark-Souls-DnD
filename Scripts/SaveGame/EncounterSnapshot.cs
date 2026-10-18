@@ -24,6 +24,8 @@ public partial class EncounterSnapshot : Resource
 	[Export] public EnemyState[] enemies = new EnemyState[0];
 	// Abyss tokens on the board, as grid index / enemy phases left pairs.
 	[Export] public int[] abyss = new int[0];
+	// Grid indices of the pillars smashed so far (Pillars of Woe).
+	[Export] public int[] pillarsDown = new int[0];
 
 	public static EncounterSnapshot Capture(string worldNode, bool characterPhase, Player[] party) {
 		EncounterSnapshot snapshot = new EncounterSnapshot {
@@ -55,6 +57,11 @@ public partial class EncounterSnapshot : Resource
 			if (node != null && node.abyss > 0) abyss.AddRange(new[] { i, node.abyss });
 		}
 		snapshot.abyss = abyss.ToArray();
+		List<int> down = new List<int>();
+		for (int i = 0; i < EncounterManager.gridSize * EncounterManager.gridSize; i++) {
+			if (EncounterManager.GameNodeAtIndex(i)?.pillar == GameNode.Pillar.BROKEN) down.Add(i);
+		}
+		snapshot.pillarsDown = down.ToArray();
 		return snapshot;
 	}
 

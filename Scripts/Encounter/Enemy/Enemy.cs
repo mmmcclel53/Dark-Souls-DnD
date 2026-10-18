@@ -77,6 +77,10 @@ public partial class Enemy : TextureButton
 		this.nonAggroPlayers = nonAggroPlayers;
 		moveQueue.Clear();
 		lastStep = Vector2I.Zero;
+		if (isBoss) {
+			ActivateBoss();
+			return;
+		}
 		foreach (EnemyMove move in moves) {
 			moveQueue.Enqueue(move);
 		}
@@ -266,11 +270,13 @@ public partial class Enemy : TextureButton
 	// The blade goes up first and stops short of the character; it stays there through the
 	// choice and the roll, and only comes down once the presenter knows the outcome.
 	// Returns whether they were hit: only a successful dodge is not (p20).
-	private async Task<bool> Strike(Node2D playerObj, EnemyMove move) {
+	// `slam`: the blow is the enemy itself coming down from a leap (AttackSlash.Form.SLAM).
+	private async Task<bool> Strike(Node2D playerObj, EnemyMove move, bool slam = false) {
 		PlayerToken token = EncounterManager.GetPlayerToken(playerObj);
 		if (token == null) return false;
 
-		AttackSlash swing = AttackSlash.Begin(this, token, AttackSlash.Style.ENEMY, AttackSlash.FormFor(move.isMagic, move.attackRange));
+		AttackSlash.Form form = slam ? AttackSlash.Form.SLAM : AttackSlash.FormFor(move.isMagic, move.attackRange);
+		AttackSlash swing = AttackSlash.Begin(this, token, AttackSlash.Style.ENEMY, form);
 		if (swing != null) await swing.Windup();
 
 		int dodgeCost = CombatResolver.DodgeStaminaCost(token, this);
@@ -352,10 +358,11 @@ public partial class Enemy : TextureButton
 		// Bleed adds 2 to the damage suffered, then comes off (p21).
 		if (conditions.Remove(EncounterManager.StatusEffect.BLEED)) {
 			damage += 2;
-			}
+		}
 
 		currentHealth = Mathf.Max(0, currentHealth - damage);
 		BoardFloat.Number(this, -damage, BoardFloat.DAMAGE);
+		CheckHeatUp(damage);
 		if (currentHealth <= 0 && !isDead) {
 			isDead = true;
 			// The ghost does the dying; this token is gone the moment the turn loop looks.
@@ -376,6 +383,11 @@ public partial class Enemy : TextureButton
 	// Abyss, Calamity, Corrosion and Curse (the ones after NONE) are characters' only.
 	public void ApplyCondition(EncounterManager.StatusEffect condition) {
 		if (condition >= EncounterManager.StatusEffect.NONE) return;
+		// The Boreal Outrider Knight's Ice in His Veins: never Frostbite or Stagger.
+		if (boss?.ability == BossData.Ability.ICE_IN_HIS_VEINS
+			&& (condition == EncounterManager.StatusEffect.FROST || condition == EncounterManager.StatusEffect.STAGGER)) return;
+		// The Royal Rat Authority's Royal Protection: immune to Poison.
+		if (boss?.ability == BossData.Ability.ROYAL_PROTECTION && condition == EncounterManager.StatusEffect.POISON) return;
 		if (conditions.Add(condition)) ConditionBurst.Play(this, condition);
 	}
 
@@ -425,6 +437,7 @@ public partial class Enemy : TextureButton
 		if (Presence >= LoomingShadow.MIN_PRESENCE) {
 			AddChild(new LoomingShadow { weight = Mathf.Clamp((Presence - 1f) / 1.5f, 0f, 1f) });
 		}
+		if (isBoss) AddChild(new BossArcRing { boss = this });
 
 		SetActivating(false);
 
